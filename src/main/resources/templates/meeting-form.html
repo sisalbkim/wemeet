@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('새 모임 만들기')}"></head>
+<body>
+<div class="app-shell">
+    <header th:replace="~{fragments/layout :: topBar}"></header>
+
+    <main class="page">
+        <section class="page-heading">
+            <div>
+                <h1>새 모임 만들기</h1>
+                <p>카테고리와 참여 친구를 고르면 중간 지점 후보를 먼저 보여줍니다.</p>
+            </div>
+        </section>
+
+        <form class="form-stack" method="post" th:action="@{/meetings/preview}">
+            <section class="panel">
+                <label class="field-label" for="meetingName">모임 이름</label>
+                <input class="text-input" id="meetingName" name="meetingName" placeholder="예: 주말 맛집 탐방">
+            </section>
+
+            <section class="panel">
+                <label class="field-label" for="meetingDescription">모임 설명</label>
+                <textarea class="text-area" id="meetingDescription" name="meetingDescription" placeholder="모임에 대해 설명해주세요"></textarea>
+            </section>
+
+            <section class="panel">
+                <label class="field-label" for="meetingDate">모임 날짜</label>
+                <input class="text-input" id="meetingDate" name="meetingDate" type="date">
+            </section>
+
+            <section class="panel">
+                <div class="section-heading">
+                    <h2>카테고리</h2>
+                </div>
+                <div class="radio-grid">
+                    <label class="choice-chip" th:each="category : ${categories}" th:classappend="${selectedCategory == category.label} ? ' is-selected'">
+                        <input type="radio" name="category" th:value="${category.label}" th:checked="${selectedCategory == category.label}">
+                        <span th:text="${category.label}">맛집</span>
+                    </label>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="section-heading">
+                    <h2>출발지 기준</h2>
+                    <span>내 기본 주소: <strong th:text="${profile.baseAddress}">서울특별시 중구 명동길 74</strong></span>
+                </div>
+                <p class="muted-note">현재는 프로필에 등록한 기본 출발지를 사용하는 흐름으로 연결해두었습니다.</p>
+            </section>
+
+            <section class="panel">
+                <div class="section-heading">
+                    <h2>참여 친구 선택</h2>
+                </div>
+                <div class="card-stack">
+                    <label class="friend-selector" th:each="friend : ${friends}">
+                        <input type="checkbox" name="friendIds" th:value="${friend.id}" checked>
+                        <span class="avatar-badge" th:text="${#strings.substring(friend.name,0,1)}">이</span>
+                        <span class="friend-selector__body">
+                            <strong th:text="${friend.name}">이영희</strong>
+                            <small th:text="${friend.handle}">@user456</small>
+                            <small th:text="${friend.addressHint}">성수동 출발</small>
+                        </span>
+                    </label>
+                </div>
+            </section>
+
+            <div class="submit-row">
+                <button class="primary-button" type="submit">추천 장소 보기</button>
+                <a class="secondary-button" th:href="@{/home}">취소</a>
+            </div>
+        </form>
+    </main>
+
+    <nav th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>
+</div>
+</body>
+</html>

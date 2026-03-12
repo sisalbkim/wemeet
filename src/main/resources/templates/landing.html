@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('시작하기')}"></head>
+<body>
+<div class="app-shell">
+    <header th:replace="~{fragments/layout :: topBar}"></header>
+
+    <main class="page page--guest">
+        <section class="welcome-card">
+            <div class="welcome-card__badge">we meet</div>
+            <h1>모이기 전, 어디서 만날지부터 정리하세요</h1>
+            <p>친구들과 중간 지점을 찾고, 그 근처 맛집이나 놀거리를 빠르게 고를 수 있게 만드는 서비스입니다.</p>
+            <div class="cta-row">
+                <a class="primary-button" th:href="@{/login}">로그인</a>
+                <a class="secondary-button" th:href="@{/signup}">회원가입</a>
+                <a class="secondary-button" th:href="@{/search/results(category='맛집', guest=true)}">둘러보기</a>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading">
+                <h2>빠른 근처 장소 검색</h2>
+                <span>로그인 전에는 예시 추천 결과만 미리 볼 수 있습니다</span>
+            </div>
+            <div class="chip-grid">
+                <a class="filter-chip filter-chip--link" th:each="category : ${categories}"
+                   th:href="@{/search/results(category=${category.label}, guest=true)}"
+                   th:text="${category.label}">
+                    맛집
+                </a>
+            </div>
+        </section>
+
+        <section class="login-launcher">
+            <h2>로그인하면 열리는 기능</h2>
+            <div class="link-grid">
+                <article class="link-tile">
+                    <strong>친구 관리</strong>
+                    <p>친구 코드로 친구를 추가하고 함께 모일 사람을 선택합니다.</p>
+                </article>
+                <article class="link-tile">
+                    <strong>모임 생성</strong>
+                    <p>카테고리와 날짜를 정한 뒤 추천 장소를 바로 볼 수 있습니다.</p>
+                </article>
+                <article class="link-tile">
+                    <strong>검색 기록</strong>
+                    <p>이전에 봤던 장소 후보와 태그를 다시 열어볼 수 있습니다.</p>
+                </article>
+                <article class="link-tile">
+                    <strong>마이페이지</strong>
+                    <p>기본 출발지 주소와 친구 코드를 관리할 수 있습니다.</p>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <nav th:replace="~{fragments/layout :: guestBottomNav(${activeTab})}"></nav>
+</div>
+</body>
+</html>

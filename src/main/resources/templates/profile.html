@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('프로필')}"></head>
+<body>
+<div class="app-shell">
+    <header th:replace="~{fragments/layout :: topBar}"></header>
+
+    <main class="page">
+        <section class="profile-hero">
+            <div class="profile-avatar" th:text="${#strings.substring(profile.name,0,1)}">김</div>
+            <h1 th:text="${profile.name}">김철수</h1>
+            <p th:text="${profile.handle}">@user123</p>
+            <button class="ghost-button ghost-button--light" type="button">프로필 수정</button>
+        </section>
+
+        <section class="stat-grid">
+            <article class="stat-card">
+                <strong th:text="${profile.createdMeetings}">2</strong>
+                <span>생성한 모임</span>
+            </article>
+            <article class="stat-card">
+                <strong th:text="${profile.friendCount}">2</strong>
+                <span>친구</span>
+            </article>
+            <article class="stat-card">
+                <strong th:text="${profile.joinedMeetings}">3</strong>
+                <span>참여한 모임</span>
+            </article>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading">
+                <h2>계정 정보</h2>
+            </div>
+            <div class="info-list">
+                <article class="info-item">
+                    <span class="info-item__label">아이디</span>
+                    <strong th:text="${profile.handle}">@user123</strong>
+                </article>
+                <article class="info-item">
+                    <span class="info-item__label">친구 코드</span>
+                    <strong th:text="${profile.friendCode}">FRIEND123</strong>
+                </article>
+                <article class="info-item info-item--accent">
+                    <span class="info-item__label">집 주소 (기본 출발지)</span>
+                    <strong th:text="${profile.baseAddress}">서울특별시 중구 명동길 74</strong>
+                </article>
+                <article class="info-item">
+                    <span class="info-item__label">비밀번호</span>
+                    <strong th:text="${profile.passwordMask}">••••••••</strong>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading">
+                <h2>설정</h2>
+            </div>
+            <div class="info-list">
+                <article class="info-item"><strong>알림 설정</strong></article>
+                <article class="info-item"><strong>개인정보 처리방침</strong></article>
+                <article class="info-item"><strong>서비스 이용약관</strong></article>
+            </div>
+        </section>
+
+        <button class="danger-button" type="button">로그아웃</button>
+    </main>
+
+    <nav th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>
+</div>
+</body>
+</html>

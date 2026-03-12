@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('친구 관리')}"></head>
+<body>
+<div class="app-shell">
+    <header th:replace="~{fragments/layout :: topBar}"></header>
+
+    <main class="page">
+        <section class="page-heading">
+            <div>
+                <h1>친구 관리</h1>
+                <p>모임에 초대할 친구를 미리 정리해두세요.</p>
+            </div>
+            <button class="ghost-button" type="button">친구 추가</button>
+        </section>
+
+        <section class="code-card">
+            <p class="eyebrow">내 친구 코드</p>
+            <div class="code-card__row">
+                <strong th:text="${profile.friendCode}">FRIEND123</strong>
+                <button class="copy-button" data-copy-target="#friend-code" type="button">복사</button>
+            </div>
+            <span id="friend-code" class="visually-hidden" th:text="${profile.friendCode}">FRIEND123</span>
+        </section>
+
+        <section class="panel" th:if="${!friendRequests.isEmpty()}">
+            <div class="section-heading">
+                <h2>친구 요청</h2>
+            </div>
+            <div class="card-stack">
+                <article class="friend-card friend-card--request" th:each="request : ${friendRequests}">
+                    <div class="avatar-badge" th:text="${#strings.substring(request.name,0,1)}">최</div>
+                    <div class="friend-card__body">
+                        <strong th:text="${request.name}">최지우</strong>
+                        <span th:text="${request.handle}">@user321</span>
+                    </div>
+                    <div class="friend-card__actions">
+                        <button class="icon-button icon-button--accept" type="button">승인</button>
+                        <button class="icon-button icon-button--reject" type="button">거절</button>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading">
+                <h2 th:text="${'내 친구 (' + #lists.size(friends) + ')'}">내 친구 (2)</h2>
+            </div>
+            <div class="card-stack">
+                <article class="friend-card" th:each="friend : ${friends}">
+                    <div class="avatar-badge" th:text="${#strings.substring(friend.name,0,1)}">이</div>
+                    <div class="friend-card__body">
+                        <strong th:text="${friend.name}">이영희</strong>
+                        <span th:text="${friend.handle}">@user456</span>
+                        <small th:text="${friend.addressHint}">성수동 출발</small>
+                    </div>
+                    <time th:text="${friend.joinedOn}">2026. 3. 1.</time>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <nav th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>
+</div>
+</body>
+</html>
