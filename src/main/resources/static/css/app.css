@@ -1,4 +1,5 @@
 @import url("https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css");
+@import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
 
 :root {
     --bg-top: #eef6ea;
@@ -601,6 +602,39 @@ textarea {
     gap: 10px;
 }
 
+.inline-row,
+.helper-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.inline-row {
+    flex-wrap: wrap;
+}
+
+.inline-row .text-input {
+    flex: 1 1 220px;
+}
+
+.helper-row {
+    justify-content: space-between;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+.text-link {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.inline-panel {
+    padding: 16px;
+    border: 1px solid rgba(91, 112, 152, 0.14);
+    border-radius: var(--radius-md);
+    background: rgba(47, 107, 255, 0.05);
+}
+
 .field-label {
     display: block;
     margin-bottom: 10px;
@@ -749,6 +783,13 @@ textarea {
     overflow: hidden;
 }
 
+.map-canvas {
+    min-height: 280px;
+    border: 1px solid rgba(91, 112, 152, 0.14);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
 .map-placeholder__pin {
     position: absolute;
     width: 18px;
@@ -783,6 +824,21 @@ textarea {
     background: rgba(255, 255, 255, 0.88);
     color: var(--text);
     line-height: 1.45;
+}
+
+.map-placeholder__label--static {
+    position: static;
+    margin-top: 12px;
+}
+
+.leaflet-popup-content {
+    margin: 10px 12px;
+    line-height: 1.45;
+}
+
+.leaflet-popup-content strong {
+    display: block;
+    margin-bottom: 4px;
 }
 
 .venue-card {

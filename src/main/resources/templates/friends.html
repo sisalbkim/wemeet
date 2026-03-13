@@ -11,7 +11,21 @@
                 <h1>친구 관리</h1>
                 <p>모임에 초대할 친구를 미리 정리해두세요.</p>
             </div>
-            <button class="ghost-button" type="button">친구 추가</button>
+            <a class="ghost-button" th:href="@{/meetings/new}">모임으로 이동</a>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading">
+                <h2>친구 코드로 추가</h2>
+                <span>상대가 공유한 코드를 입력합니다</span>
+            </div>
+            <div class="notice-banner notice-banner--error" th:if="${friendError}" th:text="${friendError}">친구 추가 실패</div>
+            <div class="notice-banner" th:if="${friendNotice}" th:text="${friendNotice}">친구 추가 성공</div>
+            <form class="form-stack" method="post" th:action="@{/friends/add}">
+                <input class="text-input" name="friendCode" placeholder="예: FRIEND456" autocomplete="off">
+                <input type="hidden" name="redirectTo" value="/friends">
+                <button class="primary-button" type="submit">친구 코드 추가</button>
+            </form>
         </section>
 
         <section class="code-card">

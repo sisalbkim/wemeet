@@ -14,6 +14,9 @@
         </section>
 
         <form class="form-stack" method="post" th:action="@{/meetings/preview}">
+            <div class="notice-banner notice-banner--error" th:if="${friendError}" th:text="${friendError}">친구 추가 실패</div>
+            <div class="notice-banner" th:if="${friendNotice}" th:text="${friendNotice}">친구 추가 성공</div>
+
             <section class="panel">
                 <label class="field-label" for="meetingName">모임 이름</label>
                 <input class="text-input" id="meetingName" name="meetingName" placeholder="예: 주말 맛집 탐방">
@@ -22,6 +25,44 @@
             <section class="panel">
                 <label class="field-label" for="meetingDescription">모임 설명</label>
                 <textarea class="text-area" id="meetingDescription" name="meetingDescription" placeholder="모임에 대해 설명해주세요"></textarea>
+            </section>
+
+            <section class="panel">
+                <div class="section-heading">
+                    <h2>참여 인원 먼저 정하기</h2>
+                    <span>친구 선택 후 추천 방식을 고르는 흐름입니다</span>
+                </div>
+                <label class="field-label" for="friendCode">친구 코드로 바로 추가</label>
+                <div class="inline-row">
+                    <input class="text-input" id="friendCode" name="friendCode" placeholder="예: FRIEND456">
+                    <input type="hidden" name="redirectTo" value="/meetings/new">
+                    <button class="ghost-button" type="submit" formaction="/friends/add" formmethod="post" formnovalidate>코드 추가</button>
+                </div>
+                <div class="helper-row">
+                    <span class="muted-note">친구 페이지에서 먼저 추가해도 됩니다.</span>
+                    <a class="text-link" th:href="@{/friends}">친구 관리로 이동</a>
+                </div>
+                <div class="card-stack">
+                    <label class="friend-selector">
+                        <input type="checkbox" name="friendIds" th:value="${profile.id}" checked disabled>
+                        <input type="hidden" name="friendIds" th:value="${profile.id}">
+                        <span class="avatar-badge" th:text="${#strings.substring(profile.name,0,1)}">김</span>
+                        <span class="friend-selector__body">
+                            <strong th:text="${profile.name + ' (나)'}">김철수 (나)</strong>
+                            <small th:text="${profile.handle}">@user123</small>
+                            <small th:text="${profile.baseAddress}">서울특별시 중구 명동길 74</small>
+                        </span>
+                    </label>
+                    <label class="friend-selector" th:each="friend : ${friends}">
+                        <input type="checkbox" name="friendIds" th:value="${friend.id}" checked>
+                        <span class="avatar-badge" th:text="${#strings.substring(friend.name,0,1)}">이</span>
+                        <span class="friend-selector__body">
+                            <strong th:text="${friend.name}">이영희</strong>
+                            <small th:text="${friend.handle}">@user456</small>
+                            <small th:text="${friend.addressHint}">성수동 출발</small>
+                        </span>
+                    </label>
+                </div>
             </section>
 
             <section class="panel">
@@ -35,8 +76,53 @@
                 </div>
                 <div class="radio-grid">
                     <label class="choice-chip" th:each="category : ${categories}" th:classappend="${selectedCategory == category.label} ? ' is-selected'">
-                        <input type="radio" name="category" th:value="${category.label}" th:checked="${selectedCategory == category.label}">
+                        <input type="radio" name="category" th:value="${category.label}" th:checked="${selectedCategory == category.label}" required>
                         <span th:text="${category.label}">맛집</span>
+                    </label>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="section-heading">
+                    <h2>추천 방식</h2>
+                    <span>장소를 고르는 기준을 정합니다</span>
+                </div>
+                <div class="card-stack">
+                    <label class="friend-selector">
+                        <input type="radio" name="mode" value="CENTER" th:checked="${selectedMode == 'CENTER'}">
+                        <span class="avatar-badge">1</span>
+                        <span class="friend-selector__body">
+                            <strong>중심점 부근</strong>
+                            <small>참가자 전체의 중심 좌표에 가까운 후보를 우선 추천합니다.</small>
+                        </span>
+                    </label>
+                    <label class="friend-selector">
+                        <input type="radio" name="mode" value="ANCHOR" th:checked="${selectedMode == 'ANCHOR'}">
+                        <span class="avatar-badge">2</span>
+                        <span class="friend-selector__body">
+                            <strong>특정 인물 근처</strong>
+                            <small>이 옵션을 고르면 아래에서 기준 인물을 선택합니다.</small>
+                        </span>
+                    </label>
+                    <div class="inline-panel" data-anchor-panel th:attr="hidden=${selectedMode != 'ANCHOR'} ? 'hidden' : null">
+                        <label class="field-label" for="anchorId">기준 인물 선택</label>
+                        <select class="text-input" id="anchorId" name="anchorId">
+                            <option th:value="${profile.id}" th:selected="${selectedAnchorId == profile.id}" th:text="${profile.name + ' (나)'}">김철수 (나)</option>
+                            <option th:each="friend : ${friends}"
+                                    th:value="${friend.id}"
+                                    th:selected="${selectedAnchorId == friend.id}"
+                                    th:text="${friend.name}">
+                                이영희
+                            </option>
+                        </select>
+                    </div>
+                    <label class="friend-selector">
+                        <input type="radio" name="mode" value="RANDOM" th:checked="${selectedMode == 'RANDOM'}">
+                        <span class="avatar-badge">3</span>
+                        <span class="friend-selector__body">
+                            <strong>랜덤</strong>
+                            <small>상식적인 후보군 안에서 랜덤하게 제안합니다.</small>
+                        </span>
                     </label>
                 </div>
             </section>
@@ -47,23 +133,6 @@
                     <span>내 기본 주소: <strong th:text="${profile.baseAddress}">서울특별시 중구 명동길 74</strong></span>
                 </div>
                 <p class="muted-note">현재는 프로필에 등록한 기본 출발지를 사용하는 흐름으로 연결해두었습니다.</p>
-            </section>
-
-            <section class="panel">
-                <div class="section-heading">
-                    <h2>참여 친구 선택</h2>
-                </div>
-                <div class="card-stack">
-                    <label class="friend-selector" th:each="friend : ${friends}">
-                        <input type="checkbox" name="friendIds" th:value="${friend.id}" checked>
-                        <span class="avatar-badge" th:text="${#strings.substring(friend.name,0,1)}">이</span>
-                        <span class="friend-selector__body">
-                            <strong th:text="${friend.name}">이영희</strong>
-                            <small th:text="${friend.handle}">@user456</small>
-                            <small th:text="${friend.addressHint}">성수동 출발</small>
-                        </span>
-                    </label>
-                </div>
             </section>
 
             <div class="submit-row">
