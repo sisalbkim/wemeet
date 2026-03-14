@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const markersById = new Map();
         const bounds = [];
+        const venueCards = Array.from(document.querySelectorAll("[data-map-target]"));
 
         const styleForPoint = (point) => {
             if (point.markerType === "midpoint") {
@@ -63,12 +64,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
         map.fitBounds(bounds, { padding: [24, 24] });
 
-        document.querySelectorAll("[data-map-target]").forEach((card) => {
+        const focusVenueCard = (targetCard) => {
+            venueCards.forEach((card) => {
+                card.classList.toggle("is-focused", card === targetCard);
+            });
+        };
+
+        venueCards.forEach((card) => {
             card.addEventListener("mouseenter", () => {
                 const marker = markersById.get(card.dataset.mapTarget);
                 if (marker) {
                     marker.openPopup();
                 }
+            });
+
+            card.addEventListener("click", () => {
+                const marker = markersById.get(card.dataset.mapTarget);
+                if (!marker) {
+                    return;
+                }
+
+                const target = marker.getLatLng();
+                map.flyTo(target, Math.max(map.getZoom(), 15), {
+                    animate: true,
+                    duration: 0.6
+                });
+                marker.openPopup();
+                focusVenueCard(card);
+                mapElement.scrollIntoView({ behavior: "smooth", block: "center" });
             });
         });
     };

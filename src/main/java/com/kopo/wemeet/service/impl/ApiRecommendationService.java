@@ -32,8 +32,10 @@ public class ApiRecommendationService implements IApiRecommendationService {
     private final List<CandidateVenue> candidateVenues = List.of(
             new CandidateVenue("몽탄", "맛집", "용산", "삼각지역", "서울 용산구 백범로99길 50", 37.5344, 126.9727, "삼각지권에서 실제로 많이 찾는 우대갈비 맛집입니다.", List.of("용산권 실존 맛집", "네이버 검색 노출 쉬움")),
             new CandidateVenue("을지로보석", "맛집", "을지로", "을지로3가역", "서울특별시 중구 저동2가 84-11 3층", 37.5669, 126.9913, "을지로권에서 검색되는 실제 식당을 기준으로 넣었습니다.", List.of("힙지로 실존 매장", "식사 후 2차 동선 좋음")),
+            new CandidateVenue("청기와타운 왕십리역사점", "맛집", "왕십리", "왕십리역", "서울특별시 성동구 왕십리광장로 17 지상1층 C-04호", 37.5610, 127.0381, "왕십리역에서 실제로 검색되는 식당을 후보에 반영했습니다.", List.of("왕십리권 실존 맛집", "역사 내부 접근성")),
             new CandidateVenue("블루보틀 성수 카페", "카페", "성수", "뚝섬역", "서울 성동구 아차산로 7", 37.5477, 127.0459, "성수권에서 실제 검색되는 대표 카페입니다.", List.of("네이버 검색 가능", "성수 접근성 우수")),
             new CandidateVenue("어니언 성수", "카페", "성수", "성수역", "서울 성동구 아차산로9길 8", 37.5448, 127.0561, "성수 카페 거리에서 실제로 많이 찾는 매장입니다.", List.of("빵/커피 모두 가능", "성수동 실존 핫플")),
+            new CandidateVenue("어질 인 왕십리역점", "카페", "왕십리", "왕십리역", "서울 성동구 마조로9길 18 1/2층", 37.5617, 127.0368, "왕십리역 인근에서 실제 검색되는 카페를 후보에 포함했습니다.", List.of("왕십리권 실존 카페", "한양대/왕십리 접근성")),
             new CandidateVenue("키랩 보드게임카페 건대본점", "놀이", "건대", "건대입구역", "서울 광진구 아차산로33길 49", 37.5413, 127.0685, "건대권에서 실제 검색되는 보드게임카페입니다.", List.of("실내 놀거리", "단체 이용 무난")),
             new CandidateVenue("서울이스케이프룸 홍대2호점", "놀이", "홍대", "홍대입구역", "서울특별시 마포구 서교동 410-9", 37.5568, 126.9230, "홍대권 실존 방탈출 매장 기준입니다.", List.of("홍대권 실존 매장", "활동형 모임 적합")),
             new CandidateVenue("국립현대미술관 서울", "문화", "종로", "안국역", "서울 종로구 삼청로 30", 37.5791, 126.9802, "실제 운영 중인 대표 문화 공간입니다.", List.of("전시 관람 가능", "삼청동 산책 연계")),
@@ -43,14 +45,15 @@ public class ApiRecommendationService implements IApiRecommendationService {
     );
 
     private final Map<String, Map<String, Integer>> zoneTravelMinutes = Map.of(
-            "중구", Map.of("을지로", 12, "성수", 21, "종로", 15, "여의도", 26, "용산", 16, "건대", 24, "홍대", 27),
-            "성수", Map.of("을지로", 21, "성수", 10, "종로", 25, "여의도", 34, "용산", 27, "건대", 14, "홍대", 29),
-            "공덕", Map.of("을지로", 20, "성수", 30, "종로", 18, "여의도", 14, "용산", 14, "건대", 31, "홍대", 18),
-            "홍대", Map.of("을지로", 25, "성수", 29, "종로", 22, "여의도", 17, "용산", 22, "건대", 24, "홍대", 9),
-            "여의도", Map.of("을지로", 24, "성수", 34, "종로", 24, "여의도", 8, "용산", 16, "건대", 36, "홍대", 18),
-            "용산", Map.of("을지로", 16, "성수", 24, "종로", 17, "여의도", 15, "용산", 7, "건대", 20, "홍대", 21),
-            "건대", Map.of("을지로", 24, "성수", 14, "종로", 28, "여의도", 36, "용산", 20, "건대", 8, "홍대", 25),
-            "기본", Map.of("을지로", 24, "성수", 24, "종로", 24, "여의도", 24, "용산", 20, "건대", 24, "홍대", 24)
+            "중구", Map.of("을지로", 12, "성수", 21, "종로", 15, "여의도", 26, "용산", 16, "건대", 24, "홍대", 27, "왕십리", 19),
+            "성수", Map.of("을지로", 21, "성수", 10, "종로", 25, "여의도", 34, "용산", 27, "건대", 14, "홍대", 29, "왕십리", 13),
+            "공덕", Map.of("을지로", 20, "성수", 30, "종로", 18, "여의도", 14, "용산", 14, "건대", 31, "홍대", 18, "왕십리", 25),
+            "홍대", Map.of("을지로", 25, "성수", 29, "종로", 22, "여의도", 17, "용산", 22, "건대", 24, "홍대", 9, "왕십리", 29),
+            "여의도", Map.of("을지로", 24, "성수", 34, "종로", 24, "여의도", 8, "용산", 16, "건대", 36, "홍대", 18, "왕십리", 32),
+            "용산", Map.of("을지로", 16, "성수", 24, "종로", 17, "여의도", 15, "용산", 7, "건대", 20, "홍대", 21, "왕십리", 18),
+            "건대", Map.of("을지로", 24, "성수", 14, "종로", 28, "여의도", 36, "용산", 20, "건대", 8, "홍대", 25, "왕십리", 12),
+            "왕십리", Map.of("을지로", 19, "성수", 13, "종로", 20, "여의도", 32, "용산", 18, "건대", 12, "홍대", 29, "왕십리", 7),
+            "기본", Map.of("을지로", 24, "성수", 24, "종로", 24, "여의도", 24, "용산", 20, "건대", 24, "홍대", 24, "왕십리", 18)
     );
 
     private final Map<String, GeoPoint> zoneCenters = Map.of(
@@ -61,6 +64,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             "여의도", new GeoPoint(37.5219, 126.9245),
             "용산", new GeoPoint(37.5299, 126.9658),
             "건대", new GeoPoint(37.5400, 127.0693),
+            "왕십리", new GeoPoint(37.5611, 127.0373),
             "기본", new GeoPoint(37.5665, 126.9780)
     );
 
@@ -320,6 +324,9 @@ public class ApiRecommendationService implements IApiRecommendationService {
         if (baseAddress.contains("건대") || baseAddress.contains("광진구")) {
             return "건대";
         }
+        if (baseAddress.contains("왕십리") || baseAddress.contains("행당동") || baseAddress.contains("상왕십리")) {
+            return "왕십리";
+        }
         return "기본";
     }
 
@@ -336,10 +343,18 @@ public class ApiRecommendationService implements IApiRecommendationService {
             List<InMemoryWemeetStore.UserAccount> participants
     ) {
         String participantKey = participants.stream()
-                .map(InMemoryWemeetStore.UserAccount::id)
+                // 주소가 바뀌면 이전 추천 캐시를 재사용하지 않도록 캐시 키에 함께 포함한다.
+                .map(participant -> participant.id() + ":" + normalizeAddressForCache(participant.baseAddress()))
                 .sorted()
                 .collect(Collectors.joining(","));
         return requesterId + ":" + category + ":" + participantKey;
+    }
+
+    private String normalizeAddressForCache(String address) {
+        if (address == null || address.isBlank()) {
+            return "empty";
+        }
+        return address.replaceAll("\\s+", "").trim();
     }
 
     private GeoPoint resolveParticipantPoint(InMemoryWemeetStore.UserAccount participant) {
