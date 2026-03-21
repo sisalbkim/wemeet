@@ -2,7 +2,7 @@ package com.kopo.wemeet.service.impl;
 
 import com.kopo.wemeet.dto.ApiDtos;
 import com.kopo.wemeet.dto.RecommendationMode;
-import com.kopo.wemeet.repository.InMemoryWemeetStore;
+import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IApiRecommendationService;
 import org.springframework.stereotype.Service;
@@ -22,8 +22,10 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
 public class ApiRecommendationService implements IApiRecommendationService {
+    // 모임 장소 추천의 핵심 계산을 담당한다.
+    // 참가자 좌표 추정, 후보 평가, 추천 방식별 정렬, 지도 표시용 포인트 생성까지 여기서 처리한다.
 
-    private final InMemoryWemeetStore store;
+    private final WemeetDataStore store;
     private final OpenApiRoutingService openApiRoutingService;
     private final RecommendationCacheService recommendationCacheService;
 
@@ -69,7 +71,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     );
 
     public ApiRecommendationService(
-            InMemoryWemeetStore store,
+            WemeetDataStore store,
             OpenApiRoutingService openApiRoutingService,
             RecommendationCacheService recommendationCacheService
     ) {
@@ -88,9 +90,15 @@ public class ApiRecommendationService implements IApiRecommendationService {
             ApiDtos.RecommendationRequest request,
             IApiAuthService authService
     ) {
+        // 전체 흐름:
+        // 1) 요청값 정규화
+        // 2) 참가자/좌표 수집
+        // 3) 후보 장소별 점수 계산
+        // 4) 추천 방식에 맞춰 상위 결과 선택
+        // 5) 화면과 API가 같이 쓸 응답 DTO 생성
         String category = normalizeCategory(request.category());
         RecommendationMode mode = RecommendationMode.from(request.mode());
-        List<InMemoryWemeetStore.UserAccount> participants = resolveParticipants(requesterId, request.participantIds());
+        List<WemeetDataStore.UserAccount> participants = resolveParticipants(requesterId, request.participantIds());
         List<GeoPoint> participantPoints = participants.stream()
                 .map(this::resolveParticipantPoint)
                 .toList();
@@ -150,10 +158,11 @@ public class ApiRecommendationService implements IApiRecommendationService {
         return response;
     }
 
-    private List<InMemoryWemeetStore.UserAccount> resolveParticipants(
+    private List<WemeetDataStore.UserAccount> resolveParticipants(
             String requesterId,
             List<String> participantIds
     ) {
+        // 요청자 자신은 항상 참가자에 포함시키고, 중복 친구 ID는 제거한다.
         LinkedHashSet<String> uniqueIds = new LinkedHashSet<>();
         uniqueIds.add(requesterId);
         if (participantIds != null) {
@@ -167,7 +176,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
 
     private VenueEvaluation evaluateCandidate(
             CandidateVenue candidate,
-            List<InMemoryWemeetStore.UserAccount> participants,
+            List<WemeetDataStore.UserAccount> participants,
             GeoPoint midpointPoint,
             RecommendationMode mode,
             String anchorParticipantId
@@ -179,7 +188,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
         Map<String, Integer> travelMinutesByUserId = routedTravelMinutes
                 .orElseGet(() -> participants.stream()
                         .collect(Collectors.toMap(
-                                InMemoryWemeetStore.UserAccount::id,
+                                WemeetDataStore.UserAccount::id,
                                 participant -> lookupTravelMinutes(resolveZone(participant.baseAddress()), candidate.area()),
                                 (left, right) -> left,
                                 LinkedHashMap::new
@@ -238,7 +247,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     private List<ApiDtos.MapPointResponse> buildMapPoints(
-            List<InMemoryWemeetStore.UserAccount> participants,
+            List<WemeetDataStore.UserAccount> participants,
             List<GeoPoint> participantPoints,
             GeoPoint midpointPoint,
             List<ApiDtos.VenueResponse> venues,
@@ -249,7 +258,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
         boolean singleParticipant = participants.size() == 1;
 
         for (int index = 0; index < participants.size(); index++) {
-            InMemoryWemeetStore.UserAccount participant = participants.get(index);
+            WemeetDataStore.UserAccount participant = participants.get(index);
             GeoPoint point = participantPoints.get(index);
             mapPoints.add(new ApiDtos.MapPointResponse(
                     participant.id(),
@@ -295,11 +304,13 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     private int lookupTravelMinutes(String zone, String area) {
+        // 외부 API가 실패하면 지역별 평균 이동시간 표를 fallback 데이터로 쓴다.
         return zoneTravelMinutes.getOrDefault(zone, zoneTravelMinutes.get("기본"))
                 .getOrDefault(area, 24);
     }
 
     private String resolveZone(String baseAddress) {
+        // 주소 문자열에 포함된 주요 키워드로 대략적인 생활권을 분류한다.
         if (baseAddress == null) {
             return "기본";
         }
@@ -340,7 +351,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     private String buildCacheKey(
             String requesterId,
             String category,
-            List<InMemoryWemeetStore.UserAccount> participants
+            List<WemeetDataStore.UserAccount> participants
     ) {
         String participantKey = participants.stream()
                 // 주소가 바뀌면 이전 추천 캐시를 재사용하지 않도록 캐시 키에 함께 포함한다.
@@ -357,19 +368,22 @@ public class ApiRecommendationService implements IApiRecommendationService {
         return address.replaceAll("\\s+", "").trim();
     }
 
-    private GeoPoint resolveParticipantPoint(InMemoryWemeetStore.UserAccount participant) {
+    private GeoPoint resolveParticipantPoint(WemeetDataStore.UserAccount participant) {
+        // 가능하면 지오코딩 API를 사용하고, 실패하면 미리 정의한 지역 중심 좌표로 대체한다.
         return openApiRoutingService.geocodeAddress(participant.baseAddress())
                 .map(point -> new GeoPoint(point.latitude(), point.longitude()))
                 .orElseGet(() -> zoneCenters.getOrDefault(resolveZone(participant.baseAddress()), zoneCenters.get("기본")));
     }
 
     private GeoPoint resolveCandidatePoint(CandidateVenue candidate) {
+        // 후보 장소도 실제 주소 기반 좌표를 우선 사용한다.
         return openApiRoutingService.geocodeAddress(candidate.fullAddress())
                 .map(point -> new GeoPoint(point.latitude(), point.longitude()))
                 .orElseGet(() -> new GeoPoint(candidate.latitude(), candidate.longitude()));
     }
 
     private GeoPoint calculateMidpoint(List<GeoPoint> participantPoints) {
+        // 현재 중심점은 참가자 좌표 평균값으로 계산한다.
         double averageLatitude = participantPoints.stream()
                 .mapToDouble(GeoPoint::latitude)
                 .average()
@@ -386,6 +400,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             RecommendationMode mode
     ) {
         if (mode == RecommendationMode.RANDOM) {
+            // 완전 무작위보다 상위 후보군 안에서만 섞어야 결과가 너무 튀지 않는다.
             List<VenueEvaluation> pool = candidateEvaluations.stream()
                     .sorted(Comparator.comparingDouble(VenueEvaluation::strategyScore))
                     .limit(Math.min(5, candidateEvaluations.size()))
@@ -442,8 +457,9 @@ public class ApiRecommendationService implements IApiRecommendationService {
             RecommendationMode mode,
             String requesterId,
             String requestedAnchorId,
-            List<InMemoryWemeetStore.UserAccount> participants
+            List<WemeetDataStore.UserAccount> participants
     ) {
+        // 기준 인물 모드가 아니면 굳이 별도 anchor를 쓸 이유가 없어서 요청자를 기본값으로 둔다.
         if (mode != RecommendationMode.ANCHOR) {
             return requesterId;
         }
@@ -458,9 +474,10 @@ public class ApiRecommendationService implements IApiRecommendationService {
 
     private GeoPoint resolveAnchorPoint(
             String anchorParticipantId,
-            List<InMemoryWemeetStore.UserAccount> participants,
+            List<WemeetDataStore.UserAccount> participants,
             List<GeoPoint> participantPoints
     ) {
+        // 기준 인물 마커는 참가자 목록과 같은 인덱스의 좌표를 찾아 사용한다.
         for (int index = 0; index < participants.size(); index++) {
             if (participants.get(index).id().equals(anchorParticipantId)) {
                 return participantPoints.get(index);

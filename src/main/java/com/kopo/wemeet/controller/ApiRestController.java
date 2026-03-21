@@ -2,7 +2,7 @@ package com.kopo.wemeet.controller;
 
 import com.kopo.wemeet.dto.ApiDtos;
 import com.kopo.wemeet.entity.AppUser;
-import com.kopo.wemeet.repository.InMemoryWemeetStore;
+import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IApiRecommendationService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,15 +22,17 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 @RestController
 @RequestMapping("/api")
 public class ApiRestController {
+    // 외부 클라이언트가 호출하는 REST API 진입점이다.
+    // 화면용 컨트롤러와 분리해 두면 JSON 응답과 페이지 렌더링 책임을 나누기 쉽다.
 
     private final IApiAuthService authService;
     private final IApiRecommendationService recommendationService;
-    private final InMemoryWemeetStore store;
+    private final WemeetDataStore store;
 
     public ApiRestController(
             IApiAuthService authService,
             IApiRecommendationService recommendationService,
-            InMemoryWemeetStore store
+            WemeetDataStore store
     ) {
         this.authService = authService;
         this.recommendationService = recommendationService;
@@ -44,6 +46,7 @@ public class ApiRestController {
 
     @GetMapping("/categories")
     public ApiDtos.CategoryResponse categories() {
+        // 카테고리 목록은 추천 서비스가 기준 데이터를 관리하므로 그대로 위임한다.
         return recommendationService.categories();
     }
 
@@ -69,6 +72,7 @@ public class ApiRestController {
 
     @GetMapping("/me")
     public ApiDtos.UserResponse me(@RequestHeader("Authorization") String authorization) {
+        // 토큰 검증과 사용자 조회는 인증 서비스가 담당한다.
         return authService.toUserResponse(authService.requireUser(authorization));
     }
 
@@ -77,12 +81,14 @@ public class ApiRestController {
             @RequestHeader("Authorization") String authorization,
             @RequestBody ApiDtos.AddressUpdateRequest request
     ) {
+        // 로그인 사용자의 기본 출발지를 수정하면 이후 추천 계산의 출발점도 함께 바뀐다.
         AppUser requester = authService.requireUser(authorization);
         return authService.updateBaseAddress(requester, request.baseAddress());
     }
 
     @GetMapping("/friends")
     public List<ApiDtos.UserResponse> friends(@RequestHeader("Authorization") String authorization) {
+        // 친구 정보는 현재 메모리 저장소에서 관리하는 관계 데이터를 기준으로 응답한다.
         AppUser requester = authService.requireUser(authorization);
         return store.listFriends(requester.getId()).stream().map(authService::toUserResponse).toList();
     }
@@ -92,12 +98,14 @@ public class ApiRestController {
             @RequestHeader("Authorization") String authorization,
             @RequestBody ApiDtos.FriendAddRequest request
     ) {
+        // 친구 추가는 친구코드를 통해 양방향 관계를 생성한다.
         AppUser requester = authService.requireUser(authorization);
         return authService.toUserResponse(store.addFriendByCode(requester.getId(), request.friendCode()));
     }
 
     @GetMapping("/history")
     public List<ApiDtos.SearchHistoryResponse> history(@RequestHeader("Authorization") String authorization) {
+        // 검색 기록은 사용자별로 최근 순서대로 반환한다.
         AppUser requester = authService.requireUser(authorization);
         return store.listHistory(requester.getId()).stream()
                 .map(entry -> new ApiDtos.SearchHistoryResponse(
@@ -110,6 +118,7 @@ public class ApiRestController {
 
     @GetMapping("/meetings")
     public List<ApiDtos.MeetingResponse> meetings(@RequestHeader("Authorization") String authorization) {
+        // 모임 조회는 현재 로그인 사용자가 참가자로 포함된 모임만 노출한다.
         AppUser requester = authService.requireUser(authorization);
         return store.listMeetingsForUser(requester.getId()).stream()
                 .map(this::toMeetingResponse)
@@ -121,9 +130,10 @@ public class ApiRestController {
             @RequestHeader("Authorization") String authorization,
             @RequestBody ApiDtos.MeetingCreateRequest request
     ) {
+        // 날짜 문자열은 컨트롤러에서 먼저 검증해 서비스/저장소 쪽에는 정상 값만 넘긴다.
         AppUser requester = authService.requireUser(authorization);
         LocalDate meetingDate = parseMeetingDate(request.meetingDate());
-        InMemoryWemeetStore.MeetingRecord meeting = store.createMeeting(
+        WemeetDataStore.MeetingRecord meeting = store.createMeeting(
                 requester.getId(),
                 request.title(),
                 request.description(),
@@ -139,12 +149,14 @@ public class ApiRestController {
             @RequestHeader("Authorization") String authorization,
             @RequestBody ApiDtos.RecommendationRequest request
     ) {
+        // 추천 계산은 입력 조건이 많기 때문에 전용 서비스에 모두 위임한다.
         AppUser requester = authService.requireUser(authorization);
         return recommendationService.recommend(requester.getId(), request, authService);
     }
 
-    private ApiDtos.MeetingResponse toMeetingResponse(InMemoryWemeetStore.MeetingRecord meeting) {
-        InMemoryWemeetStore.UserAccount host = store.findById(meeting.hostUserId()).orElseThrow();
+    private ApiDtos.MeetingResponse toMeetingResponse(WemeetDataStore.MeetingRecord meeting) {
+        // 화면/API에서 바로 쓰기 쉽도록 host, participants 정보를 DTO 형태로 묶는다.
+        WemeetDataStore.UserAccount host = store.findById(meeting.hostUserId()).orElseThrow();
         List<ApiDtos.UserResponse> participants = meeting.participantIds().stream()
                 .map(id -> store.findById(id).orElseThrow())
                 .map(authService::toUserResponse)
@@ -165,6 +177,7 @@ public class ApiRestController {
         try {
             return LocalDate.parse(meetingDate);
         } catch (DateTimeParseException exception) {
+            // 입력 포맷 오류는 400으로 명확하게 돌려줘야 프론트에서도 처리하기 쉽다.
             throw new org.springframework.web.server.ResponseStatusException(BAD_REQUEST, "meetingDate must be ISO-8601 format (yyyy-MM-dd)");
         }
     }

@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "app_user")
 public class AppUser {
+    // 회원 기본 정보를 저장하는 JPA 엔티티다.
+    // 추천 계산에 필요한 출발지 주소와 친구코드도 함께 보관한다.
 
     @Id
     @Column(length = 40, nullable = false)
@@ -64,6 +66,7 @@ public class AppUser {
 
     @PrePersist
     void onCreate() {
+        // 최초 저장 시 생성/수정 시각을 동시에 기록한다.
         LocalDateTime now = LocalDateTime.now();
         createdAt = now;
         updatedAt = now;
@@ -71,6 +74,7 @@ public class AppUser {
 
     @PreUpdate
     void onUpdate() {
+        // 엔티티가 수정될 때마다 updatedAt을 최신 시각으로 덮어쓴다.
         updatedAt = LocalDateTime.now();
     }
 
@@ -102,11 +106,21 @@ public class AppUser {
         return baseAddress;
     }
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
     public void changeBaseAddress(String baseAddress) {
+        // 추천 출발지로 쓰이는 기본 주소 변경용 메서드다.
         this.baseAddress = baseAddress;
     }
 
     public void changePasswordHash(String passwordHash) {
+        // 비밀번호는 항상 해시값 형태로만 교체한다.
         this.passwordHash = passwordHash;
     }
 }

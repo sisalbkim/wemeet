@@ -6,23 +6,27 @@
     <header th:replace="~{fragments/layout :: topBar}"></header>
 
     <main class="page page--guest">
-        <section class="welcome-card">
-            <div class="welcome-card__badge">we meet</div>
+        <section class="welcome-card welcome-card--brand">
+            <div class="hero-brand">
+                <img class="hero-brand__full" th:src="@{/img/brand-hero.png}" alt="we meet">
+            </div>
             <h1>모이기 전, 어디서 만날지부터 정리하세요</h1>
             <p>친구들과 중간 지점을 찾고, 그 근처 맛집이나 놀거리를 빠르게 고를 수 있게 만드는 서비스입니다.</p>
             <div class="cta-row">
-                <a class="primary-button" th:href="@{/login}">로그인</a>
-                <a class="secondary-button" th:href="@{/signup}">회원가입</a>
-                <a class="secondary-button" th:href="@{/search/results(category='맛집', guest=true)}">둘러보기</a>
+                <a class="primary-button primary-button--brand primary-button--hero" th:href="@{/search/results(category='맛집', guest=true)}">모임 장소 찾기</a>
+            </div>
+            <div class="cta-row cta-row--subtle">
+                <a class="secondary-button secondary-button--soft secondary-button--compact" th:href="@{/login}">로그인</a>
+                <a class="secondary-button secondary-button--compact" th:href="@{/signup}">회원가입</a>
             </div>
         </section>
 
         <section class="panel">
-            <div class="section-heading">
+            <div class="section-heading section-heading--stacked">
                 <h2>빠른 근처 장소 검색</h2>
                 <span>로그인 전에는 예시 추천 결과만 미리 볼 수 있습니다</span>
             </div>
-            <div class="chip-grid">
+            <div class="chip-grid chip-grid--three-up">
                 <a class="filter-chip filter-chip--link" th:each="category : ${categories}"
                    th:href="@{/search/results(category=${category.label}, guest=true)}"
                    th:text="${category.label}">

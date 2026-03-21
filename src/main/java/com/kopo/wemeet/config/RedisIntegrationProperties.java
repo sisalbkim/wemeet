@@ -4,6 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "app.redis")
 public class RedisIntegrationProperties {
+    // 세션/추천 캐시가 Redis를 사용할지와 TTL 값을 한곳에서 관리한다.
 
     private boolean enabled = true;
     private long sessionTtlMinutes = 720;

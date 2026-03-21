@@ -3,7 +3,7 @@ package com.kopo.wemeet.service.impl;
 import com.kopo.wemeet.dto.ApiDtos;
 import com.kopo.wemeet.dto.UiModels;
 import com.kopo.wemeet.entity.AppUser;
-import com.kopo.wemeet.repository.InMemoryWemeetStore;
+import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.service.IWemeetViewService;
 import org.springframework.stereotype.Service;
 
@@ -13,10 +13,12 @@ import java.util.Locale;
 
 @Service
 public class WemeetViewService implements IWemeetViewService {
+    // 서비스 계층의 응답을 화면 전용 모델로 바꿔주는 어댑터 역할을 한다.
+    // 컨트롤러가 템플릿 세부 구조를 너무 많이 알지 않게 하기 위해 분리했다.
 
     private final ApiRecommendationService recommendationService;
     private final ApiAuthService authService;
-    private final InMemoryWemeetStore store;
+    private final WemeetDataStore store;
     private final DateTimeFormatter historyFormatter = DateTimeFormatter.ofPattern("yyyy. M. d.");
 
     private final List<UiModels.CategoryChip> categories = List.of(
@@ -42,7 +44,7 @@ public class WemeetViewService implements IWemeetViewService {
     public WemeetViewService(
             ApiRecommendationService recommendationService,
             ApiAuthService authService,
-            InMemoryWemeetStore store
+            WemeetDataStore store
     ) {
         this.recommendationService = recommendationService;
         this.authService = authService;
@@ -51,6 +53,7 @@ public class WemeetViewService implements IWemeetViewService {
 
     @Override
     public UiModels.UserProfile getGuestUser() {
+        // 비로그인 체험 화면에서 사용할 기본 사용자 정보다.
         return new UiModels.UserProfile(
                 "user-123",
                 "김철수",
@@ -85,16 +88,19 @@ public class WemeetViewService implements IWemeetViewService {
 
     @Override
     public List<UiModels.FriendRequest> getFriendRequests() {
+        // 친구 요청 기능은 아직 시연용 더미 데이터로 유지한다.
         return friendRequests;
     }
 
     @Override
     public List<UiModels.UpcomingMeeting> getUpcomingMeetings() {
+        // 모임 목록도 현재는 메인 화면 시연용 고정 데이터를 사용한다.
         return upcomingMeetings;
     }
 
     @Override
     public ApiDtos.UserResponse addFriendByCode(String userId, String friendCode) {
+        // 화면 계층에서는 저장소를 직접 다루지 않고 인증 서비스의 DTO 변환 결과를 재사용한다.
         return authService.toUserResponse(store.addFriendByCode(userId, friendCode));
     }
 
@@ -185,7 +191,9 @@ public class WemeetViewService implements IWemeetViewService {
                 response.calculationMode()
         );
     }
+
     private String normalizeCategory(String category) {
+        // 화면에서 "전체"를 선택한 경우 실제 추천 계산은 대표 카테고리인 맛집으로 보낸다.
         if (category == null || category.isBlank() || "전체".equals(category)) {
             return "맛집";
         }

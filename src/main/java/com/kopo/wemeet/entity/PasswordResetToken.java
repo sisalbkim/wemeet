@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "password_reset_token")
 public class PasswordResetToken {
+    // 비밀번호 재설정 요청 한 건을 나타내는 엔티티다.
+    // 토큰 원문 대신 해시값과 만료 시각, 사용 여부를 저장한다.
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,6 +51,7 @@ public class PasswordResetToken {
 
     @PrePersist
     void onCreate() {
+        // 토큰 생성 시각을 저장해 추후 이력 확인에 활용할 수 있다.
         createdAt = LocalDateTime.now();
     }
 
@@ -69,6 +72,7 @@ public class PasswordResetToken {
     }
 
     public void markUsed() {
+        // 한 번 사용한 재설정 토큰은 재사용되지 않도록 상태를 변경한다.
         this.used = true;
     }
 }

@@ -20,6 +20,8 @@ import java.util.List;
 
 @Controller
 public class WemeetController {
+    // Thymeleaf 화면 렌더링을 담당하는 웹 컨트롤러다.
+    // 세션 기반 로그인 처리와 페이지별 모델 구성을 여기서 묶는다.
 
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;
@@ -93,6 +95,7 @@ public class WemeetController {
     ) {
         ApiDtos.AuthResponse authResponse = authService.login(new ApiDtos.LoginRequest(loginId, password));
 
+        // 화면 이동 중에도 로그인 상태를 유지하려고 필요한 최소 정보만 세션에 저장한다.
         session.setAttribute("AUTH_TOKEN", authResponse.token());
         session.setAttribute("USER_ID", authResponse.user().id());
         session.setAttribute("USER_NICKNAME", authResponse.user().nickname());
@@ -136,6 +139,7 @@ public class WemeetController {
         AppUser currentUser = requireLoggedInUser(session);
         try {
             ApiDtos.UserResponse addedFriend = viewService.addFriendByCode(currentUser.getId(), friendCode);
+            // 리다이렉트 뒤에도 결과 문구를 보여주기 위해 flash attribute를 사용한다.
             redirectAttributes.addFlashAttribute("friendNotice", addedFriend.nickname() + " 님을 친구로 추가했습니다.");
         } catch (ResponseStatusException exception) {
             redirectAttributes.addFlashAttribute("friendError", exception.getReason());
@@ -186,6 +190,7 @@ public class WemeetController {
         model.addAttribute("profile", toProfile(currentUser));
         model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
         model.addAttribute("friends", viewService.getFriends(currentUser.getId()));
+        // 카테고리는 사용자가 직접 누르도록 기본 선택을 비워 둔다.
         model.addAttribute("selectedCategory", "");
         model.addAttribute("selectedMode", RecommendationMode.CENTER.name());
         model.addAttribute("selectedAnchorId", currentUser.getId());
@@ -258,6 +263,7 @@ public class WemeetController {
     }
 
     private void populateCommon(Model model, String activeTab, boolean guestMode) {
+        // 여러 페이지에서 반복되는 공통 화면 속성은 한곳에서 채운다.
         model.addAttribute("appName", "모임 장소 찾기");
         model.addAttribute("activeTab", activeTab);
         model.addAttribute("guestMode", guestMode);
@@ -291,6 +297,7 @@ public class WemeetController {
     }
 
     private UiModels.UserProfile toProfile(AppUser user) {
+        // 현재 프로필 통계 값은 시연용 고정값이고, 나머지 기본 정보는 실제 사용자 데이터를 쓴다.
         return new UiModels.UserProfile(
                 user.getId(),
                 user.getNickname(),

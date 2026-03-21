@@ -12,6 +12,7 @@ import java.io.IOException;
 
 @Component
 public class HttpsRedirectFilter extends OncePerRequestFilter {
+    // 운영 환경에서 HTTP 요청을 HTTPS로 강제 전환할 때 사용하는 필터다.
 
     private final boolean requireHttps;
 
@@ -21,6 +22,7 @@ public class HttpsRedirectFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
+        // HTTPS 강제가 꺼져 있거나 이미 HTTPS로 들어온 요청이면 그대로 통과시킨다.
         if (!requireHttps) {
             return true;
         }
@@ -37,6 +39,7 @@ public class HttpsRedirectFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        // 현재 요청 URL 정보를 유지한 채 프로토콜만 https로 바꿔 리다이렉트한다.
         StringBuilder redirectUrl = new StringBuilder("https://")
                 .append(request.getServerName());
 

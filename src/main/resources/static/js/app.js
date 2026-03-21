@@ -104,6 +104,28 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    const loadingOverlay = document.querySelector("#pageLoadingOverlay");
+    document.querySelectorAll("[data-loading-overlay]").forEach((link) => {
+        link.addEventListener("click", (event) => {
+            if (!(link instanceof HTMLAnchorElement)) {
+                return;
+            }
+            if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                return;
+            }
+
+            event.preventDefault();
+            if (loadingOverlay) {
+                loadingOverlay.hidden = false;
+                document.body.classList.add("is-loading");
+            }
+
+            window.requestAnimationFrame(() => {
+                window.location.href = link.href;
+            });
+        });
+    });
+
     document.querySelectorAll(".radio-grid").forEach((radioGrid) => {
         const syncChoiceChipState = () => {
             radioGrid.querySelectorAll(".choice-chip").forEach((chip) => {

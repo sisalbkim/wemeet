@@ -21,13 +21,14 @@
         </section>
 
         <section class="panel">
-            <div class="section-heading">
+            <div class="section-heading section-heading--stacked">
                 <h2>카테고리 바꾸기</h2>
                 <span>선택 인원은 그대로 두고 태그만 바꿉니다</span>
             </div>
-            <div class="chip-grid">
+            <div class="chip-grid chip-grid--three-up">
                 <a class="filter-chip filter-chip--link" th:each="category : ${categories}"
                    th:href="@{/search/results(category=${category.label}, friendIds=${selectedFriendIds}, mode=${selectedMode}, anchorId=${selectedAnchorId}, guest=${guestMode})}"
+                   data-loading-overlay
                    th:classappend="${selectedCategory == category.label} ? ' is-active'"
                    th:text="${category.label}">
                     맛집
@@ -36,7 +37,7 @@
         </section>
 
         <section class="panel">
-            <div class="section-heading">
+            <div class="section-heading section-heading--stacked">
                 <h2>참여 인원</h2>
                 <span th:text="${recommendation.calculationMode}">더미 데이터 기반</span>
             </div>
@@ -49,7 +50,7 @@
         </section>
 
         <section class="panel">
-            <div class="section-heading">
+            <div class="section-heading section-heading--stacked section-heading--map">
                 <h2>이동시간 기준 추천 지도</h2>
                 <span th:if="${#lists.size(recommendation.participants) > 1}">초록색은 출발지, 보라색은 기준 인물, 빨간색은 중심점, 주황색은 추천 장소입니다</span>
                 <span th:if="${#lists.size(recommendation.participants) == 1}">초록색은 출발지, 보라색은 기준 인물, 주황색은 추천 장소입니다</span>
@@ -98,6 +99,15 @@
                 </div>
             </article>
         </section>
+
+        <div class="loading-overlay" id="pageLoadingOverlay" hidden aria-live="polite" aria-busy="true">
+            <div class="loading-overlay__backdrop"></div>
+            <div class="loading-overlay__dialog" role="dialog" aria-modal="true" aria-label="로딩 중">
+                <div class="loading-overlay__spinner" aria-hidden="true"></div>
+                <strong>로딩중...</strong>
+                <p>추천 결과를 다시 계산하고 있습니다.</p>
+            </div>
+        </div>
     </main>
 
     <nav th:replace="${guestMode} ? ~{fragments/layout :: guestBottomNav(${activeTab})} : ~{fragments/layout :: bottomNav(${activeTab})}"></nav>

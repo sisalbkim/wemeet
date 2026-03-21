@@ -6,6 +6,7 @@ import com.kopo.wemeet.dto.UiModels;
 import java.util.List;
 
 public interface IWemeetViewService {
+    // 템플릿 화면에서 필요한 데이터를 화면 전용 모델로 제공하는 서비스 계약이다.
 
     UiModels.UserProfile getGuestUser();
 

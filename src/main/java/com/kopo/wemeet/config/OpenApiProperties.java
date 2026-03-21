@@ -4,6 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "app.openapi")
 public class OpenApiProperties {
+    // 외부 지도 API 호출에 필요한 설정값을 application.properties에서 바인딩한다.
 
     private boolean enabled = true;
     private String userAgent = "WeMeet/1.0";
