@@ -1,0 +1,211 @@
+package com.kopo.wemeet.repository;
+
+import com.kopo.wemeet.entity.AppUser;
+import com.kopo.wemeet.entity.FriendRelation;
+import com.kopo.wemeet.entity.Meeting;
+import com.kopo.wemeet.entity.MeetingParticipant;
+import com.kopo.wemeet.entity.SearchHistory;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+
+@Component
+public class WemeetDataStore {
+    // 친구, 기록, 모임 데이터를 DB에 읽고 쓰는 저장소 facade다.
+
+    private final AppUserRepository userRepository;
+    private final FriendRelationRepository friendRelationRepository;
+    private final SearchHistoryRepository searchHistoryRepository;
+    private final MeetingRepository meetingRepository;
+
+    public WemeetDataStore(
+            AppUserRepository userRepository,
+            FriendRelationRepository friendRelationRepository,
+            SearchHistoryRepository searchHistoryRepository,
+            MeetingRepository meetingRepository
+    ) {
+        this.userRepository = userRepository;
+        this.friendRelationRepository = friendRelationRepository;
+        this.searchHistoryRepository = searchHistoryRepository;
+        this.meetingRepository = meetingRepository;
+    }
+
+    public Optional<UserAccount> findById(String userId) {
+        return userRepository.findById(userId).map(this::toUserAccount);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserAccount> listFriends(String userId) {
+        return friendRelationRepository.findAllByUserIdOrderByFriend_NicknameAsc(userId).stream()
+                .map(FriendRelation::getFriend)
+                .map(this::toUserAccount)
+                .toList();
+    }
+
+    @Transactional
+    public UserAccount addFriendByCode(String userId, String friendCode) {
+        if (friendCode == null || friendCode.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "friendCode is required");
+        }
+
+        AppUser user = requireUser(userId);
+        AppUser friend = userRepository.findByFriendCode(friendCode.trim())
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Friend code not found"));
+
+        if (user.getId().equals(friend.getId())) {
+            throw new ResponseStatusException(BAD_REQUEST, "You cannot add yourself");
+        }
+
+        if (friendRelationRepository.existsByUserIdAndFriendId(user.getId(), friend.getId())) {
+            throw new ResponseStatusException(CONFLICT, "Already added friend");
+        }
+
+        friendRelationRepository.save(new FriendRelation(user, friend));
+        friendRelationRepository.save(new FriendRelation(friend, user));
+        return toUserAccount(friend);
+    }
+
+    @Transactional
+    public MeetingRecord createMeeting(
+            String hostUserId,
+            String title,
+            String description,
+            LocalDate meetingDate,
+            String category,
+            List<String> participantIds
+    ) {
+        if (title == null || title.isBlank() || meetingDate == null || category == null || category.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "title, meetingDate, and category are required");
+        }
+
+        AppUser host = requireUser(hostUserId);
+        LinkedHashSet<String> uniqueParticipantIds = new LinkedHashSet<>();
+        uniqueParticipantIds.add(hostUserId);
+        if (participantIds != null) {
+            uniqueParticipantIds.addAll(participantIds);
+        }
+
+        List<AppUser> participants = uniqueParticipantIds.stream()
+                .map(this::requireUser)
+                .toList();
+
+        Meeting meeting = new Meeting(
+                "meeting-" + UUID.randomUUID().toString().substring(0, 8),
+                title.trim(),
+                description == null ? "" : description.trim(),
+                meetingDate,
+                category.trim(),
+                host
+        );
+        for (AppUser participant : participants) {
+            String role = participant.getId().equals(host.getId()) ? "HOST" : "PARTICIPANT";
+            meeting.addParticipant(participant, role);
+        }
+
+        Meeting saved = meetingRepository.save(meeting);
+        return toMeetingRecord(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MeetingRecord> listMeetingsForUser(String userId) {
+        return meetingRepository.findAllParticipatingByUserId(userId).stream()
+                .map(this::toMeetingRecord)
+                .toList();
+    }
+
+    @Transactional
+    public void appendHistory(String userId, String query, String category) {
+        if (query == null || query.isBlank() || category == null || category.isBlank()) {
+            return;
+        }
+        searchHistoryRepository.save(new SearchHistory(requireUser(userId), query.trim(), category.trim()));
+    }
+
+    @Transactional(readOnly = true)
+    public List<SearchHistoryEntry> listHistory(String userId) {
+        return searchHistoryRepository.findAllByUserIdOrderBySearchedAtDesc(userId).stream()
+                .map(entry -> new SearchHistoryEntry(entry.getQuery(), entry.getCategory(), entry.getSearchedAt()))
+                .toList();
+    }
+
+    private AppUser requireUser(String userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found: " + userId));
+    }
+
+    private UserAccount toUserAccount(AppUser user) {
+        LocalDate joinedOn = user.getCreatedAt() == null ? LocalDate.now() : user.getCreatedAt().toLocalDate();
+        return new UserAccount(
+                user.getId(),
+                user.getNickname(),
+                user.getLoginId(),
+                "",
+                user.getFriendCode(),
+                user.getBaseAddress(),
+                joinedOn
+        );
+    }
+
+    private MeetingRecord toMeetingRecord(Meeting meeting) {
+        List<String> participantIds = meeting.getParticipants().stream()
+                .sorted(Comparator
+                        .comparing((MeetingParticipant participant) -> !"HOST".equals(participant.getRole()))
+                        .thenComparing(MeetingParticipant::getCreatedAt))
+                .map(participant -> participant.getUser().getId())
+                .collect(Collectors.toList());
+
+        return new MeetingRecord(
+                meeting.getId(),
+                meeting.getTitle(),
+                meeting.getDescription(),
+                meeting.getMeetingDate(),
+                meeting.getCategory(),
+                meeting.getHost().getId(),
+                participantIds,
+                meeting.getCreatedAt()
+        );
+    }
+
+    public record UserAccount(
+            String id,
+            String nickname,
+            String loginId,
+            String password,
+            String friendCode,
+            String baseAddress,
+            LocalDate joinedOn
+    ) {
+    }
+
+    public record MeetingRecord(
+            String id,
+            String title,
+            String description,
+            LocalDate meetingDate,
+            String category,
+            String hostUserId,
+            List<String> participantIds,
+            LocalDateTime createdAt
+    ) {
+    }
+
+    public record SearchHistoryEntry(
+            String query,
+            String category,
+            LocalDateTime searchedAt
+    ) {
+    }
+}
