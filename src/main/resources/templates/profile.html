@@ -10,7 +10,10 @@
             <div class="profile-avatar" th:text="${#strings.substring(profile.name,0,1)}">김</div>
             <h1 th:text="${profile.name}">김철수</h1>
             <p th:text="${profile.handle}">@user123</p>
-            <span class="ghost-button ghost-button--light">프로필 수정</span>
+            <div class="profile-hero__actions">
+                <a class="ghost-button ghost-button--light" href="#profile-edit">프로필 수정</a>
+                <a class="ghost-button ghost-button--light ghost-button--danger-light" th:href="@{/logout}">로그아웃</a>
+            </div>
         </section>
 
         <section class="panel" th:if="${profileNotice != null}">
@@ -58,7 +61,7 @@
             </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" id="profile-edit">
             <div class="section-heading">
                 <h2>기본 출발지 수정</h2>
                 <span>모임 추천 계산에 바로 반영됩니다</span>
@@ -86,7 +89,6 @@
             </div>
         </section>
 
-        <button class="danger-button" type="button">로그아웃</button>
     </main>
 
     <nav th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>

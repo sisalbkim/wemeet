@@ -1,7 +1,6 @@
 package com.kopo.wemeet.service.impl;
 
 import com.kopo.wemeet.config.OpenApiProperties;
-import com.kopo.wemeet.repository.WemeetDataStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -43,7 +42,7 @@ public class OpenApiRoutingService {
     }
 
     public Optional<Map<String, Integer>> estimateTravelMinutes(
-            List<WemeetDataStore.UserAccount> participants,
+            Map<String, String> participantAddresses,
             String venueAddress
     ) {
         // Open API 사용이 꺼져 있거나 호출이 실패하면 Optional.empty()로 fallback을 유도한다.
@@ -58,9 +57,9 @@ public class OpenApiRoutingService {
             }
 
             Map<String, Integer> travelMinutes = new LinkedHashMap<>();
-        for (WemeetDataStore.UserAccount participant : participants) {
+            for (Map.Entry<String, String> participant : participantAddresses.entrySet()) {
                 // 각 참가자 주소를 좌표로 바꾼 뒤 목적지까지 예상 시간을 계산한다.
-                Optional<Coordinate> origin = geocodeInternal(participant.baseAddress());
+                Optional<Coordinate> origin = geocodeInternal(participant.getValue());
                 if (origin.isEmpty()) {
                     return Optional.empty();
                 }
@@ -68,7 +67,7 @@ public class OpenApiRoutingService {
                 if (minutes.isEmpty()) {
                     return Optional.empty();
                 }
-                travelMinutes.put(participant.id(), minutes.get());
+                travelMinutes.put(participant.getKey(), minutes.get());
             }
             return Optional.of(travelMinutes);
         } catch (RuntimeException exception) {
@@ -78,9 +77,18 @@ public class OpenApiRoutingService {
     }
 
     public Optional<MapCoordinate> geocodeAddress(String query) {
-        // 내부 캐시와 외부 API 상세 구현을 감추고 좌표만 노출한다.
-        return geocodeInternal(query)
-                .map(coordinate -> new MapCoordinate(coordinate.latitude(), coordinate.longitude()));
+        // 화면 지도용 좌표 조회도 외부 API 설정과 fallback 규칙을 동일하게 따른다.
+        if (!properties.isEnabled()) {
+            return Optional.empty();
+        }
+
+        try {
+            return geocodeInternal(query)
+                    .map(coordinate -> new MapCoordinate(coordinate.latitude(), coordinate.longitude()));
+        } catch (RuntimeException exception) {
+            log.warn("External geocoding API call failed. Falling back to heuristic coordinates.", exception);
+            return Optional.empty();
+        }
     }
 
     private Optional<Coordinate> geocodeInternal(String query) {

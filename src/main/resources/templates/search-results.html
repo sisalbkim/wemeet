@@ -27,7 +27,7 @@
             </div>
             <div class="chip-grid chip-grid--three-up">
                 <a class="filter-chip filter-chip--link" th:each="category : ${categories}"
-                   th:href="@{/search/results(category=${category.label}, friendIds=${selectedFriendIds}, mode=${selectedMode}, anchorId=${selectedAnchorId}, guest=${guestMode})}"
+                   th:href="@{/search/results(category=${category.label}, friendIds=${selectedFriendIds}, mode=${selectedMode}, anchorId=${selectedAnchorId}, guest=${guestMode}, guestAddress=${guestMode ? guestAddress : null})}"
                    data-loading-overlay
                    th:classappend="${selectedCategory == category.label} ? ' is-active'"
                    th:text="${category.label}">
@@ -55,7 +55,18 @@
                 <span th:if="${#lists.size(recommendation.participants) > 1}">초록색은 출발지, 보라색은 기준 인물, 빨간색은 중심점, 주황색은 추천 장소입니다</span>
                 <span th:if="${#lists.size(recommendation.participants) == 1}">초록색은 출발지, 보라색은 기준 인물, 주황색은 추천 장소입니다</span>
             </div>
-            <div id="recommendationMap" class="map-canvas"></div>
+            <div th:if="${kakaoMapEnabled}" id="recommendationMap" class="map-canvas"></div>
+            <div th:if="${kakaoMapEnabled}" id="recommendationMapError" class="notice-banner notice-banner--error" hidden>
+                카카오 지도 SDK를 불러오지 못했습니다. 카카오 디벨로퍼스에서 JavaScript 키인지 확인하고, Web 플랫폼에
+                <strong>http://localhost:8080</strong> 도메인이 등록되어 있는지 확인해 주세요.
+            </div>
+            <div th:if="${!kakaoMapEnabled}" class="map-placeholder">
+                <div class="map-placeholder__label">
+                    <strong>카카오 지도 키가 아직 설정되지 않았습니다.</strong>
+                    <div>KAKAO_MAPS_JAVASCRIPT_KEY 값을 넣고 서버를 다시 시작하면 이 영역에 지도가 표시됩니다.</div>
+                    <div>카카오 디벨로퍼스 Web 플랫폼에 `http://localhost:8080` 도메인도 같이 등록해야 합니다.</div>
+                </div>
+            </div>
             <div class="map-placeholder__label map-placeholder__label--static">
                 추천 후보를 클릭하지 않아도 최적 후보와 참가자 출발지가 바로 표시됩니다.
             </div>
@@ -112,6 +123,6 @@
 
     <nav th:replace="${guestMode} ? ~{fragments/layout :: guestBottomNav(${activeTab})} : ~{fragments/layout :: bottomNav(${activeTab})}"></nav>
 </div>
-<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script th:if="${kakaoMapEnabled}" defer th:src="|https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoMapJavascriptKey}&autoload=false|"></script>
 </body>
 </html>

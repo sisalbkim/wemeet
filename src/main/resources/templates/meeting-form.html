@@ -136,10 +136,19 @@
             </section>
 
             <div class="submit-row">
-                <button class="primary-button" type="submit">추천 장소 보기</button>
-                <a class="secondary-button" th:href="@{/home}">취소</a>
+                <button class="primary-button" type="submit" data-loading-overlay-submit>추천 장소 보기</button>
+                <a class="secondary-button" th:href="@{/}">취소</a>
             </div>
         </form>
+
+        <div class="loading-overlay" id="pageLoadingOverlay" hidden aria-live="polite" aria-busy="true">
+            <div class="loading-overlay__backdrop"></div>
+            <div class="loading-overlay__dialog" role="dialog" aria-modal="true" aria-label="로딩 중">
+                <div class="loading-overlay__spinner" aria-hidden="true"></div>
+                <strong>로딩중...</strong>
+                <p>선택한 참여 인원과 카테고리 기준으로 추천 결과를 계산하고 있습니다.</p>
+            </div>
+        </div>
     </main>
 
     <nav th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>

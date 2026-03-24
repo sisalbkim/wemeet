@@ -35,15 +35,28 @@ public class ApiRecommendationService implements IApiRecommendationService {
             new CandidateVenue("몽탄", "맛집", "용산", "삼각지역", "서울 용산구 백범로99길 50", 37.5344, 126.9727, "삼각지권에서 실제로 많이 찾는 우대갈비 맛집입니다.", List.of("용산권 실존 맛집", "네이버 검색 노출 쉬움")),
             new CandidateVenue("을지로보석", "맛집", "을지로", "을지로3가역", "서울특별시 중구 저동2가 84-11 3층", 37.5669, 126.9913, "을지로권에서 검색되는 실제 식당을 기준으로 넣었습니다.", List.of("힙지로 실존 매장", "식사 후 2차 동선 좋음")),
             new CandidateVenue("청기와타운 왕십리역사점", "맛집", "왕십리", "왕십리역", "서울특별시 성동구 왕십리광장로 17 지상1층 C-04호", 37.5610, 127.0381, "왕십리역에서 실제로 검색되는 식당을 후보에 반영했습니다.", List.of("왕십리권 실존 맛집", "역사 내부 접근성")),
+            new CandidateVenue("연남토마", "맛집", "홍대", "홍대입구역", "서울 마포구 동교로 267 1층", 37.5617, 126.9257, "홍대권에서 무난하게 모이기 좋은 인기 식당 후보입니다.", List.of("홍대권 대표 맛집", "식사 후 이동 동선 좋음")),
+            new CandidateVenue("진주집", "맛집", "여의도", "여의도역", "서울 영등포구 국제금융로6길 33", 37.5215, 126.9252, "여의도권 직장인 수요가 많은 실식당을 반영했습니다.", List.of("여의도권 대표 식당", "점심/저녁 모두 무난")),
+            new CandidateVenue("익선애뜻", "맛집", "종로", "안국역", "서울 종로구 수표로28길 17-32", 37.5741, 126.9898, "종로권 한옥 골목 분위기를 함께 볼 수 있는 후보입니다.", List.of("종로권 실존 맛집", "분위기 있는 모임 적합")),
             new CandidateVenue("블루보틀 성수 카페", "카페", "성수", "뚝섬역", "서울 성동구 아차산로 7", 37.5477, 127.0459, "성수권에서 실제 검색되는 대표 카페입니다.", List.of("네이버 검색 가능", "성수 접근성 우수")),
             new CandidateVenue("어니언 성수", "카페", "성수", "성수역", "서울 성동구 아차산로9길 8", 37.5448, 127.0561, "성수 카페 거리에서 실제로 많이 찾는 매장입니다.", List.of("빵/커피 모두 가능", "성수동 실존 핫플")),
             new CandidateVenue("어질 인 왕십리역점", "카페", "왕십리", "왕십리역", "서울 성동구 마조로9길 18 1/2층", 37.5617, 127.0368, "왕십리역 인근에서 실제 검색되는 카페를 후보에 포함했습니다.", List.of("왕십리권 실존 카페", "한양대/왕십리 접근성")),
+            new CandidateVenue("커피한약방", "카페", "을지로", "을지로3가역", "서울 중구 삼일대로12길 16-6", 37.5673, 126.9892, "을지로권 분위기 카페 수요를 반영한 후보입니다.", List.of("을지로권 대표 카페", "대화하기 좋은 분위기")),
+            new CandidateVenue("테일러커피 연남점", "카페", "홍대", "홍대입구역", "서울 마포구 성미산로 189", 37.5631, 126.9250, "홍대권에서 무난하게 선택되는 카페 후보입니다.", List.of("홍대권 실존 카페", "디저트/커피 선택지 풍부")),
+            new CandidateVenue("카멜커피 더현대서울", "카페", "여의도", "여의도역", "서울 영등포구 여의대로 108", 37.5260, 126.9282, "여의도권 쇼핑몰 접근성을 반영한 카페 후보입니다.", List.of("여의도권 카페", "실내 이동 편의")),
             new CandidateVenue("키랩 보드게임카페 건대본점", "놀이", "건대", "건대입구역", "서울 광진구 아차산로33길 49", 37.5413, 127.0685, "건대권에서 실제 검색되는 보드게임카페입니다.", List.of("실내 놀거리", "단체 이용 무난")),
             new CandidateVenue("서울이스케이프룸 홍대2호점", "놀이", "홍대", "홍대입구역", "서울특별시 마포구 서교동 410-9", 37.5568, 126.9230, "홍대권 실존 방탈출 매장 기준입니다.", List.of("홍대권 실존 매장", "활동형 모임 적합")),
+            new CandidateVenue("CGV 용산아이파크몰", "놀이", "용산", "용산역", "서울 용산구 한강대로23길 55", 37.5298, 126.9649, "용산권에서 영화나 가벼운 놀거리를 함께 잡기 쉬운 후보입니다.", List.of("용산권 실내 놀거리", "역 연결 접근성")),
             new CandidateVenue("국립현대미술관 서울", "문화", "종로", "안국역", "서울 종로구 삼청로 30", 37.5791, 126.9802, "실제 운영 중인 대표 문화 공간입니다.", List.of("전시 관람 가능", "삼청동 산책 연계")),
             new CandidateVenue("서울공예박물관", "문화", "종로", "안국역", "서울 종로구 율곡로3길 4", 37.5764, 126.9852, "안국권에서 실제 검색되는 문화 시설입니다.", List.of("실내 관람 가능", "한옥마을 연계")),
+            new CandidateVenue("리움미술관", "문화", "용산", "한강진역", "서울 용산구 이태원로55길 60-16", 37.5384, 126.9997, "용산권 대표 전시 공간을 문화 후보에 포함했습니다.", List.of("용산권 대표 문화공간", "전시 퀄리티 우수")),
+            new CandidateVenue("63아트", "문화", "여의도", "여의나루역", "서울 영등포구 63로 50", 37.5194, 126.9408, "여의도권에서 전망과 전시를 함께 볼 수 있는 후보입니다.", List.of("여의도권 문화공간", "실내 관람 가능")),
             new CandidateVenue("여의도한강공원", "운동", "여의도", "여의나루역", "서울특별시 영등포구 여의동로 330", 37.5263, 126.9336, "러닝과 산책 중심으로 많이 찾는 실제 장소입니다.", List.of("야외 활동 적합", "한강 접근성 우수")),
-            new CandidateVenue("성수연방", "기타", "성수", "성수역", "서울 성동구 성수이로14길 14", 37.5446, 127.0553, "성수권에서 검색되는 복합문화공간입니다.", List.of("팝업/쇼핑 연계", "실존 복합 공간"))
+            new CandidateVenue("서울숲", "운동", "성수", "서울숲역", "서울 성동구 뚝섬로 273", 37.5444, 127.0374, "성수권 산책과 가벼운 활동 수요를 반영한 후보입니다.", List.of("성수권 야외 활동", "산책/피크닉 적합")),
+            new CandidateVenue("노들섬", "운동", "용산", "노들역", "서울 용산구 양녕로 445", 37.5177, 126.9576, "용산권 강변 산책과 야외 모임을 함께 보기 좋은 장소입니다.", List.of("용산권 야외 활동", "한강 접근성")),
+            new CandidateVenue("성수연방", "기타", "성수", "성수역", "서울 성동구 성수이로14길 14", 37.5446, 127.0553, "성수권에서 검색되는 복합문화공간입니다.", List.of("팝업/쇼핑 연계", "실존 복합 공간")),
+            new CandidateVenue("더현대 서울", "기타", "여의도", "여의도역", "서울 영등포구 여의대로 108", 37.5259, 126.9284, "여의도권에서 실내 동선이 좋은 복합 공간을 반영했습니다.", List.of("여의도권 복합공간", "실내 이동 편의")),
+            new CandidateVenue("익선동 한옥거리", "기타", "종로", "안국역", "서울 종로구 수표로28길 30", 37.5745, 126.9895, "종로권 산책과 소규모 모임에 잘 맞는 복합 상권입니다.", List.of("종로권 복합공간", "산책 동선 우수"))
     );
 
     private final Map<String, Map<String, Integer>> zoneTravelMinutes = Map.of(
@@ -90,6 +103,43 @@ public class ApiRecommendationService implements IApiRecommendationService {
             ApiDtos.RecommendationRequest request,
             IApiAuthService authService
     ) {
+        List<WemeetDataStore.UserAccount> participantAccounts = resolveParticipants(requesterId, request.participantIds());
+        List<ParticipantProfile> participants = participantAccounts.stream()
+                .map(participant -> new ParticipantProfile(
+                        participant.id(),
+                        participant.nickname(),
+                        participant.baseAddress()
+                ))
+                .toList();
+        List<ApiDtos.UserResponse> participantResponses = participantAccounts.stream()
+                .map(authService::toUserResponse)
+                .toList();
+
+        return recommendInternal(requesterId, request, participants, participantResponses, true);
+    }
+
+    public ApiDtos.RecommendationResponse recommendForGuest(
+            ApiDtos.UserResponse guestUser,
+            ApiDtos.RecommendationRequest request
+    ) {
+        List<ParticipantProfile> participants = List.of(
+                new ParticipantProfile(
+                        guestUser.id(),
+                        guestUser.nickname(),
+                        guestUser.baseAddress()
+                )
+        );
+
+        return recommendInternal(guestUser.id(), request, participants, List.of(guestUser), false);
+    }
+
+    private ApiDtos.RecommendationResponse recommendInternal(
+            String requesterId,
+            ApiDtos.RecommendationRequest request,
+            List<ParticipantProfile> participants,
+            List<ApiDtos.UserResponse> participantResponses,
+            boolean persistHistory
+    ) {
         // 전체 흐름:
         // 1) 요청값 정규화
         // 2) 참가자/좌표 수집
@@ -98,7 +148,6 @@ public class ApiRecommendationService implements IApiRecommendationService {
         // 5) 화면과 API가 같이 쓸 응답 DTO 생성
         String category = normalizeCategory(request.category());
         RecommendationMode mode = RecommendationMode.from(request.mode());
-        List<WemeetDataStore.UserAccount> participants = resolveParticipants(requesterId, request.participantIds());
         List<GeoPoint> participantPoints = participants.stream()
                 .map(this::resolveParticipantPoint)
                 .toList();
@@ -110,7 +159,9 @@ public class ApiRecommendationService implements IApiRecommendationService {
         if (mode != RecommendationMode.RANDOM) {
             Optional<ApiDtos.RecommendationResponse> cached = recommendationCacheService.get(cacheKey);
             if (cached.isPresent()) {
-                store.appendHistory(requesterId, cached.get().midpoint().district() + " " + category, category);
+                if (persistHistory) {
+                    store.appendHistory(requesterId, cached.get().midpoint().district() + " " + category, category);
+                }
                 return cached.get();
             }
         }
@@ -140,11 +191,13 @@ public class ApiRecommendationService implements IApiRecommendationService {
 
         List<ApiDtos.MapPointResponse> mapPoints = buildMapPoints(participants, participantPoints, midpointPoint, venues, mode, anchorParticipantId);
         String query = midpoint.district() + " " + category;
-        store.appendHistory(requesterId, query, category);
+        if (persistHistory) {
+            store.appendHistory(requesterId, query, category);
+        }
 
         ApiDtos.RecommendationResponse response = new ApiDtos.RecommendationResponse(
                 category,
-                participants.stream().map(authService::toUserResponse).toList(),
+                participantResponses,
                 midpoint,
                 venues,
                 mapPoints,
@@ -176,19 +229,24 @@ public class ApiRecommendationService implements IApiRecommendationService {
 
     private VenueEvaluation evaluateCandidate(
             CandidateVenue candidate,
-            List<WemeetDataStore.UserAccount> participants,
+            List<ParticipantProfile> participants,
             GeoPoint midpointPoint,
             RecommendationMode mode,
             String anchorParticipantId
     ) {
         // 외부 경로 API가 실패하면 미리 정의한 지역별 평균 이동시간으로 계산을 이어간다.
         Optional<Map<String, Integer>> routedTravelMinutes = openApiRoutingService
-                .estimateTravelMinutes(participants, candidate.fullAddress());
+                .estimateTravelMinutes(participants.stream().collect(Collectors.toMap(
+                        ParticipantProfile::id,
+                        ParticipantProfile::baseAddress,
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                )), candidate.fullAddress());
 
         Map<String, Integer> travelMinutesByUserId = routedTravelMinutes
                 .orElseGet(() -> participants.stream()
                         .collect(Collectors.toMap(
-                                WemeetDataStore.UserAccount::id,
+                                ParticipantProfile::id,
                                 participant -> lookupTravelMinutes(resolveZone(participant.baseAddress()), candidate.area()),
                                 (left, right) -> left,
                                 LinkedHashMap::new
@@ -247,7 +305,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     private List<ApiDtos.MapPointResponse> buildMapPoints(
-            List<WemeetDataStore.UserAccount> participants,
+            List<ParticipantProfile> participants,
             List<GeoPoint> participantPoints,
             GeoPoint midpointPoint,
             List<ApiDtos.VenueResponse> venues,
@@ -258,7 +316,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
         boolean singleParticipant = participants.size() == 1;
 
         for (int index = 0; index < participants.size(); index++) {
-            WemeetDataStore.UserAccount participant = participants.get(index);
+            ParticipantProfile participant = participants.get(index);
             GeoPoint point = participantPoints.get(index);
             mapPoints.add(new ApiDtos.MapPointResponse(
                     participant.id(),
@@ -285,9 +343,6 @@ public class ApiRecommendationService implements IApiRecommendationService {
         }
 
         for (int index = 0; index < venues.size(); index++) {
-            if (singleParticipant && index > 0) {
-                continue;
-            }
             ApiDtos.VenueResponse venue = venues.get(index);
             mapPoints.add(new ApiDtos.MapPointResponse(
                     "venue-" + index,
@@ -351,7 +406,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     private String buildCacheKey(
             String requesterId,
             String category,
-            List<WemeetDataStore.UserAccount> participants
+            List<ParticipantProfile> participants
     ) {
         String participantKey = participants.stream()
                 // 주소가 바뀌면 이전 추천 캐시를 재사용하지 않도록 캐시 키에 함께 포함한다.
@@ -368,7 +423,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
         return address.replaceAll("\\s+", "").trim();
     }
 
-    private GeoPoint resolveParticipantPoint(WemeetDataStore.UserAccount participant) {
+    private GeoPoint resolveParticipantPoint(ParticipantProfile participant) {
         // 가능하면 지오코딩 API를 사용하고, 실패하면 미리 정의한 지역 중심 좌표로 대체한다.
         return openApiRoutingService.geocodeAddress(participant.baseAddress())
                 .map(point -> new GeoPoint(point.latitude(), point.longitude()))
@@ -409,14 +464,37 @@ public class ApiRecommendationService implements IApiRecommendationService {
             return pool.stream().limit(Math.min(3, pool.size())).toList();
         }
 
-        return candidateEvaluations.stream()
+        List<VenueEvaluation> sortedEvaluations = candidateEvaluations.stream()
                 .sorted(Comparator
                         .comparingDouble(VenueEvaluation::strategyScore)
                         .thenComparingInt(evaluation -> evaluation.response().fairnessGap())
                         .thenComparingInt(evaluation -> evaluation.response().averageMinutes())
                         .thenComparing(evaluation -> evaluation.response().name()))
-                .limit(3)
                 .toList();
+
+        List<VenueEvaluation> selectedEvaluations = new ArrayList<>();
+        LinkedHashSet<String> usedAreas = new LinkedHashSet<>();
+
+        for (VenueEvaluation evaluation : sortedEvaluations) {
+            if (usedAreas.add(evaluation.response().area())) {
+                selectedEvaluations.add(evaluation);
+            }
+            if (selectedEvaluations.size() == 3) {
+                return selectedEvaluations;
+            }
+        }
+
+        for (VenueEvaluation evaluation : sortedEvaluations) {
+            if (selectedEvaluations.contains(evaluation)) {
+                continue;
+            }
+            selectedEvaluations.add(evaluation);
+            if (selectedEvaluations.size() == 3) {
+                break;
+            }
+        }
+
+        return selectedEvaluations;
     }
 
     private double calculateStrategyScore(
@@ -457,7 +535,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             RecommendationMode mode,
             String requesterId,
             String requestedAnchorId,
-            List<WemeetDataStore.UserAccount> participants
+            List<ParticipantProfile> participants
     ) {
         // 기준 인물 모드가 아니면 굳이 별도 anchor를 쓸 이유가 없어서 요청자를 기본값으로 둔다.
         if (mode != RecommendationMode.ANCHOR) {
@@ -474,7 +552,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
 
     private GeoPoint resolveAnchorPoint(
             String anchorParticipantId,
-            List<WemeetDataStore.UserAccount> participants,
+            List<ParticipantProfile> participants,
             List<GeoPoint> participantPoints
     ) {
         // 기준 인물 마커는 참가자 목록과 같은 인덱스의 좌표를 찾아 사용한다.
@@ -527,6 +605,13 @@ public class ApiRecommendationService implements IApiRecommendationService {
     private record GeoPoint(
             double latitude,
             double longitude
+    ) {
+    }
+
+    private record ParticipantProfile(
+            String id,
+            String nickname,
+            String baseAddress
     ) {
     }
 }

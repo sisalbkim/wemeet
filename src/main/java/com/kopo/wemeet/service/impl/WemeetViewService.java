@@ -53,13 +53,21 @@ public class WemeetViewService implements IWemeetViewService {
 
     @Override
     public UiModels.UserProfile getGuestUser() {
+        return getGuestUser("서울특별시 중구 명동길 74");
+    }
+
+    @Override
+    public UiModels.UserProfile getGuestUser(String baseAddress) {
         // 비로그인 체험 화면에서 사용할 기본 사용자 정보다.
+        String normalizedBaseAddress = baseAddress == null || baseAddress.isBlank()
+                ? "서울특별시 중구 명동길 74"
+                : baseAddress.trim();
         return new UiModels.UserProfile(
                 "user-123",
                 "김철수",
                 "@user123",
                 "FRIEND123",
-                "서울특별시 중구 명동길 74",
+                normalizedBaseAddress,
                 "••••••••",
                 2,
                 2,
@@ -177,6 +185,80 @@ public class WemeetViewService implements IWemeetViewService {
                         response.midpoint().note()
                 ),
                 venues,
+                response.mapPoints().stream()
+                        .map(point -> new UiModels.MapPoint(
+                                point.id(),
+                                point.label(),
+                                point.address(),
+                                point.latitude(),
+                                point.longitude(),
+                                point.markerType(),
+                                point.selected()
+                        ))
+                        .toList(),
+                response.calculationMode()
+        );
+    }
+
+    @Override
+    public UiModels.RecommendationBundle buildGuestRecommendation(
+            String baseAddress,
+            String category,
+            String mode,
+            String anchorId
+    ) {
+        UiModels.UserProfile guestProfile = getGuestUser(baseAddress);
+        ApiDtos.UserResponse guestUser = new ApiDtos.UserResponse(
+                guestProfile.id(),
+                guestProfile.name(),
+                guestProfile.handle().replaceFirst("^@", ""),
+                "",
+                guestProfile.friendCode(),
+                guestProfile.baseAddress()
+        );
+
+        ApiDtos.RecommendationResponse response = recommendationService.recommendForGuest(
+                guestUser,
+                new ApiDtos.RecommendationRequest(normalizeCategory(category), List.of(), mode, anchorId)
+        );
+
+        return new UiModels.RecommendationBundle(
+                response.category(),
+                response.participants().stream()
+                        .map(participant -> new UiModels.FriendSummary(
+                                participant.id(),
+                                participant.nickname(),
+                                "@" + participant.loginId(),
+                                participant.baseAddress(),
+                                "게스트"
+                        ))
+                        .toList(),
+                new UiModels.MidpointSummary(
+                        response.midpoint().district(),
+                        response.midpoint().station(),
+                        response.midpoint().latitude(),
+                        response.midpoint().longitude(),
+                        response.midpoint().averageMinutes(),
+                        response.midpoint().fairnessGap(),
+                        response.midpoint().note()
+                ),
+                response.venues().stream()
+                        .map(venue -> new UiModels.VenueOption(
+                                venue.name(),
+                                venue.category(),
+                                venue.area(),
+                                venue.latitude(),
+                                venue.longitude(),
+                                venue.description(),
+                                venue.reason(),
+                                venue.fairnessGap(),
+                                venue.averageMinutes(),
+                                venue.highlights(),
+                                venue.travelTimes().stream()
+                                        .map(time -> new UiModels.TravelTime(time.participantName(), time.minutes()))
+                                        .toList()
+                        ))
+                        .toList(),
                 response.mapPoints().stream()
                         .map(point -> new UiModels.MapPoint(
                                 point.id(),

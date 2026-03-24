@@ -1,5 +1,6 @@
 package com.kopo.wemeet.controller;
 
+import com.kopo.wemeet.config.KakaoMapProperties;
 import com.kopo.wemeet.dto.ApiDtos;
 import com.kopo.wemeet.dto.RecommendationMode;
 import com.kopo.wemeet.dto.UiModels;
@@ -25,14 +26,22 @@ public class WemeetController {
 
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;
+    private final KakaoMapProperties kakaoMapProperties;
 
-    public WemeetController(IWemeetViewService viewService, IApiAuthService authService) {
+    public WemeetController(IWemeetViewService viewService, IApiAuthService authService, KakaoMapProperties kakaoMapProperties) {
         this.viewService = viewService;
         this.authService = authService;
+        this.kakaoMapProperties = kakaoMapProperties;
     }
 
     @GetMapping("/")
-    public String landing(Model model) {
+    public String landing(Model model, HttpSession session) {
+        AppUser currentUser = findLoggedInUser(session);
+        if (currentUser != null) {
+            populateHomeModel(model, currentUser);
+            return "home";
+        }
+
         populateCommon(model, "guest-home", true);
         model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
         return "landing";
@@ -43,6 +52,7 @@ public class WemeetController {
                         @RequestParam(defaultValue = "false") boolean error,
                         Model model) {
         populateCommon(model, "login", true);
+        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
         model.addAttribute("registered", registered);
         model.addAttribute("error", error);
         return "login";
@@ -52,6 +62,19 @@ public class WemeetController {
     public String signup(Model model) {
         populateCommon(model, "login", true);
         return "signup";
+    }
+
+    @GetMapping("/guest/plan")
+    public String guestPlan(
+            @RequestParam(defaultValue = "") String guestAddress,
+            @RequestParam(defaultValue = "맛집") String category,
+            Model model
+    ) {
+        populateCommon(model, "nearby", true);
+        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("guestAddress", guestAddress);
+        model.addAttribute("selectedCategory", category);
+        return "guest-plan";
     }
 
     @PostMapping("/signup")
@@ -100,7 +123,21 @@ public class WemeetController {
         session.setAttribute("USER_ID", authResponse.user().id());
         session.setAttribute("USER_NICKNAME", authResponse.user().nickname());
 
-        return "redirect:/home";
+        return "redirect:/";
+    }
+
+    @PostMapping("/guest/preview")
+    public String guestPreview(
+            @RequestParam(defaultValue = "") String guestAddress,
+            @RequestParam(defaultValue = "맛집") String category,
+            @RequestParam(defaultValue = "CENTER") String mode,
+            RedirectAttributes redirectAttributes
+    ) {
+        redirectAttributes.addAttribute("guest", true);
+        redirectAttributes.addAttribute("guestAddress", guestAddress);
+        redirectAttributes.addAttribute("category", category);
+        redirectAttributes.addAttribute("mode", mode);
+        return "redirect:/search/results";
     }
 
     @GetMapping("/logout")
@@ -111,12 +148,8 @@ public class WemeetController {
 
     @GetMapping("/home")
     public String home(Model model, HttpSession session) {
-        AppUser currentUser = requireLoggedInUser(session);
-        populateCommon(model, "home", false);
-        model.addAttribute("profile", toProfile(currentUser));
-        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
-        model.addAttribute("upcomingMeetings", viewService.getUpcomingMeetings());
-        return "home";
+        requireLoggedInUser(session);
+        return "redirect:/";
     }
 
     @GetMapping("/friends")
@@ -199,20 +232,26 @@ public class WemeetController {
 
     @GetMapping("/search/results")
     public String quickResults(
+
             @RequestParam(defaultValue = "맛집") String category,
             @RequestParam(required = false) List<String> friendIds,
             @RequestParam(defaultValue = "CENTER") String mode,
             @RequestParam(required = false) String anchorId,
             @RequestParam(defaultValue = "false") boolean guest,
+            @RequestParam(required = false) String guestAddress,
             Model model,
             HttpSession session
+
     ) {
         AppUser currentUser = null;
         if (!guest) {
             currentUser = requireLoggedInUser(session);
         }
-        populateRecommendationModel(model, guest ? "nearby" : "home", currentUser, category, friendIds, mode, anchorId, guest);
+        System.out.println("enabled: " + kakaoMapProperties.isEnabled());
+        System.out.println("key: " + kakaoMapProperties.getJavascriptKey());
+        populateRecommendationModel(model, guest ? "nearby" : "home", currentUser, category, friendIds, mode, anchorId, guest, guestAddress);
         return "search-results";
+
     }
 
     @PostMapping("/meetings/preview")
@@ -227,7 +266,7 @@ public class WemeetController {
             HttpSession session
     ) {
         AppUser currentUser = requireLoggedInUser(session);
-        populateRecommendationModel(model, "create", currentUser, category, friendIds, mode, anchorId, false);
+        populateRecommendationModel(model, "create", currentUser, category, friendIds, mode, anchorId, false, null);
         model.addAttribute("meetingName", meetingName);
         model.addAttribute("meetingDate", meetingDate);
         return "search-results";
@@ -241,25 +280,30 @@ public class WemeetController {
             List<String> friendIds,
             String mode,
             String anchorId,
-            boolean guestMode
+            boolean guestMode,
+            String guestAddress
     ) {
         // 추천 결과 화면은 게스트/로그인 사용자 모두 같은 템플릿을 사용한다.
         populateCommon(model, activeTab, guestMode);
-        model.addAttribute("profile", guestMode ? viewService.getGuestUser() : toProfile(currentUser));
+        UiModels.UserProfile guestProfile = guestMode ? viewService.getGuestUser(guestAddress) : null;
+        model.addAttribute("profile", guestMode ? guestProfile : toProfile(currentUser));
         model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("guestAddress", guestMode ? guestProfile.baseAddress() : "");
         model.addAttribute("selectedCategory", category);
         model.addAttribute("selectedMode", RecommendationMode.from(mode).name());
         model.addAttribute("selectedAnchorId", anchorId == null || anchorId.isBlank()
-                ? (guestMode ? viewService.getGuestUser().id() : currentUser.getId())
+                ? (guestMode ? guestProfile.id() : currentUser.getId())
                 : anchorId);
-        model.addAttribute("selectedFriendIds", friendIds == null ? List.of() : friendIds);
-        model.addAttribute("recommendation", viewService.buildRecommendation(
-                guestMode ? viewService.getGuestUser().id() : currentUser.getId(),
-                category,
-                friendIds,
-                mode,
-                anchorId
-        ));
+        model.addAttribute("selectedFriendIds", guestMode ? List.of() : friendIds == null ? List.of() : friendIds);
+        model.addAttribute("recommendation", guestMode
+                ? viewService.buildGuestRecommendation(guestProfile.baseAddress(), category, mode, anchorId)
+                : viewService.buildRecommendation(
+                        currentUser.getId(),
+                        category,
+                        friendIds,
+                        mode,
+                        anchorId
+                ));
     }
 
     private void populateCommon(Model model, String activeTab, boolean guestMode) {
@@ -267,6 +311,37 @@ public class WemeetController {
         model.addAttribute("appName", "모임 장소 찾기");
         model.addAttribute("activeTab", activeTab);
         model.addAttribute("guestMode", guestMode);
+        model.addAttribute("kakaoMapEnabled", kakaoMapProperties.isEnabled());
+        model.addAttribute("kakaoMapJavascriptKey", kakaoMapProperties.getJavascriptKey());
+    }
+
+
+    private void populateHomeModel(Model model, AppUser currentUser) {
+        populateCommon(model, "home", false);
+        model.addAttribute("profile", toProfile(currentUser));
+        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("upcomingMeetings", viewService.getUpcomingMeetings());
+    }
+
+    private AppUser findLoggedInUser(HttpSession session) {
+        if (session == null) {
+            return null;
+        }
+
+        String token = (String) session.getAttribute("AUTH_TOKEN");
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+
+        try {
+            return authService.requireUser("Bearer " + token);
+        } catch (ResponseStatusException exception) {
+            if (exception.getStatusCode().value() == 401) {
+                session.invalidate();
+                return null;
+            }
+            throw exception;
+        }
     }
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -288,12 +363,11 @@ public class WemeetController {
     }
 
     private AppUser requireLoggedInUser(HttpSession session) {
-        String token = (String) session.getAttribute("AUTH_TOKEN");
-        if (token == null || token.isBlank()) {
+        AppUser user = findLoggedInUser(session);
+        if (user == null) {
             throw new ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "Login required");
         }
-        // 세션에는 토큰만 저장하고 실제 사용자 조회는 서비스에 위임한다.
-        return authService.requireUser("Bearer " + token);
+        return user;
     }
 
     private UiModels.UserProfile toProfile(AppUser user) {

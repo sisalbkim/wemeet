@@ -10,6 +10,8 @@ public interface IWemeetViewService {
 
     UiModels.UserProfile getGuestUser();
 
+    UiModels.UserProfile getGuestUser(String baseAddress);
+
     List<UiModels.CategoryChip> getCategories();
 
     List<UiModels.FriendSummary> getFriends(String userId);
@@ -26,6 +28,13 @@ public interface IWemeetViewService {
             String requesterId,
             String category,
             List<String> selectedFriendIds,
+            String mode,
+            String anchorId
+    );
+
+    UiModels.RecommendationBundle buildGuestRecommendation(
+            String baseAddress,
+            String category,
             String mode,
             String anchorId
     );

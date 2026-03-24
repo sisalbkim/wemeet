@@ -38,6 +38,26 @@ class WemeetControllerTest {
     }
 
     @Test
+    void guestPlanPageAllowsEnteringDepartureAddress() throws Exception {
+        mockMvc.perform(get("/guest/plan"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("어디서 출발하시나요?")))
+                .andExpect(content().string(containsString("출발지 주소")));
+    }
+
+    @Test
+    void guestRecommendationUsesProvidedAddressInsteadOfDefaultGuestAddress() throws Exception {
+        mockMvc.perform(get("/search/results")
+                        .param("guest", "true")
+                        .param("category", "맛집")
+                        .param("mode", "CENTER")
+                        .param("guestAddress", "용두동"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("용두동")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("서울특별시 중구 명동길 74"))));
+    }
+
+    @Test
     void signupPageShowsSignupForm() throws Exception {
         mockMvc.perform(get("/signup"))
                 .andExpect(status().isOk())
@@ -73,10 +93,10 @@ class WemeetControllerTest {
                         .param("loginId", "homeuser01")
                         .param("password", "pass1234"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/home"))
+                .andExpect(redirectedUrl("/"))
                 .andReturn();
 
-        mockMvc.perform(get("/home").session((org.springframework.mock.web.MockHttpSession) loginResult.getRequest().getSession(false)))
+        mockMvc.perform(get("/").session((org.springframework.mock.web.MockHttpSession) loginResult.getRequest().getSession(false)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("안녕하세요")))
                 .andExpect(content().string(containsString("홈테스터")));
@@ -97,7 +117,7 @@ class WemeetControllerTest {
                         .param("loginId", "profileuser01")
                         .param("password", "pass1234"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/home"))
+                .andExpect(redirectedUrl("/"))
                 .andReturn();
 
         org.springframework.mock.web.MockHttpSession session =
@@ -116,6 +136,36 @@ class WemeetControllerTest {
     }
 
     @Test
+    void logoutInvalidatesSessionAndRedirectsToLanding() throws Exception {
+        mockMvc.perform(post("/signup")
+                        .param("nickname", "로그아웃테스터")
+                        .param("loginId", "logoutuser01")
+                        .param("email", "logoutuser01@wemeet.local")
+                        .param("password", "pass1234")
+                        .param("confirmPassword", "pass1234")
+                        .param("baseAddress", "서울특별시 중구"))
+                .andExpect(status().is3xxRedirection());
+
+        MvcResult loginResult = mockMvc.perform(post("/login")
+                        .param("loginId", "logoutuser01")
+                        .param("password", "pass1234"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"))
+                .andReturn();
+
+        org.springframework.mock.web.MockHttpSession session =
+                (org.springframework.mock.web.MockHttpSession) loginResult.getRequest().getSession(false);
+
+        mockMvc.perform(get("/logout").session(session))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"));
+
+        mockMvc.perform(get("/profile").session(session))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
     void historyPageShowsUserSpecificHistoryInsteadOfStaticSample() throws Exception {
         mockMvc.perform(post("/signup")
                         .param("nickname", "히스토리테스터")
@@ -130,7 +180,7 @@ class WemeetControllerTest {
                         .param("loginId", "historyuser01")
                         .param("password", "pass1234"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/home"))
+                .andExpect(redirectedUrl("/"))
                 .andReturn();
 
         org.springframework.mock.web.MockHttpSession session =
@@ -157,7 +207,7 @@ class WemeetControllerTest {
                         .param("loginId", "friendadd01")
                         .param("password", "pass1234"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/home"))
+                .andExpect(redirectedUrl("/"))
                 .andReturn();
 
         org.springframework.mock.web.MockHttpSession session =

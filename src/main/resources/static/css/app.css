@@ -1,5 +1,4 @@
 @import url("https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css");
-@import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
 
 :root {
     --bg-top: #eef6ea;
@@ -25,6 +24,10 @@
 
 * {
     box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
 }
 
 html {
@@ -324,12 +327,23 @@ textarea {
     gap: 14px;
 }
 
+.login-quick-search {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
 .link-tile {
+    display: flex;
+    min-height: 124px;
     padding: 18px;
     border: 1px solid var(--stroke);
     border-radius: var(--radius-md);
     background: rgba(255, 255, 255, 0.78);
     box-shadow: var(--shadow-sm);
+    flex-direction: column;
+    gap: 8px;
+    justify-content: flex-start;
 }
 
 .link-tile p {
@@ -655,6 +669,20 @@ textarea {
     background: rgba(255, 255, 255, 0.18);
 }
 
+.profile-hero__actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.ghost-button--danger-light {
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
 .history-card__icon {
     width: 40px;
     height: 40px;
@@ -887,6 +915,9 @@ textarea {
 }
 
 .map-canvas {
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
     min-height: 280px;
     border: 1px solid rgba(91, 112, 152, 0.14);
     border-radius: var(--radius-lg);
@@ -934,21 +965,33 @@ textarea {
     margin-top: 12px;
 }
 
-.leaflet-popup-content {
-    margin: 10px 12px;
+.kakao-map-infowindow {
+    min-width: 168px;
+    padding: 12px 14px;
+    border: 1px solid rgba(91, 112, 152, 0.16);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 16px 34px rgba(21, 41, 83, 0.16);
     line-height: 1.45;
 }
 
-.leaflet-popup-content strong {
+.kakao-map-infowindow strong {
     display: block;
     margin-bottom: 4px;
 }
 
 .loading-overlay {
     position: fixed;
-    inset: 0;
-    z-index: 120;
+    top: var(--overlay-top, 0px);
+    bottom: var(--overlay-bottom, 0px);
+    left: 50%;
+    z-index: 200;
+    display: flex;
+    width: min(100vw, 460px);
     padding: 24px;
+    align-items: flex-start;
+    justify-content: center;
+    transform: translateX(-50%);
 }
 
 .loading-overlay[hidden] {
@@ -963,10 +1006,9 @@ textarea {
 }
 
 .loading-overlay__dialog {
-    position: fixed;
-    top: 50%;
-    left: 50%;
+    position: relative;
     display: flex;
+    margin-top: var(--overlay-dialog-offset, 120px);
     width: min(100%, 280px);
     padding: 24px 22px;
     border: 1px solid rgba(91, 112, 152, 0.18);
@@ -976,7 +1018,6 @@ textarea {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    transform: translate(-50%, -50%);
 }
 
 .loading-overlay__dialog strong {
@@ -1043,12 +1084,12 @@ textarea {
 .bottom-nav {
     position: sticky;
     bottom: 0;
-    z-index: 20;
+    z-index: 40;
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
     border-top: 1px solid rgba(85, 104, 142, 0.1);
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(18px);
 }
 
