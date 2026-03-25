@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('아이디 찾기')}"></head>
+<body>
+<div class="app-shell">
+    <header th:if="${!hideShellNavigation}" th:replace="~{fragments/layout :: topBar}"></header>
+
+    <main class="page page--guest">
+        <section class="login-card">
+            <div class="hero-brand">
+                <img class="hero-brand__full" th:src="@{/img/brand-hero.png}" alt="we meet">
+            </div>
+            <h1>아이디 찾기</h1>
+            <p>회원가입 시 사용한 이름과 이메일을 입력하면 등록된 로그인 ID를 확인할 수 있습니다.</p>
+
+            <div class="notice-banner" th:if="${foundLoginId}">
+                <strong>조회 결과</strong>
+                <span>
+                    <span th:text="${foundName}">홍길동</span>
+                    /
+                    <span th:text="${foundEmail}">sample@example.com</span>
+                    계정의 아이디는
+                    <strong th:text="${foundLoginId}">wemeet_user</strong>
+                    입니다.
+                </span>
+            </div>
+
+            <div class="notice-banner notice-banner--error" th:if="${findIdError}">
+                <strong>조회 실패</strong>
+                <span th:text="${findIdError}">일치하는 계정을 찾지 못했습니다.</span>
+            </div>
+
+            <form class="form-stack" method="post" th:action="@{/find-id}">
+                <div>
+                    <label class="field-label" for="name">이름</label>
+                    <input class="text-input" th:classappend="${redPlaceholderIndex == 1} ? ' text-input--danger-placeholder'" id="name" name="name" type="text"
+                           th:value="${foundName}"
+                           placeholder="이름을 입력하세요"
+                           autocomplete="name"
+                           required>
+                </div>
+                <div>
+                    <label class="field-label" for="email">이메일</label>
+                    <input class="text-input" th:classappend="${redPlaceholderIndex == 2} ? ' text-input--danger-placeholder'" id="email" name="email" type="email"
+                           th:value="${foundEmail}"
+                           placeholder="가입한 이메일을 입력하세요"
+                           autocomplete="email"
+                           pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
+                           title="올바른 이메일 형식을 입력해주세요. 예: user@example.com"
+                           required>
+                </div>
+                <button class="primary-button" type="submit">아이디 확인</button>
+            </form>
+
+            <div class="login-links">
+                <a th:href="@{/login}">로그인</a>
+                <a th:href="@{/signup}">회원가입</a>
+                <a th:href="@{/find-password}">비밀번호 찾기</a>
+            </div>
+        </section>
+    </main>
+
+    <nav th:if="${!hideShellNavigation}" th:replace="~{fragments/layout :: guestBottomNav(${activeTab})}"></nav>
+</div>
+</body>
+</html>

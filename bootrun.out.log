@@ -1,0 +1,113 @@
+> Task :compileJava UP-TO-DATE
+> Task :processResources
+> Task :classes
+> Task :resolveMainClassName UP-TO-DATE
+
+> Task :bootRun
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.3)
+
+2026-03-24T16:05:01.899+09:00  INFO 22360 --- [wemeet] [  restartedMain] com.kopo.wemeet.WemeetApplication        : Starting WemeetApplication using Java 17.0.15 with PID 22360 (C:\Users\8316-31\SpringWorks\wemeet\build\classes\java\main started by 8316-31 in C:\Users\8316-31\SpringWorks\wemeet)
+2026-03-24T16:05:01.903+09:00  INFO 22360 --- [wemeet] [  restartedMain] com.kopo.wemeet.WemeetApplication        : No active profile set, falling back to 1 default profile: "default"
+2026-03-24T16:05:01.951+09:00  INFO 22360 --- [wemeet] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-03-24T16:05:01.952+09:00  INFO 22360 --- [wemeet] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-03-24T16:05:02.531+09:00  INFO 22360 --- [wemeet] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-03-24T16:05:02.532+09:00  INFO 22360 --- [wemeet] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-24T16:05:02.676+09:00  INFO 22360 --- [wemeet] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 136 ms. Found 5 JPA repository interfaces.
+2026-03-24T16:05:02.715+09:00  INFO 22360 --- [wemeet] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-03-24T16:05:02.716+09:00  INFO 22360 --- [wemeet] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-03-24T16:05:02.731+09:00  INFO 22360 --- [wemeet] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.kopo.wemeet.repository.AppUserRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-24T16:05:02.732+09:00  INFO 22360 --- [wemeet] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.kopo.wemeet.repository.FriendRelationRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-24T16:05:02.732+09:00  INFO 22360 --- [wemeet] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.kopo.wemeet.repository.MeetingRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-24T16:05:02.732+09:00  INFO 22360 --- [wemeet] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.kopo.wemeet.repository.PasswordResetTokenRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-24T16:05:02.733+09:00  INFO 22360 --- [wemeet] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.kopo.wemeet.repository.SearchHistoryRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-24T16:05:02.733+09:00  INFO 22360 --- [wemeet] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 8 ms. Found 0 Redis repository interfaces.
+2026-03-24T16:05:03.266+09:00  INFO 22360 --- [wemeet] [  restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-03-24T16:05:03.280+09:00  INFO 22360 --- [wemeet] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-24T16:05:03.280+09:00  INFO 22360 --- [wemeet] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-03-24T16:05:03.332+09:00  INFO 22360 --- [wemeet] [  restartedMain] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 1379 ms
+2026-03-24T16:05:03.500+09:00  INFO 22360 --- [wemeet] [  restartedMain] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-03-24T16:05:03.552+09:00  INFO 22360 --- [wemeet] [  restartedMain] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
+2026-03-24T16:05:04.043+09:00  INFO 22360 --- [wemeet] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-24T16:05:04.076+09:00  INFO 22360 --- [wemeet] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-24T16:05:04.155+09:00  INFO 22360 --- [wemeet] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.mariadb.jdbc.Connection@2e43d6eb
+2026-03-24T16:05:04.156+09:00  INFO 22360 --- [wemeet] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-03-24T16:05:04.215+09:00  INFO 22360 --- [wemeet] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:mariadb://192.168.121.128/wemeet?user=wemeet&password=***&useUnicode=true&characterEncoding=UTF-8]
+	Database driver: MariaDB Connector/J
+	Database dialect: MariaDBDialect
+	Database version: 11.4.10
+	Default catalog/schema: wemeet/undefined
+	Autocommit mode: undefined/unknown
+	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-03-24T16:05:05.077+09:00  INFO 22360 --- [wemeet] [  restartedMain] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-24T16:05:05.132+09:00  INFO 22360 --- [wemeet] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-24T16:05:05.199+09:00  INFO 22360 --- [wemeet] [  restartedMain] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-24T16:05:06.768+09:00  INFO 22360 --- [wemeet] [  restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-03-24T16:05:06.774+09:00  INFO 22360 --- [wemeet] [  restartedMain] com.kopo.wemeet.WemeetApplication        : Started WemeetApplication in 5.24 seconds (process running for 5.701)
+2026-03-24T16:05:58.034+09:00  INFO 22360 --- [wemeet] [   File Watcher] rtingClassPathChangeChangedEventListener : Restarting due to 23 class path changes (0 additions, 0 deletions, 23 modifications)
+2026-03-24T16:05:58.038+09:00  INFO 22360 --- [wemeet] [       Thread-1] o.s.boot.tomcat.GracefulShutdown         : Commencing graceful shutdown. Waiting for active requests to complete
+2026-03-24T16:05:58.120+09:00  INFO 22360 --- [wemeet] [tomcat-shutdown] o.s.boot.tomcat.GracefulShutdown         : Graceful shutdown complete
+2026-03-24T16:05:58.132+09:00  INFO 22360 --- [wemeet] [       Thread-1] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-03-24T16:05:58.134+09:00  INFO 22360 --- [wemeet] [       Thread-1] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-03-24T16:05:58.139+09:00  INFO 22360 --- [wemeet] [       Thread-1] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.3)
+
+2026-03-24T16:05:58.248+09:00  INFO 22360 --- [wemeet] [  restartedMain] com.kopo.wemeet.WemeetApplication        : Starting WemeetApplication using Java 17.0.15 with PID 22360 (C:\Users\8316-31\SpringWorks\wemeet\build\classes\java\main started by 8316-31 in C:\Users\8316-31\SpringWorks\wemeet)
+2026-03-24T16:05:58.248+09:00  INFO 22360 --- [wemeet] [  restartedMain] com.kopo.wemeet.WemeetApplication        : No active profile set, falling back to 1 default profile: "default"
+2026-03-24T16:05:58.452+09:00  INFO 22360 --- [wemeet] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-03-24T16:05:58.452+09:00  INFO 22360 --- [wemeet] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-24T16:05:58.471+09:00  INFO 22360 --- [wemeet] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 17 ms. Found 5 JPA repository interfaces.
+2026-03-24T16:05:58.478+09:00  INFO 22360 --- [wemeet] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-03-24T16:05:58.479+09:00  INFO 22360 --- [wemeet] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-03-24T16:05:58.484+09:00  INFO 22360 --- [wemeet] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.kopo.wemeet.repository.AppUserRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-24T16:05:58.484+09:00  INFO 22360 --- [wemeet] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.kopo.wemeet.repository.FriendRelationRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-24T16:05:58.484+09:00  INFO 22360 --- [wemeet] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.kopo.wemeet.repository.MeetingRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-24T16:05:58.484+09:00  INFO 22360 --- [wemeet] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.kopo.wemeet.repository.PasswordResetTokenRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-24T16:05:58.484+09:00  INFO 22360 --- [wemeet] [  restartedMain] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.kopo.wemeet.repository.SearchHistoryRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-03-24T16:05:58.484+09:00  INFO 22360 --- [wemeet] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 3 ms. Found 0 Redis repository interfaces.
+2026-03-24T16:05:58.560+09:00  INFO 22360 --- [wemeet] [  restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-03-24T16:05:58.561+09:00  INFO 22360 --- [wemeet] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-24T16:05:58.561+09:00  INFO 22360 --- [wemeet] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-03-24T16:05:58.579+09:00  INFO 22360 --- [wemeet] [  restartedMain] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 329 ms
+2026-03-24T16:05:58.609+09:00  INFO 22360 --- [wemeet] [  restartedMain] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-03-24T16:05:58.649+09:00  INFO 22360 --- [wemeet] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-24T16:05:58.650+09:00  INFO 22360 --- [wemeet] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
+2026-03-24T16:05:58.653+09:00  INFO 22360 --- [wemeet] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection org.mariadb.jdbc.Connection@4eb9d8e
+2026-03-24T16:05:58.653+09:00  INFO 22360 --- [wemeet] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
+2026-03-24T16:05:58.657+09:00  INFO 22360 --- [wemeet] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:mariadb://192.168.121.128/wemeet?user=wemeet&password=***&useUnicode=true&characterEncoding=UTF-8]
+	Database driver: MariaDB Connector/J
+	Database dialect: MariaDBDialect
+	Database version: 11.4.10
+	Default catalog/schema: wemeet/undefined
+	Autocommit mode: undefined/unknown
+	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-03-24T16:05:58.750+09:00  INFO 22360 --- [wemeet] [  restartedMain] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-24T16:05:58.765+09:00  INFO 22360 --- [wemeet] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-24T16:05:59.006+09:00  INFO 22360 --- [wemeet] [  restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-03-24T16:05:59.009+09:00  INFO 22360 --- [wemeet] [  restartedMain] com.kopo.wemeet.WemeetApplication        : Started WemeetApplication in 0.781 seconds (process running for 57.936)
+2026-03-24T16:05:59.227+09:00  INFO 22360 --- [wemeet] [  restartedMain] .ConditionEvaluationDeltaLoggingListener : Condition evaluation unchanged
