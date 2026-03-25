@@ -5,7 +5,9 @@ import com.kopo.wemeet.entity.FriendRelation;
 import com.kopo.wemeet.entity.Meeting;
 import com.kopo.wemeet.entity.MeetingParticipant;
 import com.kopo.wemeet.entity.SearchHistory;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -30,17 +32,39 @@ public class WemeetDataStore {
     private final FriendRelationRepository friendRelationRepository;
     private final SearchHistoryRepository searchHistoryRepository;
     private final MeetingRepository meetingRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public WemeetDataStore(
             AppUserRepository userRepository,
             FriendRelationRepository friendRelationRepository,
             SearchHistoryRepository searchHistoryRepository,
-            MeetingRepository meetingRepository
+            MeetingRepository meetingRepository,
+            PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;
         this.friendRelationRepository = friendRelationRepository;
         this.searchHistoryRepository = searchHistoryRepository;
         this.meetingRepository = meetingRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @PostConstruct
+    @Transactional
+    void ensureDemoFriendExists() {
+        if (userRepository.existsByFriendCode("AAAAAA")) {
+            return;
+        }
+
+        AppUser demoFriend = new AppUser(
+                "user-demo-aaaaaa",
+                "demo_friend_aaaaaa",
+                "테스트 친구",
+                "aaaaaa@wemeet.local",
+                passwordEncoder.encode("Passw0rd!"),
+                "AAAAAA",
+                "서울특별시 강남구 테헤란로 212"
+        );
+        userRepository.save(demoFriend);
     }
 
     public Optional<UserAccount> findById(String userId) {
@@ -137,8 +161,21 @@ public class WemeetDataStore {
     @Transactional(readOnly = true)
     public List<SearchHistoryEntry> listHistory(String userId) {
         return searchHistoryRepository.findAllByUserIdOrderBySearchedAtDesc(userId).stream()
-                .map(entry -> new SearchHistoryEntry(entry.getQuery(), entry.getCategory(), entry.getSearchedAt()))
+                .map(entry -> new SearchHistoryEntry(entry.getId(), entry.getQuery(), entry.getCategory(), entry.getSearchedAt()))
                 .toList();
+    }
+
+    @Transactional
+    public void clearHistory(String userId) {
+        searchHistoryRepository.deleteByUserId(userId);
+    }
+
+    @Transactional
+    public void removeHistory(String userId, Long historyId) {
+        if (historyId == null) {
+            return;
+        }
+        searchHistoryRepository.deleteByIdAndUserId(historyId, userId);
     }
 
     private AppUser requireUser(String userId) {
@@ -203,6 +240,7 @@ public class WemeetDataStore {
     }
 
     public record SearchHistoryEntry(
+            Long id,
             String query,
             String category,
             LocalDateTime searchedAt

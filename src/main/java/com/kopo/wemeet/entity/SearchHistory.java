@@ -51,6 +51,10 @@ public class SearchHistory {
         return query;
     }
 
+    public Long getId() {
+        return id;
+    }
+
     public String getCategory() {
         return category;
     }

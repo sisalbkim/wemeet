@@ -7,7 +7,9 @@
 
     <main class="page page--guest">
         <section class="login-card">
-            <div class="welcome-card__badge">we meet</div>
+            <div class="hero-brand">
+                <img class="hero-brand__full" th:src="@{/img/brand-hero.png}" alt="we meet">
+            </div>
             <h1>로그인</h1>
             <p>DB에 저장된 계정 정보로 로그인합니다. 비밀번호는 URL이 아니라 서버 POST 요청으로 처리됩니다.</p>
             <div class="notice-banner" th:if="${registered}">
@@ -19,6 +21,10 @@
                 <span th:text="${loginErrorMessage != null ? loginErrorMessage : '아이디 또는 비밀번호를 다시 확인해주세요.'}">
                     아이디 또는 비밀번호를 다시 확인해주세요.
                 </span>
+            </div>
+            <div class="notice-banner" th:if="${passwordResetSuccess}">
+                <strong>비밀번호 변경 완료</strong>
+                <span th:text="${passwordResetSuccess}">비밀번호가 변경되었습니다.</span>
             </div>
 
             <form class="form-stack" method="post" th:action="@{/login}">
@@ -34,23 +40,9 @@
             </form>
 
             <div class="login-links">
-                <a th:href="@{/}">도움말</a>
                 <a th:href="@{/signup}">회원가입</a>
-                <a th:href="@{/}">비밀번호 찾기</a>
-            </div>
-        </section>
-
-        <section class="panel login-quick-search">
-            <div class="section-heading section-heading--stacked">
-                <h2>빠른 장소 검색</h2>
-                <span>로그인 전에는 예시 추천 결과만 미리 볼 수 있습니다</span>
-            </div>
-            <div class="chip-grid chip-grid--three-up">
-                <a class="filter-chip filter-chip--link" th:each="category : ${categories}"
-                   th:href="@{/search/results(category=${category.label}, guest=true)}"
-                   th:text="${category.label}">
-                    맛집
-                </a>
+                <a th:href="@{/find-id}">아이디 찾기</a>
+                <a th:href="@{/find-password}">비밀번호 찾기</a>
             </div>
         </section>
     </main>

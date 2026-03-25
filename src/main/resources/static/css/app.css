@@ -372,6 +372,7 @@ textarea {
     max-width: none;
 }
 
+
 .section-heading--map {
     margin-bottom: 12px;
 }
@@ -677,6 +678,10 @@ textarea {
     margin-top: 18px;
 }
 
+.profile-edit-tabs {
+    margin-bottom: 8px;
+}
+
 .ghost-button--danger-light {
     background: rgba(255, 255, 255, 0.16);
     color: #ffffff;
@@ -725,15 +730,135 @@ textarea {
     flex: 1 1 220px;
 }
 
+.inline-row .text-input--code {
+    flex: 0 1 180px;
+    min-width: 140px;
+}
+
+.signup-auth-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.signup-auth-row .text-input--code {
+    min-width: 0;
+    width: 100%;
+}
+
+.signup-auth-row .secondary-button--compact {
+    white-space: nowrap;
+}
+
 .helper-row {
     justify-content: space-between;
     margin-top: 12px;
     flex-wrap: wrap;
 }
 
+.helper-row--center {
+    justify-content: center;
+    align-items: center;
+}
+
+.helper-row--center .text-link {
+    position: relative;
+    top: 4px;
+}
+
 .text-link {
     color: var(--primary);
     font-weight: 700;
+}
+
+.signup-feedback {
+    margin: 10px 2px 0;
+}
+
+.signup-feedback.is-success {
+    color: #126d50;
+    font-weight: 700;
+}
+
+.signup-feedback.is-error {
+    color: #b42318;
+    font-weight: 700;
+}
+
+.email-warning-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 20px;
+}
+
+.email-warning-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.email-warning-card__label {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.validation-bubble {
+    position: relative;
+    display: flex;
+    min-height: 70px;
+    padding: 16px 18px;
+    border: 2px solid rgba(120, 120, 120, 0.62);
+    border-radius: 10px;
+    background: linear-gradient(180deg, #fefefe, #f4f4f4);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    align-items: center;
+    gap: 14px;
+}
+
+.validation-bubble::before {
+    position: absolute;
+    top: -10px;
+    left: 28px;
+    width: 18px;
+    height: 18px;
+    border-top: 2px solid rgba(120, 120, 120, 0.62);
+    border-left: 2px solid rgba(120, 120, 120, 0.62);
+    background: #fafafa;
+    transform: rotate(45deg);
+    content: "";
+}
+
+.validation-bubble__icon {
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #ff9a1f, #f06a00);
+    color: #ffffff;
+    font-size: 1.5rem;
+    font-weight: 800;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.validation-bubble__text {
+    color: #3b3b3b;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.validation-bubble--danger .validation-bubble__icon {
+    background: linear-gradient(180deg, #ff6c63, #de2b2b);
+}
+
+.validation-bubble--soft .validation-bubble__icon {
+    background: linear-gradient(180deg, #ffb347, #ff8b1e);
 }
 
 .inline-panel {
@@ -769,10 +894,24 @@ textarea {
     resize: vertical;
 }
 
+.text-input--danger-placeholder::placeholder {
+    color: #d93025;
+    opacity: 1;
+}
+
+.text-area--danger-placeholder::placeholder {
+    color: #d93025;
+    opacity: 1;
+}
+
 .radio-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+}
+
+.radio-grid--three-up {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .friend-selector {
@@ -1156,6 +1295,10 @@ textarea {
     .link-grid,
     .radio-grid,
     .submit-row {
+        grid-template-columns: 1fr;
+    }
+
+    .signup-auth-row {
         grid-template-columns: 1fr;
     }
 

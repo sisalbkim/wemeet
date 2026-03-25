@@ -5,11 +5,13 @@ import com.kopo.wemeet.entity.AppUser;
 import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IApiRecommendationService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
@@ -68,6 +70,56 @@ public class ApiRestController {
     @PostMapping("/auth/password/reset-confirm")
     public ApiDtos.PasswordResetResponse resetPassword(@RequestBody ApiDtos.PasswordResetConfirmRequest request) {
         return authService.resetPassword(request);
+    }
+
+    @GetMapping("/auth/email/available")
+    public ApiDtos.EmailAvailabilityResponse emailAvailable(@RequestParam String email) {
+        boolean available = authService.isEmailAvailable(email);
+        return new ApiDtos.EmailAvailabilityResponse(
+                available,
+                available ? "사용 가능한 이메일입니다." : "이미 사용 중인 이메일입니다."
+        );
+    }
+
+    @PostMapping("/auth/email/send-code")
+    public ApiDtos.EmailVerificationSendResponse sendEmailVerificationCode(
+            @RequestBody ApiDtos.EmailVerificationSendRequest request,
+            HttpSession session
+    ) {
+        String normalizedEmail = request.email() == null ? "" : request.email().trim();
+        String code = authService.createSignupEmailVerificationCode(normalizedEmail);
+        session.setAttribute("SIGNUP_VERIFICATION_EMAIL", normalizedEmail);
+        session.setAttribute("SIGNUP_VERIFICATION_CODE", code);
+        session.removeAttribute("SIGNUP_VERIFIED_EMAIL");
+        return new ApiDtos.EmailVerificationSendResponse(
+                true,
+                "인증코드를 전송했습니다. 메일 연동 전 단계라 화면에서 preview 코드를 같이 보여줍니다.",
+                code
+        );
+    }
+
+    @PostMapping("/auth/email/verify-code")
+    public ApiDtos.EmailVerificationConfirmResponse verifyEmailVerificationCode(
+            @RequestBody ApiDtos.EmailVerificationConfirmRequest request,
+            HttpSession session
+    ) {
+        String normalizedEmail = request.email() == null ? "" : request.email().trim();
+        String pendingEmail = (String) session.getAttribute("SIGNUP_VERIFICATION_EMAIL");
+        String pendingCode = (String) session.getAttribute("SIGNUP_VERIFICATION_CODE");
+        String inputCode = request.code() == null ? "" : request.code().trim();
+
+        if (normalizedEmail.isBlank() || inputCode.isBlank()) {
+            return new ApiDtos.EmailVerificationConfirmResponse(false, "이메일과 인증코드를 입력해주세요.");
+        }
+        if (!normalizedEmail.equalsIgnoreCase(pendingEmail) || pendingCode == null) {
+            return new ApiDtos.EmailVerificationConfirmResponse(false, "먼저 해당 이메일로 인증코드를 전송해주세요.");
+        }
+        if (!pendingCode.equals(inputCode)) {
+            return new ApiDtos.EmailVerificationConfirmResponse(false, "인증코드가 일치하지 않습니다.");
+        }
+
+        session.setAttribute("SIGNUP_VERIFIED_EMAIL", normalizedEmail);
+        return new ApiDtos.EmailVerificationConfirmResponse(true, "이메일 인증이 완료되었습니다.");
     }
 
     @GetMapping("/me")

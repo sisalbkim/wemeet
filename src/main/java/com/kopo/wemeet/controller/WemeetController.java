@@ -23,6 +23,10 @@ import java.util.List;
 public class WemeetController {
     // Thymeleaf 화면 렌더링을 담당하는 웹 컨트롤러다.
     // 세션 기반 로그인 처리와 페이지별 모델 구성을 여기서 묶는다.
+    private static final String PASSWORD_RESET_USER_ID = "PASSWORD_RESET_USER_ID";
+    private static final String PASSWORD_RESET_LOGIN_ID = "PASSWORD_RESET_LOGIN_ID";
+    private static final String PASSWORD_RESET_EMAIL = "PASSWORD_RESET_EMAIL";
+    private static final String PROFILE_EDIT_VERIFIED = "PROFILE_EDIT_VERIFIED";
 
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;
@@ -58,10 +62,161 @@ public class WemeetController {
         return "login";
     }
 
-    @GetMapping("/signup")
-    public String signup(Model model) {
+    @GetMapping("/login1")
+    public String loginMock(@RequestParam(defaultValue = "false") boolean registered,
+                            @RequestParam(defaultValue = "false") boolean error,
+                            Model model) {
         populateCommon(model, "login", true);
+        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("registered", registered);
+        model.addAttribute("error", error);
+        return "login1";
+    }
+
+    @GetMapping("/login2")
+    public String loginMockImage(Model model) {
+        populateCommon(model, "login", true);
+        return "login2";
+    }
+
+    @GetMapping("/email0")
+    public String emailMockPage(Model model) {
+        populateCommon(model, "login", true);
+        return "email0";
+    }
+
+    @GetMapping("/email1")
+    public String emailMockTextPage(Model model) {
+        populateCommon(model, "login", true);
+        return "email1";
+    }
+
+    @GetMapping("/signup")
+    public String signup(Model model, HttpSession session) {
+        populateSignupModel(model, session, null);
         return "signup";
+    }
+
+    @GetMapping("/signup1")
+    public String signupMock1(Model model, HttpSession session) {
+        populateSignupModel(model, session, 1);
+        return "signup";
+    }
+
+    @GetMapping("/signup2")
+    public String signupMock2(Model model, HttpSession session) {
+        populateSignupModel(model, session, 2);
+        return "signup";
+    }
+
+    @GetMapping("/signup3")
+    public String signupMock3(Model model, HttpSession session) {
+        populateSignupModel(model, session, 3);
+        return "signup";
+    }
+
+    @GetMapping("/signup4")
+    public String signupMock4(Model model, HttpSession session) {
+        populateSignupModel(model, session, 4);
+        return "signup";
+    }
+
+    @GetMapping("/signup5")
+    public String signupMock5(Model model, HttpSession session) {
+        populateSignupModel(model, session, 5);
+        return "signup";
+    }
+
+    @GetMapping("/signup6")
+    public String signupMock6(Model model, HttpSession session) {
+        populateSignupModel(model, session, 6);
+        return "signup";
+    }
+
+    @GetMapping("/signup7")
+    public String signupMock7(Model model, HttpSession session) {
+        populateSignupModel(model, session, 7);
+        return "signup";
+    }
+
+    @GetMapping("/signup8")
+    public String signupMock8(Model model, HttpSession session) {
+        populateSignupModel(model, session, null);
+        model.addAttribute("signupMockVerifyFeedback", "인증코드를 전송했습니다");
+        model.addAttribute("signupMockVerifyFeedbackTone", "is-success");
+        model.addAttribute("hideShellNavigation", true);
+        return "signup";
+    }
+
+    private void populateSignupModel(Model model, HttpSession session, Integer redPlaceholderIndex) {
+        populateCommon(model, "login", true);
+        model.addAttribute("signupVerifiedEmail", session.getAttribute("SIGNUP_VERIFIED_EMAIL"));
+        model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
+        model.addAttribute("hideShellNavigation", redPlaceholderIndex != null);
+    }
+
+    @GetMapping("/find-id")
+    public String findId(Model model) {
+        populateFindIdModel(model, null);
+        return "find-id";
+    }
+
+    @GetMapping("/find-id1")
+    public String findIdMock1(Model model) {
+        populateFindIdModel(model, 1);
+        return "find-id";
+    }
+
+    @GetMapping("/find-id2")
+    public String findIdMock2(Model model) {
+        populateFindIdModel(model, 2);
+        return "find-id";
+    }
+
+    @GetMapping("/find-password")
+    public String findPassword(Model model) {
+        populateFindPasswordModel(model, null);
+        return "find-password";
+    }
+
+    @GetMapping("/find-password0")
+    public String findPasswordMock0(Model model) {
+        populateFindPasswordModel(model, 0);
+        model.addAttribute("passwordResetName", "홍길동");
+        model.addAttribute("passwordResetEmail", "hong@example.com");
+        model.addAttribute("passwordResetLoginId", "wemeet_user");
+        model.addAttribute("passwordResetTemporaryPassword", "WM123456!");
+        model.addAttribute("passwordResetLookupSuccess", "일치하는 계정을 확인했습니다. 아래 임시 비밀번호로 로그인해 주세요.");
+        return "find-password";
+    }
+
+    @GetMapping("/find-password1")
+    public String findPasswordMock1(Model model) {
+        populateFindPasswordModel(model, 1);
+        return "find-password";
+    }
+
+    @GetMapping("/find-password2")
+    public String findPasswordMock2(Model model) {
+        populateFindPasswordModel(model, 2);
+        return "find-password";
+    }
+
+    @GetMapping("/find-password3")
+    public String findPasswordMock3(Model model) {
+        populateFindPasswordModel(model, 3);
+        return "find-password";
+    }
+
+    @GetMapping("/find-password/reset")
+    public String resetPasswordPage(Model model, HttpSession session) {
+        if (session == null || session.getAttribute(PASSWORD_RESET_USER_ID) == null) {
+            return "redirect:/find-password";
+        }
+        populateCommon(model, "login", true);
+        model.addAttribute("passwordResetLoginId", session.getAttribute(PASSWORD_RESET_LOGIN_ID));
+        model.addAttribute("passwordResetEmail", session.getAttribute(PASSWORD_RESET_EMAIL));
+        return "reset-password";
     }
 
     @GetMapping("/guest/plan")
@@ -70,10 +225,17 @@ public class WemeetController {
             @RequestParam(defaultValue = "맛집") String category,
             Model model
     ) {
-        populateCommon(model, "nearby", true);
-        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
-        model.addAttribute("guestAddress", guestAddress);
-        model.addAttribute("selectedCategory", category);
+        populateGuestPlanModel(model, guestAddress, category, null);
+        return "guest-plan";
+    }
+
+    @GetMapping("/guest/plan1")
+    public String guestPlanMock1(
+            @RequestParam(defaultValue = "") String guestAddress,
+            @RequestParam(defaultValue = "맛집") String category,
+            Model model
+    ) {
+        populateGuestPlanModel(model, guestAddress, category, 1);
         return "guest-plan";
     }
 
@@ -85,24 +247,55 @@ public class WemeetController {
             @RequestParam(defaultValue = "") String password,
             @RequestParam(defaultValue = "") String confirmPassword,
             @RequestParam(defaultValue = "") String baseAddress,
+            HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
+        String trimmedEmail = email == null ? "" : email.trim();
+
         if (!password.equals(confirmPassword)) {
             redirectAttributes.addFlashAttribute("signupError", "비밀번호 확인이 일치하지 않습니다.");
             redirectAttributes.addFlashAttribute("signupNickname", nickname);
             redirectAttributes.addFlashAttribute("signupLoginId", loginId);
-            redirectAttributes.addFlashAttribute("signupEmail", email);
+            redirectAttributes.addFlashAttribute("signupEmail", trimmedEmail);
             redirectAttributes.addFlashAttribute("signupBaseAddress", baseAddress);
             return "redirect:/signup";
         }
 
-        authService.signUp(new ApiDtos.SignUpRequest(
-                nickname,
-                loginId,
-                password,
-                email,
-                baseAddress
-        ));
+        String verifiedEmail = (String) session.getAttribute("SIGNUP_VERIFIED_EMAIL");
+        if (verifiedEmail == null || !verifiedEmail.equalsIgnoreCase(trimmedEmail)) {
+            redirectAttributes.addFlashAttribute("signupError", "이메일 중복확인과 이메일 인증을 먼저 완료해주세요.");
+            redirectAttributes.addFlashAttribute("signupNickname", nickname);
+            redirectAttributes.addFlashAttribute("signupLoginId", loginId);
+            redirectAttributes.addFlashAttribute("signupEmail", trimmedEmail);
+            redirectAttributes.addFlashAttribute("signupBaseAddress", baseAddress);
+            return "redirect:/signup";
+        }
+
+        try {
+            authService.signUp(new ApiDtos.SignUpRequest(
+                    nickname,
+                    loginId,
+                    password,
+                    trimmedEmail,
+                    baseAddress
+            ));
+        } catch (ResponseStatusException exception) {
+            redirectAttributes.addFlashAttribute("signupError", switch (exception.getReason()) {
+                case "email already exists" -> "이미 사용 중인 이메일입니다.";
+                case "loginId already exists" -> "이미 사용 중인 아이디입니다.";
+                case "nickname, loginId, password, and email are required" -> "필수 입력값을 모두 작성해주세요.";
+                default -> exception.getReason();
+            });
+            redirectAttributes.addFlashAttribute("signupNickname", nickname);
+            redirectAttributes.addFlashAttribute("signupLoginId", loginId);
+            redirectAttributes.addFlashAttribute("signupEmail", trimmedEmail);
+            redirectAttributes.addFlashAttribute("signupBaseAddress", baseAddress);
+            return "redirect:/signup";
+        }
+
+        session.removeAttribute("SIGNUP_VERIFICATION_EMAIL");
+        session.removeAttribute("SIGNUP_VERIFICATION_CODE");
+        session.removeAttribute("SIGNUP_VERIFIED_EMAIL");
 
         redirectAttributes.addAttribute("registered", true);
         redirectAttributes.addFlashAttribute("registeredNickname", nickname.isBlank() ? loginId : nickname);
@@ -124,6 +317,97 @@ public class WemeetController {
         session.setAttribute("USER_NICKNAME", authResponse.user().nickname());
 
         return "redirect:/";
+    }
+
+    @PostMapping("/find-id")
+    public String findIdSubmit(
+            @RequestParam(defaultValue = "") String name,
+            @RequestParam(defaultValue = "") String email,
+            RedirectAttributes redirectAttributes
+    ) {
+        String normalizedName = name == null ? "" : name.trim();
+        String normalizedEmail = email == null ? "" : email.trim();
+        try {
+            String loginId = authService.findLoginIdByNameAndEmail(normalizedName, normalizedEmail);
+            redirectAttributes.addFlashAttribute("foundLoginId", loginId);
+            redirectAttributes.addFlashAttribute("foundName", normalizedName);
+            redirectAttributes.addFlashAttribute("foundEmail", normalizedEmail);
+        } catch (ResponseStatusException exception) {
+            redirectAttributes.addFlashAttribute("findIdError", switch (exception.getStatusCode().value()) {
+                case 400 -> "이름과 올바른 이메일 형식을 입력해주세요.";
+                case 404 -> "이름과 이메일이 일치하는 계정을 찾지 못했습니다.";
+                default -> "아이디를 조회하지 못했습니다.";
+            });
+            redirectAttributes.addFlashAttribute("foundName", normalizedName);
+            redirectAttributes.addFlashAttribute("foundEmail", normalizedEmail);
+        }
+        return "redirect:/find-id";
+    }
+
+    @PostMapping("/find-password/verify")
+    public String findPasswordVerify(
+            @RequestParam(defaultValue = "") String name,
+            @RequestParam(defaultValue = "") String loginId,
+            @RequestParam(defaultValue = "") String email,
+            RedirectAttributes redirectAttributes
+    ) {
+        String normalizedName = name == null ? "" : name.trim();
+        String normalizedLoginId = loginId == null ? "" : loginId.trim();
+        String normalizedEmail = email == null ? "" : email.trim();
+        try {
+            String temporaryPassword = authService.issueTemporaryPassword(normalizedName, normalizedLoginId, normalizedEmail);
+            redirectAttributes.addFlashAttribute("passwordResetName", normalizedName);
+            redirectAttributes.addFlashAttribute("passwordResetLoginId", normalizedLoginId);
+            redirectAttributes.addFlashAttribute("passwordResetEmail", normalizedEmail);
+            redirectAttributes.addFlashAttribute("passwordResetTemporaryPassword", temporaryPassword);
+            redirectAttributes.addFlashAttribute("passwordResetLookupSuccess", "일치하는 계정을 확인했습니다. 아래 임시 비밀번호로 로그인해 주세요.");
+            return "redirect:/find-password";
+        } catch (ResponseStatusException exception) {
+            redirectAttributes.addFlashAttribute("passwordResetLookupError", switch (exception.getStatusCode().value()) {
+                case 400 -> "이름, 아이디, 올바른 이메일을 입력해주세요.";
+                case 404 -> "이름, 이메일, 아이디가 일치하는 계정을 찾지 못했습니다.";
+                default -> "비밀번호 변경 대상 계정을 확인하지 못했습니다.";
+            });
+            redirectAttributes.addFlashAttribute("passwordResetName", normalizedName);
+            redirectAttributes.addFlashAttribute("passwordResetLoginId", normalizedLoginId);
+            redirectAttributes.addFlashAttribute("passwordResetEmail", normalizedEmail);
+            return "redirect:/find-password";
+        }
+    }
+
+    @PostMapping("/find-password/reset")
+    public String resetPassword(
+            @RequestParam(defaultValue = "") String newPassword,
+            @RequestParam(defaultValue = "") String confirmPassword,
+            HttpSession session,
+            RedirectAttributes redirectAttributes
+    ) {
+        String resetUserId = session == null ? null : (String) session.getAttribute(PASSWORD_RESET_USER_ID);
+
+        if (resetUserId == null || resetUserId.isBlank()) {
+            return "redirect:/find-password";
+        }
+
+        if (!newPassword.equals(confirmPassword)) {
+            redirectAttributes.addFlashAttribute("passwordResetConfirmError", "비밀번호 확인이 일치하지 않습니다.");
+            return "redirect:/find-password/reset";
+        }
+
+        try {
+            authService.resetPasswordForUser(resetUserId, newPassword);
+            session.removeAttribute(PASSWORD_RESET_USER_ID);
+            session.removeAttribute(PASSWORD_RESET_LOGIN_ID);
+            session.removeAttribute(PASSWORD_RESET_EMAIL);
+            redirectAttributes.addFlashAttribute("passwordResetSuccess", "비밀번호가 변경되었습니다.");
+            return "redirect:/login";
+        } catch (ResponseStatusException exception) {
+            redirectAttributes.addFlashAttribute("passwordResetConfirmError", switch (exception.getStatusCode().value()) {
+                case 400 -> "새 비밀번호를 입력해주세요.";
+                case 404 -> "비밀번호를 변경할 계정을 찾지 못했습니다.";
+                default -> "비밀번호를 변경하지 못했습니다.";
+            });
+            return "redirect:/find-password/reset";
+        }
     }
 
     @PostMapping("/guest/preview")
@@ -155,10 +439,25 @@ public class WemeetController {
     @GetMapping("/friends")
     public String friends(Model model, HttpSession session) {
         AppUser currentUser = requireLoggedInUser(session);
-        populateCommon(model, "friends", false);
-        model.addAttribute("profile", toProfile(currentUser));
-        model.addAttribute("friendRequests", viewService.getFriendRequests());
-        model.addAttribute("friends", viewService.getFriends(currentUser.getId()));
+        populateFriendsModel(model, toProfile(currentUser), viewService.getFriends(currentUser.getId()), null, false);
+        return "friends";
+    }
+
+    @GetMapping("/friends4")
+    public String friendsMock4(Model model) {
+        UiModels.UserProfile profile = viewService.getGuestUser();
+        List<UiModels.FriendSummary> sampleFriends = List.of(
+                new UiModels.FriendSummary("friend-101", "이영희", "@user456", "성수동 출발", "2026. 3. 1."),
+                new UiModels.FriendSummary("friend-102", "박민수", "@user789", "잠실동 출발", "2026. 3. 3.")
+        );
+        populateFriendsModel(model, profile, sampleFriends, null, true);
+        return "friends";
+    }
+
+    @GetMapping("/friends1")
+    public String friendsMock1(Model model) {
+        UiModels.UserProfile profile = viewService.getGuestUser();
+        populateFriendsModel(model, profile, List.of(), 1, true);
         return "friends";
     }
 
@@ -175,8 +474,30 @@ public class WemeetController {
             // 리다이렉트 뒤에도 결과 문구를 보여주기 위해 flash attribute를 사용한다.
             redirectAttributes.addFlashAttribute("friendNotice", addedFriend.nickname() + " 님을 친구로 추가했습니다.");
         } catch (ResponseStatusException exception) {
-            redirectAttributes.addFlashAttribute("friendError", exception.getReason());
+            redirectAttributes.addFlashAttribute("friendError", switch (exception.getReason()) {
+                case "friendCode is required" -> "친구 코드를 입력해주세요.";
+                case "Friend code not found" -> "일치하는 친구 코드를 찾지 못했습니다.";
+                case "You cannot add yourself" -> "내 친구 코드는 직접 추가할 수 없습니다.";
+                case "Friend already added" -> "이미 추가된 친구입니다.";
+                default -> exception.getReason();
+            });
         }
+        return "redirect:" + redirectTo;
+    }
+
+    @PostMapping("/friends/request/respond")
+    public String respondFriendRequest(
+            @RequestParam(defaultValue = "") String action,
+            @RequestParam(defaultValue = "/friends") String redirectTo,
+            RedirectAttributes redirectAttributes
+    ) {
+        boolean approved = "approve".equalsIgnoreCase(action);
+        redirectAttributes.addFlashAttribute("friendRequests", List.of());
+        redirectAttributes.addFlashAttribute(
+                "friendRequestNotice",
+                approved ? "승인되었습니다!" : "거절했습니다."
+        );
+        redirectAttributes.addFlashAttribute("friendRequestNoticeTone", approved ? "success" : "error");
         return "redirect:" + redirectTo;
     }
 
@@ -196,12 +517,145 @@ public class WemeetController {
         return "history";
     }
 
+    @GetMapping("/history1")
+    public String historyMock1(Model model) {
+        populateCommon(model, "history", false);
+        model.addAttribute("selectedFilter", "전체");
+        model.addAttribute("keyword", "");
+        model.addAttribute("categories", viewService.getCategories());
+        model.addAttribute("searchHistory", List.of(
+                new UiModels.SearchHistoryItem(1L, "강남 맛집", "맛집", "2026. 3. 10."),
+                new UiModels.SearchHistoryItem(2L, "성수 카페", "카페", "2026. 3. 9."),
+                new UiModels.SearchHistoryItem(3L, "잠실 놀거리", "놀이", "2026. 3. 8.")
+        ));
+        model.addAttribute("redPlaceholderIndex", 1);
+        model.addAttribute("hideShellNavigation", true);
+        return "history";
+    }
+
+    @PostMapping("/history/clear")
+    public String clearHistory(
+            @RequestParam(defaultValue = "전체") String filter,
+            @RequestParam(defaultValue = "") String keyword,
+            HttpSession session,
+            RedirectAttributes redirectAttributes
+    ) {
+        AppUser currentUser = requireLoggedInUser(session);
+        viewService.clearSearchHistory(currentUser.getId());
+        redirectAttributes.addAttribute("filter", filter);
+        redirectAttributes.addAttribute("keyword", keyword);
+        return "redirect:/history";
+    }
+
+    @PostMapping("/history/remove")
+    public String removeHistory(
+            @RequestParam Long historyId,
+            @RequestParam(defaultValue = "전체") String filter,
+            @RequestParam(defaultValue = "") String keyword,
+            HttpSession session,
+            RedirectAttributes redirectAttributes
+    ) {
+        AppUser currentUser = requireLoggedInUser(session);
+        viewService.removeSearchHistory(currentUser.getId(), historyId);
+        redirectAttributes.addAttribute("filter", filter);
+        redirectAttributes.addAttribute("keyword", keyword);
+        return "redirect:/history";
+    }
+
     @GetMapping("/profile")
     public String profile(Model model, HttpSession session) {
         AppUser currentUser = requireLoggedInUser(session);
         populateCommon(model, "profile", false);
         model.addAttribute("profile", toProfile(currentUser));
         return "profile";
+    }
+
+    @GetMapping("/profile/verify-password")
+    public String profilePasswordCheck(Model model, HttpSession session) {
+        requireLoggedInUser(session);
+        populateCommon(model, "profile", false);
+        return "profile-password-check";
+    }
+
+    @GetMapping("/profile/verify-password1")
+    public String profilePasswordCheckMock1(Model model) {
+        populateCommon(model, "profile", false);
+        model.addAttribute("redPlaceholderIndex", 1);
+        model.addAttribute("hideShellNavigation", true);
+        return "profile-password-check";
+    }
+
+    @PostMapping("/profile/verify-password")
+    public String verifyProfilePassword(
+            @RequestParam(defaultValue = "") String password,
+            HttpSession session,
+            RedirectAttributes redirectAttributes
+    ) {
+        AppUser currentUser = requireLoggedInUser(session);
+        if (!authService.matchesPassword(currentUser, password)) {
+            redirectAttributes.addFlashAttribute("profileVerifyPasswordError", "비밀번호가 올바르지 않습니다.");
+            return "redirect:/profile/verify-password";
+        }
+
+        session.setAttribute(PROFILE_EDIT_VERIFIED, true);
+        return "redirect:/profile/edit";
+    }
+
+    @GetMapping("/profile/edit")
+    public String profileEdit(
+            @RequestParam(defaultValue = "password") String editTab,
+            Model model,
+            HttpSession session
+    ) {
+        AppUser currentUser = requireLoggedInUser(session);
+        if (!Boolean.TRUE.equals(session.getAttribute(PROFILE_EDIT_VERIFIED))) {
+            return "redirect:/profile/verify-password";
+        }
+
+        populateCommon(model, "profile", false);
+        model.addAttribute("profile", toProfile(currentUser));
+        model.addAttribute("selectedProfileEditTab", "address".equalsIgnoreCase(editTab) ? "address" : "password");
+        return "profile-edit";
+    }
+
+    @GetMapping("/profile/edit1")
+    public String profileEditMock1(Model model) {
+        populateCommon(model, "profile", false);
+        model.addAttribute("profile", viewService.getGuestUser());
+        model.addAttribute("selectedProfileEditTab", "address");
+        model.addAttribute("redPlaceholderIndex", 1);
+        model.addAttribute("hideShellNavigation", true);
+        return "profile-edit";
+    }
+
+    @GetMapping("/ex")
+    public String profileEditExample(Model model) {
+        populateCommon(model, "profile", false);
+        model.addAttribute("profile", viewService.getGuestUser());
+        model.addAttribute("selectedProfileEditTab", "address");
+        model.addAttribute("redPlaceholderIndex", 1);
+        model.addAttribute("hideShellNavigation", true);
+        return "profile-edit";
+    }
+
+    @GetMapping("/ex1")
+    public String profileEditPasswordExample1(Model model) {
+        populateCommon(model, "profile", false);
+        model.addAttribute("profile", viewService.getGuestUser());
+        model.addAttribute("selectedProfileEditTab", "password");
+        model.addAttribute("redPlaceholderIndex", 1);
+        model.addAttribute("hideShellNavigation", true);
+        return "profile-edit";
+    }
+
+    @GetMapping("/ex2")
+    public String profileEditPasswordExample2(Model model) {
+        populateCommon(model, "profile", false);
+        model.addAttribute("profile", viewService.getGuestUser());
+        model.addAttribute("selectedProfileEditTab", "password");
+        model.addAttribute("redPlaceholderIndex", 2);
+        model.addAttribute("hideShellNavigation", true);
+        return "profile-edit";
     }
 
     @PostMapping("/profile/address")
@@ -213,20 +667,77 @@ public class WemeetController {
         AppUser currentUser = requireLoggedInUser(session);
         authService.updateBaseAddress(currentUser, baseAddress);
         redirectAttributes.addFlashAttribute("profileNotice", "기본 출발지 주소가 수정되었습니다.");
-        return "redirect:/profile";
+        redirectAttributes.addAttribute("editTab", "address");
+        return "redirect:/profile/edit";
+    }
+
+    @PostMapping("/profile/password")
+    public String updateProfilePassword(
+            @RequestParam(defaultValue = "") String newPassword,
+            @RequestParam(defaultValue = "") String confirmPassword,
+            HttpSession session,
+            RedirectAttributes redirectAttributes
+    ) {
+        AppUser currentUser = requireLoggedInUser(session);
+
+        if (newPassword == null || newPassword.isBlank()) {
+            redirectAttributes.addFlashAttribute("profilePasswordError", "새 비밀번호를 입력해주세요.");
+            redirectAttributes.addAttribute("editTab", "password");
+            return "redirect:/profile/edit";
+        }
+
+        if (!newPassword.equals(confirmPassword)) {
+            redirectAttributes.addFlashAttribute("profilePasswordError", "비밀번호 확인이 일치하지 않습니다.");
+            redirectAttributes.addAttribute("editTab", "password");
+            return "redirect:/profile/edit";
+        }
+
+        authService.resetPasswordForUser(currentUser.getId(), newPassword);
+        redirectAttributes.addFlashAttribute("profilePasswordNotice", "비밀번호가 변경되었습니다.");
+        redirectAttributes.addAttribute("editTab", "password");
+        return "redirect:/profile/edit";
     }
 
     @GetMapping("/meetings/new")
     public String meetingForm(Model model, HttpSession session) {
         AppUser currentUser = requireLoggedInUser(session);
-        populateCommon(model, "create", false);
-        model.addAttribute("profile", toProfile(currentUser));
-        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
-        model.addAttribute("friends", viewService.getFriends(currentUser.getId()));
-        // 카테고리는 사용자가 직접 누르도록 기본 선택을 비워 둔다.
-        model.addAttribute("selectedCategory", "");
-        model.addAttribute("selectedMode", RecommendationMode.CENTER.name());
-        model.addAttribute("selectedAnchorId", currentUser.getId());
+        List<UiModels.FriendSummary> friends = viewService.getFriends(currentUser.getId());
+        populateMeetingFormModel(model, toProfile(currentUser), friends, extractFriendIds(friends), null, false);
+        return "meeting-form";
+    }
+
+    @GetMapping("/meetings/new1")
+    public String meetingFormMock1(Model model) {
+        UiModels.UserProfile profile = viewService.getGuestUser();
+        List<UiModels.FriendSummary> friends = viewService.getFriends(profile.id());
+        populateMeetingFormModel(model, profile, friends, extractFriendIds(friends), 1, true);
+        return "meeting-form";
+    }
+
+    @GetMapping("/meetings/new2")
+    public String meetingFormMock2(Model model) {
+        UiModels.UserProfile profile = viewService.getGuestUser();
+        List<UiModels.FriendSummary> friends = viewService.getFriends(profile.id());
+        populateMeetingFormModel(model, profile, friends, extractFriendIds(friends), 2, true);
+        return "meeting-form";
+    }
+
+    @GetMapping("/meetings/new3")
+    public String meetingFormMock3(Model model) {
+        UiModels.UserProfile profile = viewService.getGuestUser();
+        List<UiModels.FriendSummary> friends = viewService.getFriends(profile.id());
+        populateMeetingFormModel(model, profile, friends, extractFriendIds(friends), 3, true);
+        return "meeting-form";
+    }
+
+    @GetMapping("/meetings/new4")
+    public String meetingFormMock4(Model model) {
+        UiModels.UserProfile profile = viewService.getGuestUser();
+        List<UiModels.FriendSummary> sampleFriends = List.of(
+                new UiModels.FriendSummary("friend-201", "이영희", "@user456", "성수동 출발", "2026. 3. 1."),
+                new UiModels.FriendSummary("friend-202", "박민수", "@user789", "잠실동 출발", "2026. 3. 3.")
+        );
+        populateMeetingFormModel(model, profile, sampleFriends, List.of(), null, true);
         return "meeting-form";
     }
 
@@ -304,6 +815,68 @@ public class WemeetController {
                         mode,
                         anchorId
                 ));
+    }
+
+    private void populateGuestPlanModel(Model model, String guestAddress, String category, Integer redPlaceholderIndex) {
+        populateCommon(model, "nearby", true);
+        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("guestAddress", guestAddress);
+        model.addAttribute("selectedCategory", category);
+        model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
+        model.addAttribute("hideShellNavigation", redPlaceholderIndex != null);
+    }
+
+    private void populateFindPasswordModel(Model model, Integer redPlaceholderIndex) {
+        populateCommon(model, "login", true);
+        model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
+        model.addAttribute("hideShellNavigation", redPlaceholderIndex != null);
+    }
+
+    private void populateFindIdModel(Model model, Integer redPlaceholderIndex) {
+        populateCommon(model, "login", true);
+        model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
+        model.addAttribute("hideShellNavigation", redPlaceholderIndex != null);
+    }
+
+    private void populateMeetingFormModel(
+            Model model,
+            UiModels.UserProfile profile,
+            List<UiModels.FriendSummary> friends,
+            List<String> preselectedFriendIds,
+            Integer redPlaceholderIndex,
+            boolean hideShellNavigation
+    ) {
+        populateCommon(model, "create", false);
+        model.addAttribute("profile", profile);
+        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("friends", friends);
+        model.addAttribute("preselectedFriendIds", preselectedFriendIds);
+        model.addAttribute("selectedCategory", "");
+        model.addAttribute("selectedMode", RecommendationMode.CENTER.name());
+        model.addAttribute("selectedAnchorId", profile.id());
+        model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
+        model.addAttribute("hideShellNavigation", hideShellNavigation);
+    }
+
+    private List<String> extractFriendIds(List<UiModels.FriendSummary> friends) {
+        return friends.stream().map(UiModels.FriendSummary::id).toList();
+    }
+
+    private void populateFriendsModel(
+            Model model,
+            UiModels.UserProfile profile,
+            List<UiModels.FriendSummary> friends,
+            Integer redPlaceholderIndex,
+            boolean hideShellNavigation
+    ) {
+        populateCommon(model, "friends", false);
+        model.addAttribute("profile", profile);
+        if (!model.containsAttribute("friendRequests")) {
+            model.addAttribute("friendRequests", viewService.getFriendRequests());
+        }
+        model.addAttribute("friends", friends);
+        model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
+        model.addAttribute("hideShellNavigation", hideShellNavigation);
     }
 
     private void populateCommon(Model model, String activeTab, boolean guestMode) {

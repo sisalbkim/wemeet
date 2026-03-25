@@ -82,6 +82,36 @@ public final class ApiDtos {
     ) {
     }
 
+    public record EmailAvailabilityResponse(
+            boolean available,
+            String message
+    ) {
+    }
+
+    public record EmailVerificationSendRequest(
+            String email
+    ) {
+    }
+
+    public record EmailVerificationSendResponse(
+            boolean sent,
+            String message,
+            String codePreview
+    ) {
+    }
+
+    public record EmailVerificationConfirmRequest(
+            String email,
+            String code
+    ) {
+    }
+
+    public record EmailVerificationConfirmResponse(
+            boolean verified,
+            String message
+    ) {
+    }
+
     public record SearchHistoryResponse(
             String query,
             String category,

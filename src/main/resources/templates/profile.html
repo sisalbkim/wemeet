@@ -11,14 +11,8 @@
             <h1 th:text="${profile.name}">김철수</h1>
             <p th:text="${profile.handle}">@user123</p>
             <div class="profile-hero__actions">
-                <a class="ghost-button ghost-button--light" href="#profile-edit">프로필 수정</a>
+                <a class="ghost-button ghost-button--light" th:href="@{/profile/verify-password}">프로필 수정</a>
                 <a class="ghost-button ghost-button--light ghost-button--danger-light" th:href="@{/logout}">로그아웃</a>
-            </div>
-        </section>
-
-        <section class="panel" th:if="${profileNotice != null}">
-            <div class="notice-banner">
-                <strong th:text="${profileNotice}">기본 출발지 주소가 수정되었습니다.</strong>
             </div>
         </section>
 
@@ -58,34 +52,6 @@
                     <span class="info-item__label">비밀번호</span>
                     <strong th:text="${profile.passwordMask}">••••••••</strong>
                 </article>
-            </div>
-        </section>
-
-        <section class="panel" id="profile-edit">
-            <div class="section-heading">
-                <h2>기본 출발지 수정</h2>
-                <span>모임 추천 계산에 바로 반영됩니다</span>
-            </div>
-            <form class="form-stack" method="post" th:action="@{/profile/address}">
-                <div>
-                    <label class="field-label" for="baseAddress">집 주소</label>
-                    <input class="text-input" id="baseAddress" name="baseAddress"
-                           th:value="${profile.baseAddress}"
-                           placeholder="예: 서울특별시 중구 명동길 74"
-                           required>
-                </div>
-                <button class="primary-button" type="submit">주소 저장</button>
-            </form>
-        </section>
-
-        <section class="panel">
-            <div class="section-heading">
-                <h2>설정</h2>
-            </div>
-            <div class="info-list">
-                <article class="info-item"><strong>알림 설정</strong></article>
-                <article class="info-item"><strong>개인정보 처리방침</strong></article>
-                <article class="info-item"><strong>서비스 이용약관</strong></article>
             </div>
         </section>
 

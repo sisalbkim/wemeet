@@ -17,7 +17,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -27,6 +29,7 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 @Service
 public class ApiAuthService implements IApiAuthService {
     // 회원가입, 로그인, 비밀번호 재설정처럼 인증과 계정 관리에 관한 핵심 로직을 모아 둔 서비스다.
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
     private final AppUserRepository userRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -92,6 +95,7 @@ public class ApiAuthService implements IApiAuthService {
         if (request.email() == null || request.email().isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "email is required");
         }
+        validateEmailFormat(request.email());
 
         AppUser user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "email not found"));
@@ -132,6 +136,100 @@ public class ApiAuthService implements IApiAuthService {
         passwordResetTokenRepository.save(token);
 
         return new ApiDtos.PasswordResetResponse("비밀번호가 변경되었습니다.", null);
+    }
+
+    @Override
+    public String findLoginIdByEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "email is required");
+        }
+        validateEmailFormat(email);
+
+        AppUser user = userRepository.findByEmail(email.trim())
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "email not found"));
+        return user.getLoginId();
+    }
+
+    @Override
+    public String findLoginIdByNameAndEmail(String name, String email) {
+        if (name == null || name.isBlank() || email == null || email.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "name and email are required");
+        }
+        validateEmailFormat(email);
+
+        AppUser user = userRepository.findByNicknameAndEmail(name.trim(), email.trim())
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "name and email do not match"));
+        return user.getLoginId();
+    }
+
+    @Override
+    public String issueTemporaryPassword(String name, String loginId, String email) {
+        if (name == null || name.isBlank() || loginId == null || loginId.isBlank() || email == null || email.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "name, loginId, and email are required");
+        }
+        validateEmailFormat(email);
+
+        AppUser user = userRepository.findByNicknameAndLoginIdAndEmail(name.trim(), loginId.trim(), email.trim())
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "name, loginId, and email do not match"));
+
+        String temporaryPassword = "WM" + String.format("%06d", ThreadLocalRandom.current().nextInt(0, 1_000_000)) + "!";
+        user.changePasswordHash(passwordEncoder.encode(temporaryPassword));
+        userRepository.save(user);
+        return temporaryPassword;
+    }
+
+    @Override
+    public String findUserIdByLoginIdAndEmail(String loginId, String email) {
+        if (loginId == null || loginId.isBlank() || email == null || email.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "loginId and email are required");
+        }
+        validateEmailFormat(email);
+
+        AppUser user = userRepository.findByLoginIdAndEmail(loginId.trim(), email.trim())
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "loginId and email do not match"));
+        return user.getId();
+    }
+
+    @Transactional
+    @Override
+    public void resetPasswordForUser(String userId, String newPassword) {
+        if (userId == null || userId.isBlank() || newPassword == null || newPassword.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "userId and newPassword are required");
+        }
+
+        AppUser user = userRepository.findById(userId.trim())
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "user not found"));
+        user.changePasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Override
+    public boolean isEmailAvailable(String email) {
+        if (email == null || email.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "email is required");
+        }
+        validateEmailFormat(email);
+        return !userRepository.existsByEmail(email.trim());
+    }
+
+    @Override
+    public String createSignupEmailVerificationCode(String email) {
+        if (email == null || email.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "email is required");
+        }
+        validateEmailFormat(email);
+        if (userRepository.existsByEmail(email.trim())) {
+            throw new ResponseStatusException(CONFLICT, "email already exists");
+        }
+        return String.format("%06d", ThreadLocalRandom.current().nextInt(0, 1_000_000));
+    }
+
+    @Override
+    public boolean matchesPassword(AppUser user, String rawPassword) {
+        if (user == null || rawPassword == null || rawPassword.isBlank()) {
+            return false;
+        }
+        return passwordEncoder.matches(rawPassword, user.getPasswordHash());
     }
 
     @Transactional
@@ -194,6 +292,13 @@ public class ApiAuthService implements IApiAuthService {
                 || request.email() == null || request.email().isBlank()
                 || request.nickname() == null || request.nickname().isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "nickname, loginId, password, and email are required");
+        }
+        validateEmailFormat(request.email());
+    }
+
+    private void validateEmailFormat(String email) {
+        if (!EMAIL_PATTERN.matcher(email.trim()).matches()) {
+            throw new ResponseStatusException(BAD_REQUEST, "invalid email format");
         }
     }
 

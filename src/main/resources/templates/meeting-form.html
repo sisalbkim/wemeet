@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/layout :: head('새 모임 만들기')}"></head>
 <body>
 <div class="app-shell">
-    <header th:replace="~{fragments/layout :: topBar}"></header>
+    <header th:if="${!hideShellNavigation}" th:replace="~{fragments/layout :: topBar}"></header>
 
     <main class="page">
         <section class="page-heading">
@@ -19,22 +19,21 @@
 
             <section class="panel">
                 <label class="field-label" for="meetingName">모임 이름</label>
-                <input class="text-input" id="meetingName" name="meetingName" placeholder="예: 주말 맛집 탐방">
+                <input class="text-input" th:classappend="${redPlaceholderIndex == 1} ? ' text-input--danger-placeholder'" id="meetingName" name="meetingName" placeholder="예: 주말 맛집 탐방">
             </section>
 
             <section class="panel">
                 <label class="field-label" for="meetingDescription">모임 설명</label>
-                <textarea class="text-area" id="meetingDescription" name="meetingDescription" placeholder="모임에 대해 설명해주세요"></textarea>
+                <textarea class="text-area" th:classappend="${redPlaceholderIndex == 2} ? ' text-area--danger-placeholder'" id="meetingDescription" name="meetingDescription" placeholder="모임에 대해 설명해주세요"></textarea>
             </section>
 
             <section class="panel">
                 <div class="section-heading">
                     <h2>참여 인원 먼저 정하기</h2>
-                    <span>친구 선택 후 추천 방식을 고르는 흐름입니다</span>
                 </div>
                 <label class="field-label" for="friendCode">친구 코드로 바로 추가</label>
                 <div class="inline-row">
-                    <input class="text-input" id="friendCode" name="friendCode" placeholder="예: FRIEND456">
+                    <input class="text-input" th:classappend="${redPlaceholderIndex == 3} ? ' text-input--danger-placeholder'" id="friendCode" name="friendCode" placeholder="예: FRIEND456">
                     <input type="hidden" name="redirectTo" value="/meetings/new">
                     <button class="ghost-button" type="submit" formaction="/friends/add" formmethod="post" formnovalidate>코드 추가</button>
                 </div>
@@ -54,7 +53,7 @@
                         </span>
                     </label>
                     <label class="friend-selector" th:each="friend : ${friends}">
-                        <input type="checkbox" name="friendIds" th:value="${friend.id}" checked>
+                        <input type="checkbox" name="friendIds" th:value="${friend.id}" th:checked="${preselectedFriendIds != null and #lists.contains(preselectedFriendIds, friend.id)}">
                         <span class="avatar-badge" th:text="${#strings.substring(friend.name,0,1)}">이</span>
                         <span class="friend-selector__body">
                             <strong th:text="${friend.name}">이영희</strong>
@@ -74,7 +73,7 @@
                 <div class="section-heading">
                     <h2>카테고리</h2>
                 </div>
-                <div class="radio-grid">
+                <div class="radio-grid radio-grid--three-up">
                     <label class="choice-chip" th:each="category : ${categories}" th:classappend="${selectedCategory == category.label} ? ' is-selected'">
                         <input type="radio" name="category" th:value="${category.label}" th:checked="${selectedCategory == category.label}" required>
                         <span th:text="${category.label}">맛집</span>
@@ -151,7 +150,7 @@
         </div>
     </main>
 
-    <nav th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>
+    <nav th:if="${!hideShellNavigation}" th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>
 </div>
 </body>
 </html>

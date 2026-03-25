@@ -15,6 +15,22 @@ public interface IApiAuthService {
 
     ApiDtos.PasswordResetResponse resetPassword(ApiDtos.PasswordResetConfirmRequest request);
 
+    String findLoginIdByNameAndEmail(String name, String email);
+
+    String findLoginIdByEmail(String email);
+
+    String issueTemporaryPassword(String name, String loginId, String email);
+
+    String findUserIdByLoginIdAndEmail(String loginId, String email);
+
+    boolean isEmailAvailable(String email);
+
+    String createSignupEmailVerificationCode(String email);
+
+    boolean matchesPassword(AppUser user, String rawPassword);
+
+    void resetPasswordForUser(String userId, String newPassword);
+
     ApiDtos.UserResponse updateBaseAddress(AppUser user, String baseAddress);
 
     // 토큰에서 실제 사용자 엔티티를 찾아야 할 때 사용한다.

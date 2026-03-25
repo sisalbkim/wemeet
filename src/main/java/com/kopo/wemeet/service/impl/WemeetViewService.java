@@ -120,6 +120,7 @@ public class WemeetViewService implements IWemeetViewService {
         // 히스토리 화면은 사용자별 저장값을 필터링해서 바로 출력한다.
         return store.listHistory(userId).stream()
                 .map(item -> new UiModels.SearchHistoryItem(
+                        item.id(),
                         item.query(),
                         item.category(),
                         item.searchedAt().format(historyFormatter)
@@ -127,6 +128,16 @@ public class WemeetViewService implements IWemeetViewService {
                 .filter(item -> "전체".equals(normalizedFilter) || item.category().equals(normalizedFilter))
                 .filter(item -> normalizedKeyword.isBlank() || item.query().toLowerCase(Locale.ROOT).contains(normalizedKeyword))
                 .toList();
+    }
+
+    @Override
+    public void clearSearchHistory(String userId) {
+        store.clearHistory(userId);
+    }
+
+    @Override
+    public void removeSearchHistory(String userId, Long historyId) {
+        store.removeHistory(userId, historyId);
     }
 
     @Override

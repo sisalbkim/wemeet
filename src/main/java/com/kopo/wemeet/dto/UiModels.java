@@ -46,6 +46,7 @@ public final class UiModels {
     }
 
     public record SearchHistoryItem(
+            Long id,
             String query,
             String category,
             String dateLabel

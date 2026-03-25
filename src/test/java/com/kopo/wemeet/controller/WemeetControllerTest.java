@@ -4,8 +4,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.ObjectMapper;
+
+import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -21,6 +26,9 @@ class WemeetControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Test
     void landingPageShowsGuestNavigation() throws Exception {
         mockMvc.perform(get("/"))
@@ -34,7 +42,77 @@ class WemeetControllerTest {
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("로그인")))
-                .andExpect(content().string(containsString("아이디")));
+                .andExpect(content().string(containsString("아이디")))
+                .andExpect(content().string(containsString("/find-password")));
+    }
+
+    @Test
+    void findPasswordPageShowsResetForms() throws Exception {
+        mockMvc.perform(get("/find-password"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("비밀번호 찾기")))
+                .andExpect(content().string(containsString("아이디")))
+                .andExpect(content().string(containsString("이메일")))
+                .andExpect(content().string(containsString("비밀번호 찾기")));
+    }
+
+    @Test
+    void passwordResetFlowRequiresMatchingLoginIdAndEmail() throws Exception {
+        String signUpPayload = objectMapper.writeValueAsString(Map.of(
+                "nickname", "비번테스터",
+                "loginId", "passwordflow01",
+                "password", "pass1234",
+                "email", "passwordflow01@wemeet.local",
+                "baseAddress", "서울특별시 중구"
+        ));
+
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(signUpPayload))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/find-password/verify")
+                        .param("loginId", "passwordflow01")
+                        .param("email", "wrong@wemeet.local"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/find-password"));
+
+        MvcResult verifyResult = mockMvc.perform(post("/find-password/verify")
+                        .session(new MockHttpSession())
+                        .param("loginId", "passwordflow01")
+                        .param("email", "passwordflow01@wemeet.local"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/find-password/reset"))
+                .andReturn();
+
+        MockHttpSession resetSession = (MockHttpSession) verifyResult.getRequest().getSession(false);
+
+        mockMvc.perform(get("/find-password/reset")
+                        .session(resetSession)
+                        .flashAttrs(verifyResult.getFlashMap()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("비밀번호 변경")))
+                .andExpect(content().string(containsString("passwordflow01")))
+                .andExpect(content().string(containsString("passwordflow01@wemeet.local")))
+                .andExpect(content().string(containsString("계정이 확인되었습니다. 새 비밀번호를 입력해주세요.")));
+
+        MvcResult confirmResult = mockMvc.perform(post("/find-password/reset")
+                        .session(resetSession)
+                        .param("newPassword", "resetPass123!")
+                        .param("confirmPassword", "resetPass123!"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"))
+                .andReturn();
+
+        mockMvc.perform(get("/login").flashAttrs(confirmResult.getFlashMap()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("비밀번호가 변경되었습니다.")));
+
+        mockMvc.perform(post("/login")
+                        .param("loginId", "passwordflow01")
+                        .param("password", "resetPass123!"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"));
     }
 
     @Test
@@ -68,6 +146,7 @@ class WemeetControllerTest {
     @Test
     void signupSubmitRedirectsToLoginWithNotice() throws Exception {
         mockMvc.perform(post("/signup")
+                        .session(verifiedSignupSession("tester01@wemeet.local"))
                         .param("nickname", "테스터")
                         .param("loginId", "tester01")
                         .param("email", "tester01@wemeet.local")
@@ -81,6 +160,7 @@ class WemeetControllerTest {
     @Test
     void homePageShowsLoggedInGreeting() throws Exception {
         mockMvc.perform(post("/signup")
+                        .session(verifiedSignupSession("homeuser01@wemeet.local"))
                         .param("nickname", "홈테스터")
                         .param("loginId", "homeuser01")
                         .param("email", "homeuser01@wemeet.local")
@@ -105,6 +185,7 @@ class WemeetControllerTest {
     @Test
     void profilePageAllowsUpdatingBaseAddress() throws Exception {
         mockMvc.perform(post("/signup")
+                        .session(verifiedSignupSession("profileuser01@wemeet.local"))
                         .param("nickname", "프로필테스터")
                         .param("loginId", "profileuser01")
                         .param("email", "profileuser01@wemeet.local")
@@ -138,6 +219,7 @@ class WemeetControllerTest {
     @Test
     void logoutInvalidatesSessionAndRedirectsToLanding() throws Exception {
         mockMvc.perform(post("/signup")
+                        .session(verifiedSignupSession("logoutuser01@wemeet.local"))
                         .param("nickname", "로그아웃테스터")
                         .param("loginId", "logoutuser01")
                         .param("email", "logoutuser01@wemeet.local")
@@ -168,6 +250,7 @@ class WemeetControllerTest {
     @Test
     void historyPageShowsUserSpecificHistoryInsteadOfStaticSample() throws Exception {
         mockMvc.perform(post("/signup")
+                        .session(verifiedSignupSession("historyuser01@wemeet.local"))
                         .param("nickname", "히스토리테스터")
                         .param("loginId", "historyuser01")
                         .param("email", "historyuser01@wemeet.local")
@@ -195,6 +278,7 @@ class WemeetControllerTest {
     @Test
     void friendCodeCanBeAddedFromFriendsPage() throws Exception {
         mockMvc.perform(post("/signup")
+                        .session(verifiedSignupSession("friendadd01@wemeet.local"))
                         .param("nickname", "친구추가테스터")
                         .param("loginId", "friendadd01")
                         .param("email", "friendadd01@wemeet.local")
@@ -224,5 +308,11 @@ class WemeetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("이영희")))
                 .andExpect(content().string(containsString("님을 친구로 추가했습니다.")));
+    }
+
+    private MockHttpSession verifiedSignupSession(String email) {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute("SIGNUP_VERIFIED_EMAIL", email);
+        return session;
     }
 }

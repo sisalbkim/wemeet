@@ -7,4 +7,8 @@ import java.util.List;
 
 public interface SearchHistoryRepository extends JpaRepository<SearchHistory, Long> {
     List<SearchHistory> findAllByUserIdOrderBySearchedAtDesc(String userId);
+
+    long deleteByUserId(String userId);
+
+    long deleteByIdAndUserId(Long id, String userId);
 }

@@ -24,6 +24,10 @@ public interface IWemeetViewService {
 
     List<UiModels.SearchHistoryItem> getSearchHistory(String userId, String filter, String keyword);
 
+    void clearSearchHistory(String userId);
+
+    void removeSearchHistory(String userId, Long historyId);
+
     UiModels.RecommendationBundle buildRecommendation(
             String requesterId,
             String category,

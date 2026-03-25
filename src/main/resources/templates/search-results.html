@@ -43,7 +43,7 @@
             </div>
             <div class="participant-row">
                 <span class="participant-pill" th:each="participant : ${recommendation.participants}"
-                      th:text="${participant.name + ' · ' + participant.addressHint}">
+                      th:text="${guestMode ? participant.addressHint : participant.name + ' · ' + participant.addressHint}">
                     김철수 · 명동 출발
                 </span>
             </div>
@@ -101,7 +101,7 @@
                 <p class="venue-card__reason" th:text="${venue.reason}">이동시간 차이가 작아서 가장 공평한 선택입니다.</p>
                 <div class="participant-row">
                     <span class="participant-pill participant-pill--light" th:each="time : ${venue.travelTimes}"
-                          th:text="${time.participantName + ' ' + time.minutes + '분'}">
+                          th:text="${guestMode ? guestAddress + ' ' + time.minutes + '분' : time.participantName + ' ' + time.minutes + '분'}">
                         김철수 18분
                     </span>
                 </div>

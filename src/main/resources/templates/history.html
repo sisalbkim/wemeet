@@ -3,19 +3,27 @@
 <head th:replace="~{fragments/layout :: head('검색 기록')}"></head>
 <body>
 <div class="app-shell">
-    <header th:replace="~{fragments/layout :: topBar}"></header>
+    <header th:if="${!hideShellNavigation}" th:replace="~{fragments/layout :: topBar}"></header>
 
     <main class="page">
         <section class="page-heading page-heading--compact">
             <div>
                 <h1>검색 기록</h1>
             </div>
-            <button class="text-button" type="button">전체 삭제</button>
+            <form method="post" th:action="@{/history/clear}">
+                <input type="hidden" name="filter" th:value="${selectedFilter}">
+                <input type="hidden" name="keyword" th:value="${keyword}">
+                <button class="text-button" type="submit">전체 삭제</button>
+            </form>
         </section>
 
         <section class="panel">
             <form class="search-form" method="get" th:action="@{/history}">
-                <input class="text-input" name="keyword" placeholder="검색 기록 찾기..." th:value="${keyword}">
+                <input class="text-input"
+                       th:classappend="${redPlaceholderIndex == 1} ? ' text-input--danger-placeholder'"
+                       name="keyword"
+                       placeholder="검색 기록 찾기..."
+                       th:value="${keyword}">
                 <input type="hidden" name="filter" th:value="${selectedFilter}">
                 <button class="visually-hidden" type="submit">검색</button>
             </form>
@@ -42,13 +50,18 @@
                         <span th:text="${item.dateLabel}">2026. 3. 10.</span>
                     </div>
                 </div>
-                <button class="history-card__remove" type="button">닫기</button>
+                <form method="post" th:action="@{/history/remove}">
+                    <input type="hidden" name="historyId" th:value="${item.id}">
+                    <input type="hidden" name="filter" th:value="${selectedFilter}">
+                    <input type="hidden" name="keyword" th:value="${keyword}">
+                    <button class="history-card__remove" type="submit">닫기</button>
+                </form>
             </article>
             <p class="empty-state" th:if="${#lists.isEmpty(searchHistory)}">조건에 맞는 검색 기록이 없습니다.</p>
         </section>
     </main>
 
-    <nav th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>
+    <nav th:if="${!hideShellNavigation}" th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>
 </div>
 </body>
 </html>
