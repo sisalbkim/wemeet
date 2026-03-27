@@ -60,6 +60,21 @@ public final class ApiDtos {
     ) {
     }
 
+    public record GuestRecommendationRequest(
+            String baseAddress,
+            String category,
+            String mode,
+            String anchorParticipantId
+    ) {
+    }
+
+    public record PlaceSearchRequest(
+            String originQuery,
+            String tag,
+            Integer display
+    ) {
+    }
+
     public record UserResponse(
             String id,
             String nickname,
@@ -187,6 +202,59 @@ public final class ApiDtos {
 
     public record CategoryResponse(
             List<String> categories
+    ) {
+    }
+
+    public record PlaceSearchOriginResponse(
+            String query,
+            String name,
+            String address,
+            double latitude,
+            double longitude
+    ) {
+    }
+
+    public record PlaceRoutePointResponse(
+            double latitude,
+            double longitude
+    ) {
+    }
+
+    public record PlaceCandidateResponse(
+            String name,
+            String normalizedCategory,
+            String category,
+            String address,
+            String roadAddress,
+            String telephone,
+            String link,
+            double latitude,
+            double longitude,
+            int distanceMeters,
+            int durationMinutes,
+            List<PlaceRoutePointResponse> routePath
+    ) {
+    }
+
+    public record PlaceSearchResponse(
+            String combinedQuery,
+            String requestedTag,
+            String normalizedTag,
+            List<String> appliedQueryTerms,
+            List<String> observedCategories,
+            PlaceSearchOriginResponse origin,
+            List<PlaceCandidateResponse> places
+    ) {
+    }
+
+    public record PlaceTagResponse(
+            String label,
+            List<String> queryTerms
+    ) {
+    }
+
+    public record PlaceTagCatalogResponse(
+            List<PlaceTagResponse> tags
     ) {
     }
 }

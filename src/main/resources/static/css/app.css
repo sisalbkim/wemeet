@@ -1104,7 +1104,7 @@ textarea {
     margin-top: 12px;
 }
 
-.kakao-map-infowindow {
+.map-infowindow {
     min-width: 168px;
     padding: 12px 14px;
     border: 1px solid rgba(91, 112, 152, 0.16);
@@ -1114,9 +1114,20 @@ textarea {
     line-height: 1.45;
 }
 
-.kakao-map-infowindow strong {
+.map-infowindow strong {
     display: block;
     margin-bottom: 4px;
+}
+
+.map-infowindow span {
+    display: inline-flex;
+    margin-top: 8px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(25, 82, 214, 0.08);
+    color: #1952d6;
+    font-size: 0.75rem;
+    font-weight: 700;
 }
 
 .loading-overlay {

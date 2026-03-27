@@ -5,6 +5,8 @@ import com.kopo.wemeet.entity.AppUser;
 import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IApiRecommendationService;
+import com.kopo.wemeet.service.impl.NaverPlaceSearchService;
+import com.kopo.wemeet.service.impl.NaverPlaceTagCatalog;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,15 +31,21 @@ public class ApiRestController {
 
     private final IApiAuthService authService;
     private final IApiRecommendationService recommendationService;
+    private final NaverPlaceSearchService naverPlaceSearchService;
+    private final NaverPlaceTagCatalog naverPlaceTagCatalog;
     private final WemeetDataStore store;
 
     public ApiRestController(
             IApiAuthService authService,
             IApiRecommendationService recommendationService,
+            NaverPlaceSearchService naverPlaceSearchService,
+            NaverPlaceTagCatalog naverPlaceTagCatalog,
             WemeetDataStore store
     ) {
         this.authService = authService;
         this.recommendationService = recommendationService;
+        this.naverPlaceSearchService = naverPlaceSearchService;
+        this.naverPlaceTagCatalog = naverPlaceTagCatalog;
         this.store = store;
     }
 
@@ -50,6 +58,11 @@ public class ApiRestController {
     public ApiDtos.CategoryResponse categories() {
         // 카테고리 목록은 추천 서비스가 기준 데이터를 관리하므로 그대로 위임한다.
         return recommendationService.categories();
+    }
+
+    @GetMapping("/place-tags")
+    public ApiDtos.PlaceTagCatalogResponse placeTags() {
+        return naverPlaceTagCatalog.catalogResponse();
     }
 
     @PostMapping("/auth/signup")
@@ -206,6 +219,32 @@ public class ApiRestController {
         return recommendationService.recommend(requester.getId(), request, authService);
     }
 
+    @PostMapping("/places/search")
+    public ApiDtos.PlaceSearchResponse searchPlaces(
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody ApiDtos.PlaceSearchRequest request
+    ) {
+        authService.requireUser(authorization);
+        return naverPlaceSearchService.search(request);
+    }
+
+    @PostMapping("/public/places/search")
+    public ApiDtos.PlaceSearchResponse publicPlaceSearch(@RequestBody ApiDtos.PlaceSearchRequest request) {
+        return naverPlaceSearchService.search(request);
+    }
+
+    @PostMapping("/public/recommendations")
+    public ApiDtos.RecommendationResponse publicRecommendations(@RequestBody ApiDtos.GuestRecommendationRequest request) {
+        ApiDtos.UserResponse guestUser = createGuestUser(request.baseAddress());
+        ApiDtos.RecommendationRequest recommendationRequest = new ApiDtos.RecommendationRequest(
+                request.category(),
+                List.of(),
+                request.mode(),
+                request.anchorParticipantId()
+        );
+        return recommendationService.recommendForGuest(guestUser, recommendationRequest);
+    }
+
     private ApiDtos.MeetingResponse toMeetingResponse(WemeetDataStore.MeetingRecord meeting) {
         // 화면/API에서 바로 쓰기 쉽도록 host, participants 정보를 DTO 형태로 묶는다.
         WemeetDataStore.UserAccount host = store.findById(meeting.hostUserId()).orElseThrow();
@@ -232,5 +271,19 @@ public class ApiRestController {
             // 입력 포맷 오류는 400으로 명확하게 돌려줘야 프론트에서도 처리하기 쉽다.
             throw new org.springframework.web.server.ResponseStatusException(BAD_REQUEST, "meetingDate must be ISO-8601 format (yyyy-MM-dd)");
         }
+    }
+
+    private ApiDtos.UserResponse createGuestUser(String baseAddress) {
+        String normalizedBaseAddress = baseAddress == null || baseAddress.isBlank()
+                ? "서울특별시 중구 명동길 74"
+                : baseAddress.trim();
+        return new ApiDtos.UserResponse(
+                "guest-user",
+                "게스트",
+                "guest",
+                "",
+                "GUEST",
+                normalizedBaseAddress
+        );
     }
 }

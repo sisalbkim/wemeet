@@ -11,6 +11,8 @@ public class OpenApiProperties {
     private String nominatimBaseUrl = "https://nominatim.openstreetmap.org";
     private String osrmBaseUrl = "https://router.project-osrm.org";
     private String routeProfile = "driving";
+    private NaverSearch naverSearch = new NaverSearch();
+    private NaverMaps naverMaps = new NaverMaps();
 
     public boolean isEnabled() {
         return enabled;
@@ -50,5 +52,133 @@ public class OpenApiProperties {
 
     public void setRouteProfile(String routeProfile) {
         this.routeProfile = routeProfile;
+    }
+
+    public NaverSearch getNaverSearch() {
+        return naverSearch;
+    }
+
+    public void setNaverSearch(NaverSearch naverSearch) {
+        this.naverSearch = naverSearch;
+    }
+
+    public NaverMaps getNaverMaps() {
+        return naverMaps;
+    }
+
+    public void setNaverMaps(NaverMaps naverMaps) {
+        this.naverMaps = naverMaps;
+    }
+
+    public boolean isNaverSearchConfigured() {
+        return naverSearch != null
+                && naverSearch.getClientId() != null
+                && !naverSearch.getClientId().isBlank()
+                && naverSearch.getClientSecret() != null
+                && !naverSearch.getClientSecret().isBlank();
+    }
+
+    public boolean isNaverMapsConfigured() {
+        return naverMaps != null
+                && naverMaps.getApiKeyId() != null
+                && !naverMaps.getApiKeyId().isBlank()
+                && naverMaps.getApiKey() != null
+                && !naverMaps.getApiKey().isBlank();
+    }
+
+    public static class NaverSearch {
+        private String baseUrl = "https://openapi.naver.com";
+        private String clientId = "";
+        private String clientSecret = "";
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public String getClientId() {
+            return clientId;
+        }
+
+        public void setClientId(String clientId) {
+            this.clientId = clientId;
+        }
+
+        public String getClientSecret() {
+            return clientSecret;
+        }
+
+        public void setClientSecret(String clientSecret) {
+            this.clientSecret = clientSecret;
+        }
+    }
+
+    public static class NaverMaps {
+        private String baseUrl = "https://maps.apigw.ntruss.com";
+        private String apiKeyId = "";
+        private String apiKey = "";
+        private String directionsPath = "/map-direction/v1/driving";
+        private String geocodePath = "/map-geocode/v2/geocode";
+        private String reverseGeocodePath = "/map-reversegeocode/v2/gc";
+        private String routeOption = "traoptimal";
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public String getApiKeyId() {
+            return apiKeyId;
+        }
+
+        public void setApiKeyId(String apiKeyId) {
+            this.apiKeyId = apiKeyId;
+        }
+
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
+        }
+
+        public String getDirectionsPath() {
+            return directionsPath;
+        }
+
+        public void setDirectionsPath(String directionsPath) {
+            this.directionsPath = directionsPath;
+        }
+
+        public String getGeocodePath() {
+            return geocodePath;
+        }
+
+        public void setGeocodePath(String geocodePath) {
+            this.geocodePath = geocodePath;
+        }
+
+        public String getReverseGeocodePath() {
+            return reverseGeocodePath;
+        }
+
+        public void setReverseGeocodePath(String reverseGeocodePath) {
+            this.reverseGeocodePath = reverseGeocodePath;
+        }
+
+        public String getRouteOption() {
+            return routeOption;
+        }
+
+        public void setRouteOption(String routeOption) {
+            this.routeOption = routeOption;
+        }
     }
 }

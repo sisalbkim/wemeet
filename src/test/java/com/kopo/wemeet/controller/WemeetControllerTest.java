@@ -1,18 +1,24 @@
 package com.kopo.wemeet.controller;
 
+import com.kopo.wemeet.dto.ApiDtos;
+import com.kopo.wemeet.service.impl.NaverPlaceSearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -28,6 +34,9 @@ class WemeetControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockitoBean
+    private NaverPlaceSearchService naverPlaceSearchService;
 
     @Test
     void landingPageShowsGuestNavigation() throws Exception {
@@ -120,11 +129,14 @@ class WemeetControllerTest {
         mockMvc.perform(get("/guest/plan"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("어디서 출발하시나요?")))
-                .andExpect(content().string(containsString("출발지 주소")));
+                .andExpect(content().string(containsString("출발지 주소")))
+                .andExpect(content().string(containsString("네이버로 검색")));
     }
 
     @Test
     void guestRecommendationUsesProvidedAddressInsteadOfDefaultGuestAddress() throws Exception {
+        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("용두동", "용두동", "용두 로컬 카페"));
+
         mockMvc.perform(get("/search/results")
                         .param("guest", "true")
                         .param("category", "맛집")
@@ -132,7 +144,63 @@ class WemeetControllerTest {
                         .param("guestAddress", "용두동"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("용두동")))
+                .andExpect(content().string(containsString("용두 로컬 카페")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("서울특별시 중구 명동길 74"))));
+    }
+
+    @Test
+    void recommendationPageShowsNaverMapPlaceholderWhenClientIdIsMissing() throws Exception {
+        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("성수동", "성수동", "성수 로컬 맛집"));
+
+        mockMvc.perform(get("/search/results")
+                        .param("guest", "true")
+                        .param("category", "맛집")
+                        .param("mode", "CENTER")
+                        .param("guestAddress", "성수동"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("네이버 지도 Client ID가 아직 설정되지 않았습니다.")))
+                .andExpect(content().string(containsString("NAVER_MAPS_JS_CLIENT_ID")));
+    }
+
+    @Test
+    void guestPlaceSearchPageRendersNaverResults() throws Exception {
+        given(naverPlaceSearchService.search(any())).willReturn(new ApiDtos.PlaceSearchResponse(
+                "성수역 카페",
+                "카페",
+                "카페",
+                List.of("카페", "디저트", "베이커리"),
+                List.of("카페,디저트"),
+                new ApiDtos.PlaceSearchOriginResponse("성수역", "성수역", "서울 성동구 성수동2가", 37.5446, 127.0557),
+                List.of(
+                        new ApiDtos.PlaceCandidateResponse(
+                                "어니언 성수",
+                                "카페",
+                                "카페,디저트",
+                                "서울 성동구 성수동2가",
+                                "서울 성동구 아차산로9길 8",
+                                "",
+                                "https://example.com/onion",
+                                37.5448,
+                                127.0561,
+                                410,
+                                3,
+                                List.of(
+                                        new ApiDtos.PlaceRoutePointResponse(37.5446, 127.0557),
+                                        new ApiDtos.PlaceRoutePointResponse(37.5448, 127.0561)
+                                )
+                        )
+                )
+        ));
+
+        mockMvc.perform(get("/guest/places")
+                        .param("guestAddress", "성수역")
+                        .param("category", "카페"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("성수역 카페")))
+                .andExpect(content().string(containsString("어니언 성수")))
+                .andExpect(content().string(containsString("디저트")))
+                .andExpect(content().string(containsString("카페,디저트")))
+                .andExpect(content().string(containsString("410m")));
     }
 
     @Test
@@ -314,5 +382,32 @@ class WemeetControllerTest {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute("SIGNUP_VERIFIED_EMAIL", email);
         return session;
+    }
+
+    private ApiDtos.PlaceSearchResponse samplePlaceSearch(String originQuery, String address, String placeName) {
+        return new ApiDtos.PlaceSearchResponse(
+                originQuery + " 카페",
+                "카페",
+                "카페",
+                List.of("카페"),
+                List.of("카페,디저트"),
+                new ApiDtos.PlaceSearchOriginResponse(originQuery, originQuery, address, 37.575, 127.04),
+                List.of(
+                        new ApiDtos.PlaceCandidateResponse(
+                                placeName,
+                                "카페",
+                                "카페,디저트",
+                                address,
+                                address,
+                                "",
+                                "",
+                                37.5755,
+                                127.041,
+                                320,
+                                4,
+                                List.of()
+                        )
+                )
+        );
     }
 }

@@ -1,12 +1,13 @@
 package com.kopo.wemeet.controller;
 
-import com.kopo.wemeet.config.KakaoMapProperties;
+import com.kopo.wemeet.config.NaverMapProperties;
 import com.kopo.wemeet.dto.ApiDtos;
 import com.kopo.wemeet.dto.RecommendationMode;
 import com.kopo.wemeet.dto.UiModels;
 import com.kopo.wemeet.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IWemeetViewService;
+import com.kopo.wemeet.service.impl.NaverPlaceSearchService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,6 +19,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 public class WemeetController {
@@ -30,12 +32,19 @@ public class WemeetController {
 
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;
-    private final KakaoMapProperties kakaoMapProperties;
+    private final NaverMapProperties naverMapProperties;
+    private final NaverPlaceSearchService naverPlaceSearchService;
 
-    public WemeetController(IWemeetViewService viewService, IApiAuthService authService, KakaoMapProperties kakaoMapProperties) {
+    public WemeetController(
+            IWemeetViewService viewService,
+            IApiAuthService authService,
+            NaverMapProperties naverMapProperties,
+            NaverPlaceSearchService naverPlaceSearchService
+    ) {
         this.viewService = viewService;
         this.authService = authService;
-        this.kakaoMapProperties = kakaoMapProperties;
+        this.naverMapProperties = naverMapProperties;
+        this.naverPlaceSearchService = naverPlaceSearchService;
     }
 
     @GetMapping("/")
@@ -237,6 +246,21 @@ public class WemeetController {
     ) {
         populateGuestPlanModel(model, guestAddress, category, 1);
         return "guest-plan";
+    }
+
+    @GetMapping("/guest/places")
+    public String guestPlaces(
+            @RequestParam(defaultValue = "") String originQuery,
+            @RequestParam(defaultValue = "") String guestAddress,
+            @RequestParam(defaultValue = "") String tag,
+            @RequestParam(defaultValue = "") String category,
+            @RequestParam(defaultValue = "5") Integer display,
+            Model model
+    ) {
+        String effectiveOriginQuery = originQuery == null || originQuery.isBlank() ? guestAddress : originQuery;
+        String effectiveTag = tag == null || tag.isBlank() ? category : tag;
+        populateGuestPlaceSearchModel(model, effectiveOriginQuery, effectiveTag, display);
+        return "place-search";
     }
 
     @PostMapping("/signup")
@@ -758,8 +782,6 @@ public class WemeetController {
         if (!guest) {
             currentUser = requireLoggedInUser(session);
         }
-        System.out.println("enabled: " + kakaoMapProperties.isEnabled());
-        System.out.println("key: " + kakaoMapProperties.getJavascriptKey());
         populateRecommendationModel(model, guest ? "nearby" : "home", currentUser, category, friendIds, mode, anchorId, guest, guestAddress);
         return "search-results";
 
@@ -826,6 +848,60 @@ public class WemeetController {
         model.addAttribute("hideShellNavigation", redPlaceholderIndex != null);
     }
 
+    private void populateGuestPlaceSearchModel(
+            Model model,
+            String originQuery,
+            String tag,
+            Integer display
+    ) {
+        populateCommon(model, "nearby", true);
+        model.addAttribute("originQuery", originQuery);
+        model.addAttribute("tag", tag);
+        model.addAttribute("display", display == null ? 5 : display);
+        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+
+        if (originQuery == null || originQuery.isBlank() || tag == null || tag.isBlank()) {
+            return;
+        }
+
+        try {
+            ApiDtos.PlaceSearchResponse placeSearch = naverPlaceSearchService.search(new ApiDtos.PlaceSearchRequest(originQuery, tag, display));
+            model.addAttribute("placeSearch", placeSearch);
+            model.addAttribute("placeMapPoints", buildPlaceMapPoints(placeSearch));
+        } catch (ResponseStatusException exception) {
+            model.addAttribute("placeSearchError", Optional.ofNullable(exception.getReason()).orElse("장소 검색 중 오류가 발생했습니다."));
+        }
+    }
+
+    private List<ApiDtos.MapPointResponse> buildPlaceMapPoints(ApiDtos.PlaceSearchResponse placeSearch) {
+        List<ApiDtos.MapPointResponse> mapPoints = new java.util.ArrayList<>();
+        mapPoints.add(new ApiDtos.MapPointResponse(
+                "origin",
+                placeSearch.origin().name(),
+                placeSearch.origin().address(),
+                placeSearch.origin().latitude(),
+                placeSearch.origin().longitude(),
+                "anchor",
+                false
+        ));
+
+        for (int index = 0; index < placeSearch.places().size(); index++) {
+            ApiDtos.PlaceCandidateResponse place = placeSearch.places().get(index);
+            String address = place.roadAddress() == null || place.roadAddress().isBlank() ? place.address() : place.roadAddress();
+            mapPoints.add(new ApiDtos.MapPointResponse(
+                    "place-" + index,
+                    place.name(),
+                    address,
+                    place.latitude(),
+                    place.longitude(),
+                    "venue",
+                    index == 0
+            ));
+        }
+
+        return mapPoints;
+    }
+
     private void populateFindPasswordModel(Model model, Integer redPlaceholderIndex) {
         populateCommon(model, "login", true);
         model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
@@ -884,8 +960,8 @@ public class WemeetController {
         model.addAttribute("appName", "모임 장소 찾기");
         model.addAttribute("activeTab", activeTab);
         model.addAttribute("guestMode", guestMode);
-        model.addAttribute("kakaoMapEnabled", kakaoMapProperties.isEnabled());
-        model.addAttribute("kakaoMapJavascriptKey", kakaoMapProperties.getJavascriptKey());
+        model.addAttribute("naverMapEnabled", naverMapProperties.isEnabled());
+        model.addAttribute("naverMapKeyId", naverMapProperties.getKeyId());
     }
 
 

@@ -12,4 +12,9 @@ public interface IApiRecommendationService {
             ApiDtos.RecommendationRequest request,
             IApiAuthService authService
     );
+
+    ApiDtos.RecommendationResponse recommendForGuest(
+            ApiDtos.UserResponse guestUser,
+            ApiDtos.RecommendationRequest request
+    );
 }

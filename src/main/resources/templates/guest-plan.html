@@ -35,12 +35,20 @@
                         <span th:text="${category.label}">맛집</span>
                     </label>
                 </div>
+                <p class="muted-note">네이버 검색 시에는 선택한 카테고리를 기준으로 `한식`, `디저트`, `미술관` 같은 검색어로 자동 보정합니다.</p>
             </section>
 
             <input type="hidden" name="mode" value="CENTER">
 
             <div class="submit-row">
                 <button class="primary-button primary-button--brand" type="submit" data-loading-overlay-submit>추천 장소 보기</button>
+                <button class="secondary-button secondary-button--soft"
+                        type="submit"
+                        th:formaction="@{/guest/places}"
+                        formmethod="get"
+                        data-loading-overlay-submit>
+                    네이버로 검색
+                </button>
                 <a class="secondary-button" th:href="@{/}">취소</a>
             </div>
         </form>

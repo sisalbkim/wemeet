@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const mapElement = document.querySelector("#recommendationMap");
         const pointsRoot = document.querySelector("#recommendationMapData");
         const mapErrorElement = document.querySelector("#recommendationMapError");
-        if (!mapElement || !pointsRoot || typeof window.kakao?.maps === "undefined") {
+        if (!mapElement || !pointsRoot || typeof window.naver?.maps === "undefined") {
             if (mapErrorElement) {
                 mapErrorElement.hidden = false;
             }
@@ -30,53 +30,36 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const toLatLng = (point) => new window.kakao.maps.LatLng(point.latitude, point.longitude);
+        const toLatLng = (point) => new window.naver.maps.LatLng(point.latitude, point.longitude);
         const escapeHtml = (value) => String(value ?? "")
             .replaceAll("&", "&amp;")
             .replaceAll("<", "&lt;")
             .replaceAll(">", "&gt;")
             .replaceAll("\"", "&quot;")
             .replaceAll("'", "&#39;");
-        const createMarkerImage = (point) => {
-            const iconStyle = iconStyleForPoint(point);
-            const markerSize = iconStyle.size;
-            const svg = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="${markerSize}" height="${markerSize}" viewBox="0 0 ${markerSize} ${markerSize}">
-                    <circle cx="${markerSize / 2}" cy="${markerSize / 2}" r="${(markerSize - 4) / 2}" fill="white" opacity="0.92"/>
-                    <circle cx="${markerSize / 2}" cy="${markerSize / 2}" r="${(markerSize - 6) / 2}" fill="${iconStyle.color}"/>
-                </svg>
-            `.trim();
-            return new window.kakao.maps.MarkerImage(
-                `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-                new window.kakao.maps.Size(markerSize, markerSize),
-                { offset: new window.kakao.maps.Point(markerSize / 2, markerSize / 2) }
-            );
-        };
-
-        const iconStyleForPoint = (point) => {
+        const markerCaptionForPoint = (point) => {
             if (point.markerType === "midpoint") {
-                return { color: "#ff4c5e", size: 20 };
+                return "중심";
             }
             if (point.markerType === "anchor") {
-                return { color: "#8f3dff", size: 18 };
+                return "기준";
             }
             if (point.markerType === "participant") {
-                return { color: "#13b983", size: 16 };
+                return "출발";
             }
             if (point.selected) {
-                return { color: "#ff9c5b", size: 18 };
+                return "추천";
             }
-            return { color: "#2f6bff", size: 16 };
+            return "장소";
         };
 
-        const map = new window.kakao.maps.Map(mapElement, {
+        const map = new window.naver.maps.Map(mapElement, {
             center: toLatLng(points[0]),
-            level: 5
+            zoom: 15
         });
-        map.setZoomable(false);
         const markersById = new Map();
         const infoWindowsById = new Map();
-        const bounds = new window.kakao.maps.LatLngBounds();
+        const bounds = new window.naver.maps.LatLngBounds();
         const venueCards = Array.from(document.querySelectorAll("[data-map-target]"));
         let activeInfoWindow = null;
 
@@ -95,19 +78,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
         points.forEach((point) => {
             const latLng = toLatLng(point);
-            const marker = new window.kakao.maps.Marker({
+            const marker = new window.naver.maps.Marker({
                 map,
                 position: latLng,
                 zIndex: point.selected ? 140 : 120,
-                image: createMarkerImage(point)
+                title: point.label
             });
 
-            const infoWindow = new window.kakao.maps.InfoWindow({
-                content: `<div class="kakao-map-infowindow"><strong>${escapeHtml(point.label)}</strong><div>${escapeHtml(point.address)}</div></div>`,
-                removable: false
+            const infoWindow = new window.naver.maps.InfoWindow({
+                content: `<div class="map-infowindow"><strong>${escapeHtml(point.label)}</strong><div>${escapeHtml(point.address)}</div><span>${escapeHtml(markerCaptionForPoint(point))}</span></div>`,
+                borderWidth: 0,
+                disableAnchor: false,
+                backgroundColor: "transparent"
             });
 
-            window.kakao.maps.event.addListener(marker, "click", () => {
+            window.naver.maps.Event.addListener(marker, "click", () => {
                 openInfoWindow(point.id);
             });
 
@@ -116,18 +101,19 @@ document.addEventListener("DOMContentLoaded", () => {
             bounds.extend(latLng);
         });
 
-        if (points.length === 1) {
-            map.setCenter(toLatLng(points[0]));
-            map.setLevel(4);
-        } else {
-            map.setBounds(bounds, 36, 36, 36, 36);
-        }
+        const fitMapToPoints = () => {
+            if (points.length === 1) {
+                map.setCenter(toLatLng(points[0]));
+                map.setZoom(16);
+                return;
+            }
+            map.fitBounds(bounds);
+        };
+
+        fitMapToPoints();
 
         window.addEventListener("resize", () => {
-            map.relayout();
-            if (points.length > 1) {
-                map.setBounds(bounds, 36, 36, 36, 36);
-            }
+            fitMapToPoints();
         });
 
         const focusVenueCard = (targetCard) => {
@@ -149,8 +135,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const target = marker.getPosition();
                 map.panTo(target);
-                if (map.getLevel() > 4) {
-                    map.setLevel(4);
+                if (typeof map.getZoom === "function" && map.getZoom() > 16) {
+                    map.setZoom(16);
                 }
                 openInfoWindow(card.dataset.mapTarget);
                 focusVenueCard(card);
@@ -161,20 +147,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (document.querySelector("#recommendationMap")) {
         const tryInitializeRecommendationMap = () => {
-            if (typeof window.kakao?.maps === "undefined") {
+            if (typeof window.naver?.maps === "undefined") {
                 initializeRecommendationMap();
-                return;
-            }
-
-            if (typeof window.kakao.maps.load === "function") {
-                window.kakao.maps.load(initializeRecommendationMap);
                 return;
             }
 
             initializeRecommendationMap();
         };
 
-        if (typeof window.kakao?.maps === "undefined") {
+        if (typeof window.naver?.maps === "undefined") {
             window.addEventListener("load", tryInitializeRecommendationMap, { once: true });
         } else {
             tryInitializeRecommendationMap();

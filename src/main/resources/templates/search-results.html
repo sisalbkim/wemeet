@@ -52,19 +52,19 @@
         <section class="panel">
             <div class="section-heading section-heading--stacked section-heading--map">
                 <h2>이동시간 기준 추천 지도</h2>
-                <span th:if="${#lists.size(recommendation.participants) > 1}">초록색은 출발지, 보라색은 기준 인물, 빨간색은 중심점, 주황색은 추천 장소입니다</span>
-                <span th:if="${#lists.size(recommendation.participants) == 1}">초록색은 출발지, 보라색은 기준 인물, 주황색은 추천 장소입니다</span>
+                <span th:if="${#lists.size(recommendation.participants) > 1}">출발지, 기준 인물, 중심점, 추천 장소를 한 지도에서 확인할 수 있습니다</span>
+                <span th:if="${#lists.size(recommendation.participants) == 1}">출발지와 추천 장소를 한 지도에서 확인할 수 있습니다</span>
             </div>
-            <div th:if="${kakaoMapEnabled}" id="recommendationMap" class="map-canvas"></div>
-            <div th:if="${kakaoMapEnabled}" id="recommendationMapError" class="notice-banner notice-banner--error" hidden>
-                카카오 지도 SDK를 불러오지 못했습니다. 카카오 디벨로퍼스에서 JavaScript 키인지 확인하고, Web 플랫폼에
+            <div th:if="${naverMapEnabled}" id="recommendationMap" class="map-canvas"></div>
+            <div th:if="${naverMapEnabled}" id="recommendationMapError" class="notice-banner notice-banner--error" hidden>
+                네이버 지도 SDK를 불러오지 못했습니다. NAVER Cloud Platform에서 JavaScript Client ID인지 확인하고, 서비스 환경에
                 <strong>http://localhost:8080</strong> 도메인이 등록되어 있는지 확인해 주세요.
             </div>
-            <div th:if="${!kakaoMapEnabled}" class="map-placeholder">
+            <div th:if="${!naverMapEnabled}" class="map-placeholder">
                 <div class="map-placeholder__label">
-                    <strong>카카오 지도 키가 아직 설정되지 않았습니다.</strong>
-                    <div>KAKAO_MAPS_JAVASCRIPT_KEY 값을 넣고 서버를 다시 시작하면 이 영역에 지도가 표시됩니다.</div>
-                    <div>카카오 디벨로퍼스 Web 플랫폼에 `http://localhost:8080` 도메인도 같이 등록해야 합니다.</div>
+                    <strong>네이버 지도 Client ID가 아직 설정되지 않았습니다.</strong>
+                    <div>NAVER_MAPS_JS_CLIENT_ID 값을 넣고 서버를 다시 시작하면 이 영역에 지도가 표시됩니다.</div>
+                    <div>NAVER Cloud Platform Maps 서비스에서 `http://localhost:8080` 도메인도 같이 등록해야 합니다.</div>
                 </div>
             </div>
             <div class="map-placeholder__label map-placeholder__label--static">
@@ -123,6 +123,6 @@
 
     <nav th:replace="${guestMode} ? ~{fragments/layout :: guestBottomNav(${activeTab})} : ~{fragments/layout :: bottomNav(${activeTab})}"></nav>
 </div>
-<script th:if="${kakaoMapEnabled}" defer th:src="|https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoMapJavascriptKey}&autoload=false|"></script>
+<script th:if="${naverMapEnabled}" defer th:src="|https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${naverMapKeyId}|"></script>
 </body>
 </html>
