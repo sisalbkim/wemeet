@@ -83,6 +83,8 @@ public final class UiModels {
             double latitude,
             double longitude,
             String description,
+            String telephone,
+            String link,
             String reason,
             int fairnessGap,
             int averageMinutes,

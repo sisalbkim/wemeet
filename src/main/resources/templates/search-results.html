@@ -70,6 +70,47 @@
             <div class="map-placeholder__label map-placeholder__label--static">
                 추천 후보를 클릭하지 않아도 최적 후보와 참가자 출발지가 바로 표시됩니다.
             </div>
+            <article th:if="${!#lists.isEmpty(recommendation.venues)}" id="recommendationVenuePanel" class="map-detail-panel">
+                <div class="map-detail-panel__header">
+                    <div>
+                        <p class="eyebrow" id="recommendationVenuePanelEyebrow"
+                           th:text="${recommendation.venues[0].area + ' · ' + recommendation.venues[0].category}">성수 · 카페</p>
+                        <h3 id="recommendationVenuePanelName" th:text="${recommendation.venues[0].name}">어니언 성수</h3>
+                    </div>
+                    <div class="score-badge score-badge--compact">
+                        <strong id="recommendationVenuePanelAverage" th:text="${recommendation.venues[0].averageMinutes + '분'}">18분</strong>
+                        <span>평균 이동</span>
+                    </div>
+                </div>
+                <p class="map-detail-panel__copy" id="recommendationVenuePanelDescription"
+                   th:text="${recommendation.venues[0].description}">서울 성동구 아차산로9길 8</p>
+                <div class="map-detail-panel__actions">
+                    <button type="button" class="secondary-button secondary-button--compact map-detail-panel__button" id="recommendationVenuePanelCallButton">
+                        전화하기
+                    </button>
+                    <a class="secondary-button secondary-button--compact map-detail-panel__link"
+                       id="recommendationVenuePanelLink"
+                       th:href="${'https://map.naver.com/p/search/' + #uris.escapePathSegment(recommendation.venues[0].name)}"
+                       target="_blank"
+                       rel="noreferrer noopener">네이버 지도에서 보기</a>
+                </div>
+                <p class="map-detail-panel__meta" id="recommendationVenuePanelTelephone"
+                   th:text="${#strings.isEmpty(recommendation.venues[0].telephone) ? '전화번호 정보 없음' : recommendation.venues[0].telephone}">02-0000-0000</p>
+                <p class="map-detail-panel__reason" id="recommendationVenuePanelReason"
+                   th:text="${recommendation.venues[0].reason}">이동시간 차이가 작아서 가장 공평한 선택입니다.</p>
+                <div class="map-detail-panel__stats">
+                    <span>최대 편차 <strong id="recommendationVenuePanelFairness" th:text="${recommendation.venues[0].fairnessGap + '분'}">5분</strong></span>
+                    <span>추천 기준 <strong th:text="${recommendation.midpoint.station}">성수역</strong></span>
+                </div>
+                <div class="tag-row" id="recommendationVenuePanelHighlights">
+                    <span class="mini-tag" th:each="highlight : ${recommendation.venues[0].highlights}" th:text="${highlight}">네이버 검색 기반 실제 장소</span>
+                </div>
+                <div class="participant-row" id="recommendationVenuePanelTravelTimes">
+                    <span class="participant-pill participant-pill--light"
+                          th:each="time : ${recommendation.venues[0].travelTimes}"
+                          th:text="${guestMode ? guestAddress + ' ' + time.minutes + '분' : time.participantName + ' ' + time.minutes + '분'}">김철수 18분</span>
+                </div>
+            </article>
             <div class="visually-hidden" id="recommendationMapData">
                 <span th:each="point : ${recommendation.mapPoints}"
                       data-map-point
@@ -86,7 +127,16 @@
 
         <section class="card-stack">
             <article class="venue-card" th:each="venue, venueStat : ${recommendation.venues}"
-                     th:attr="data-map-target=${'venue-' + venueStat.index}">
+                     th:attr="data-map-target=${'venue-' + venueStat.index},
+                              data-venue-name=${venue.name},
+                              data-venue-category=${venue.category},
+                              data-venue-area=${venue.area},
+                              data-venue-description=${venue.description},
+                              data-venue-telephone=${venue.telephone},
+                              data-venue-search-query=${venue.name},
+                              data-venue-reason=${venue.reason},
+                              data-venue-average=${venue.averageMinutes},
+                              data-venue-fairness=${venue.fairnessGap}">
                 <div class="venue-card__header">
                     <div>
                         <p class="eyebrow" th:text="${venue.area + ' · ' + venue.category}">을지로 · 맛집</p>
@@ -107,6 +157,11 @@
                 </div>
                 <div class="tag-row">
                     <span class="mini-tag" th:each="highlight : ${venue.highlights}" th:text="${highlight}">대기 줄 짧은 편</span>
+                </div>
+                <div class="visually-hidden">
+                    <span th:each="highlight : ${venue.highlights}" data-venue-highlight th:text="${highlight}">태그</span>
+                    <span th:each="time : ${venue.travelTimes}" data-venue-time
+                          th:attr="data-name=${guestMode ? guestAddress : time.participantName}, data-minutes=${time.minutes}">18</span>
                 </div>
             </article>
         </section>

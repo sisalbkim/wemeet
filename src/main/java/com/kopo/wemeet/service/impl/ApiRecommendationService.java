@@ -351,6 +351,8 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 place.latitude(),
                 place.longitude(),
                 firstNonBlank(place.roadAddress(), place.address(), place.name()),
+                firstNonBlank(place.telephone()),
+                firstNonBlank(place.link()),
                 buildReason(participants.size(), fairnessGap, average, travelResolution.usedFallbackRouting()),
                 fairnessGap,
                 average,

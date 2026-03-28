@@ -61,7 +61,139 @@ document.addEventListener("DOMContentLoaded", () => {
         const infoWindowsById = new Map();
         const bounds = new window.naver.maps.LatLngBounds();
         const venueCards = Array.from(document.querySelectorAll("[data-map-target]"));
+        const venuePanel = document.querySelector("#recommendationVenuePanel");
+        const venuePanelEyebrow = document.querySelector("#recommendationVenuePanelEyebrow");
+        const venuePanelName = document.querySelector("#recommendationVenuePanelName");
+        const venuePanelAverage = document.querySelector("#recommendationVenuePanelAverage");
+        const venuePanelDescription = document.querySelector("#recommendationVenuePanelDescription");
+        const venuePanelTelephone = document.querySelector("#recommendationVenuePanelTelephone");
+        const venuePanelCallButton = document.querySelector("#recommendationVenuePanelCallButton");
+        const venuePanelLink = document.querySelector("#recommendationVenuePanelLink");
+        const venuePanelReason = document.querySelector("#recommendationVenuePanelReason");
+        const venuePanelFairness = document.querySelector("#recommendationVenuePanelFairness");
+        const venuePanelHighlights = document.querySelector("#recommendationVenuePanelHighlights");
+        const venuePanelTravelTimes = document.querySelector("#recommendationVenuePanelTravelTimes");
+        const venueCardsByPointId = new Map(venueCards.map((card) => [card.dataset.mapTarget, card]));
+        const mapSection = mapElement.closest(".panel");
         let activeInfoWindow = null;
+        let activeVenueCard = null;
+        let venuePanelAnimationToken = 0;
+        let activeVenueSearchQuery = "";
+
+        const buildNaverSearchUrl = (searchQuery) => searchQuery
+            ? `https://map.naver.com/p/search/${encodeURIComponent(searchQuery)}`
+            : "#";
+
+        const applyVenuePanelContent = (card) => {
+            if (!venuePanel || !card) {
+                return;
+            }
+
+            if (venuePanelEyebrow) {
+                venuePanelEyebrow.textContent = `${card.dataset.venueArea ?? ""} · ${card.dataset.venueCategory ?? ""}`.trim();
+            }
+            if (venuePanelName) {
+                venuePanelName.textContent = card.dataset.venueName ?? "";
+            }
+            if (venuePanelAverage) {
+                venuePanelAverage.textContent = `${card.dataset.venueAverage ?? "0"}분`;
+            }
+            if (venuePanelDescription) {
+                venuePanelDescription.textContent = card.dataset.venueDescription ?? "";
+            }
+            if (venuePanelTelephone) {
+                venuePanelTelephone.textContent = card.dataset.venueTelephone || "전화번호 정보 없음";
+            }
+            if (venuePanelCallButton) {
+                const phone = card.dataset.venueTelephone || "";
+                venuePanelCallButton.dataset.phone = phone;
+                venuePanelCallButton.disabled = false;
+            }
+            if (venuePanelLink) {
+                const searchQuery = card.dataset.venueSearchQuery || "";
+                activeVenueSearchQuery = searchQuery;
+                venuePanelLink.href = buildNaverSearchUrl(searchQuery);
+                venuePanelLink.classList.toggle("is-disabled", !searchQuery);
+                venuePanelLink.setAttribute("aria-disabled", String(!searchQuery));
+                venuePanelLink.textContent = "네이버 지도에서 보기";
+            }
+            if (venuePanelReason) {
+                venuePanelReason.textContent = card.dataset.venueReason ?? "";
+            }
+            if (venuePanelFairness) {
+                venuePanelFairness.textContent = `${card.dataset.venueFairness ?? "0"}분`;
+            }
+            if (venuePanelHighlights) {
+                venuePanelHighlights.replaceChildren();
+                card.querySelectorAll("[data-venue-highlight]").forEach((node) => {
+                    const chip = document.createElement("span");
+                    chip.className = "mini-tag";
+                    chip.textContent = node.textContent ?? "";
+                    venuePanelHighlights.append(chip);
+                });
+            }
+            if (venuePanelTravelTimes) {
+                venuePanelTravelTimes.replaceChildren();
+                card.querySelectorAll("[data-venue-time]").forEach((node) => {
+                    const pill = document.createElement("span");
+                    pill.className = "participant-pill participant-pill--light";
+                    pill.textContent = `${node.dataset.name ?? ""} ${node.dataset.minutes ?? "0"}분`;
+                    venuePanelTravelTimes.append(pill);
+                });
+            }
+            venuePanel.classList.add("is-active");
+        };
+
+        const fillVenuePanel = (card) => {
+            if (!venuePanel || !card) {
+                return;
+            }
+            if (activeVenueCard === card) {
+                applyVenuePanelContent(card);
+                return;
+            }
+
+            const currentIndex = activeVenueCard ? venueCards.indexOf(activeVenueCard) : 0;
+            const nextIndex = venueCards.indexOf(card);
+            const direction = nextIndex >= currentIndex ? "forward" : "backward";
+            const animationToken = ++venuePanelAnimationToken;
+
+            venuePanel.classList.remove(
+                "is-sliding-out-forward",
+                "is-sliding-out-backward",
+                "is-sliding-in-forward",
+                "is-sliding-in-backward"
+            );
+
+            if (activeVenueCard && activeVenueCard !== card) {
+                venuePanel.classList.add(`is-sliding-out-${direction}`);
+                window.setTimeout(() => {
+                    if (venuePanelAnimationToken !== animationToken) {
+                        return;
+                    }
+                    applyVenuePanelContent(card);
+                    venuePanel.classList.remove(`is-sliding-out-${direction}`);
+                    venuePanel.classList.add(`is-sliding-in-${direction}`);
+                    window.setTimeout(() => {
+                        if (venuePanelAnimationToken !== animationToken) {
+                            return;
+                        }
+                        venuePanel.classList.remove(`is-sliding-in-${direction}`);
+                    }, 240);
+                }, 140);
+            } else {
+                applyVenuePanelContent(card);
+                venuePanel.classList.add(`is-sliding-in-${direction}`);
+                window.setTimeout(() => {
+                    if (venuePanelAnimationToken !== animationToken) {
+                        return;
+                    }
+                    venuePanel.classList.remove(`is-sliding-in-${direction}`);
+                }, 240);
+            }
+
+            activeVenueCard = card;
+        };
 
         const openInfoWindow = (pointId) => {
             const marker = markersById.get(pointId);
@@ -94,6 +226,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             window.naver.maps.Event.addListener(marker, "click", () => {
                 openInfoWindow(point.id);
+                const targetCard = venueCardsByPointId.get(point.id);
+                if (targetCard) {
+                    focusVenueCard(targetCard);
+                    fillVenuePanel(targetCard);
+                }
             });
 
             markersById.set(point.id, marker);
@@ -140,8 +277,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 openInfoWindow(card.dataset.mapTarget);
                 focusVenueCard(card);
-                mapElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                fillVenuePanel(card);
+                mapSection?.scrollIntoView({ behavior: "smooth", block: "start" });
             });
+        });
+
+        if (venueCards.length > 0) {
+            focusVenueCard(venueCards[0]);
+            fillVenuePanel(venueCards[0]);
+        }
+
+        venuePanelCallButton?.addEventListener("click", (event) => {
+            event.preventDefault();
+        });
+
+        venuePanelLink?.addEventListener("click", (event) => {
+            if (venuePanelLink.classList.contains("is-disabled")) {
+                event.preventDefault();
+                return;
+            }
+
+            event.preventDefault();
+            window.open(buildNaverSearchUrl(activeVenueSearchQuery), "_blank", "noopener,noreferrer");
         });
     };
 

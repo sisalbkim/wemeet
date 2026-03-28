@@ -130,7 +130,8 @@ class WemeetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("어디서 출발하시나요?")))
                 .andExpect(content().string(containsString("출발지 주소")))
-                .andExpect(content().string(containsString("네이버로 검색")));
+                .andExpect(content().string(containsString("네이버 기반 추천 보기")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("네이버로 검색"))));
     }
 
     @Test
