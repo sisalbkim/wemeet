@@ -22,6 +22,7 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
 public class ApiRecommendationService implements IApiRecommendationService {
+    // 참가자 목록과 추천 모드를 바탕으로 실제 장소 후보를 계산하는 핵심 서비스다.
     private static final int DEFAULT_SEARCH_DISPLAY = 5;
 
     private final WemeetDataStore store;
@@ -29,8 +30,10 @@ public class ApiRecommendationService implements IApiRecommendationService {
     private final NaverPlaceSearchService naverPlaceSearchService;
     private final RecommendationCacheService recommendationCacheService;
 
+    // 내부 화면/API에서 공통으로 쓰는 추천 카테고리 목록이다.
     private final List<String> categories = List.of("맛집", "카페", "놀이", "문화", "운동", "기타");
 
+    // 외부 지오코딩이 실패했을 때 사용할 서울 주요 권역의 대표 좌표다.
     private final Map<String, GeoPoint> zoneCenters = Map.of(
             "중구", new GeoPoint(37.5636, 126.9866),
             "성수", new GeoPoint(37.5446, 127.0557),
@@ -65,6 +68,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             ApiDtos.RecommendationRequest request,
             IApiAuthService authService
     ) {
+        // 실제 사용자 추천은 참가자 계정 정보와 응답 DTO를 함께 준비해서 내부 계산기로 넘긴다.
         List<WemeetDataStore.UserAccount> participantAccounts = resolveParticipants(requesterId, request.participantIds());
         List<ParticipantProfile> participants = participantAccounts.stream()
                 .map(participant -> new ParticipantProfile(
@@ -103,6 +107,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             List<ApiDtos.UserResponse> participantResponses,
             boolean persistHistory
     ) {
+        // 추천 흐름의 중심 메서드다: 입력 정규화 -> 좌표 계산 -> 캐시 확인 -> 실제 장소 검색 순서로 진행한다.
         String category = normalizeCategory(request.category());
         RecommendationMode mode = RecommendationMode.from(request.mode());
         List<GeoPoint> participantPoints = participants.stream()
@@ -151,6 +156,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             String anchorParticipantId,
             boolean persistHistory
     ) {
+        // 네이버 실제 장소 후보를 가져와 평가 점수를 매기고 최종 장소 1~3개를 선정한다.
         SearchAnchor searchAnchor = resolveSearchAnchor(mode, participants, participantPoints, midpointPoint, anchorParticipantId);
         ApiDtos.PlaceSearchResponse placeSearch;
         try {
@@ -255,6 +261,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             ApiDtos.PlaceSearchResponse placeSearch,
             SearchAnchor searchAnchor
     ) {
+        // 검색은 성공했지만 후보가 없을 때도 지도 기준점과 설명 문구는 유지한다.
         GeoPoint referencePoint = mode == RecommendationMode.ANCHOR
                 ? resolveAnchorPoint(anchorParticipantId, participants, participantPoints)
                 : midpointPoint;
@@ -287,6 +294,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             String anchorParticipantId,
             SearchAnchor searchAnchor
     ) {
+        // 네이버 API 자체가 실패한 경우 최소한의 기준 정보만 가진 응답으로 내려간다.
         GeoPoint referencePoint = mode == RecommendationMode.ANCHOR
                 ? resolveAnchorPoint(anchorParticipantId, participants, participantPoints)
                 : midpointPoint;
@@ -318,6 +326,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             RecommendationMode mode,
             String anchorParticipantId
     ) {
+        // 장소 하나를 참가자별 이동시간, 공평성, 전략 점수로 평가해 정렬 가능한 값으로 바꾼다.
         TravelResolution travelResolution = resolveTravelMinutes(placeSearch, place, participants, participantPoints);
         List<ApiDtos.TravelTimeResponse> travelTimes = participants.stream()
                 .map(participant -> new ApiDtos.TravelTimeResponse(
@@ -369,6 +378,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             List<ParticipantProfile> participants,
             List<GeoPoint> participantPoints
     ) {
+        // 우선 네이버 길찾기 실측값을 시도하고, 실패하면 전체 참가자를 같은 휴리스틱 방식으로 계산한다.
         if (participants.size() == 1) {
             return new TravelResolution(Map.of(participants.get(0).id(), place.durationMinutes()), false);
         }
@@ -428,6 +438,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             GeoPoint midpointPoint,
             String anchorParticipantId
     ) {
+        // 검색 시작점은 1인/ANCHOR/중심점 모드별로 다르게 정한다.
         if (participants.size() == 1) {
             return new SearchAnchor(participants.get(0).baseAddress(), participantPoints.get(0));
         }
@@ -506,6 +517,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             String requesterId,
             List<String> participantIds
     ) {
+        // 요청자 본인은 항상 포함시키고, 중복 선택된 친구는 한 번만 계산한다.
         LinkedHashSet<String> uniqueIds = new LinkedHashSet<>();
         uniqueIds.add(requesterId);
         if (participantIds != null) {
@@ -525,6 +537,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             RecommendationMode mode,
             String anchorParticipantId
     ) {
+        // 참가자, 중심점, 추천 장소를 지도에서 그대로 찍을 수 있는 포인트 목록으로 변환한다.
         List<ApiDtos.MapPointResponse> mapPoints = new ArrayList<>();
         boolean singleParticipant = participants.size() == 1;
 
@@ -571,6 +584,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     private GeoPoint resolveParticipantPoint(ParticipantProfile participant) {
+        // 주소 지오코딩이 실패하면 권역 대표 좌표로 대체해 추천 흐름이 끊기지 않게 한다.
         return openApiRoutingService.geocodeAddress(participant.baseAddress())
                 .map(point -> new GeoPoint(point.latitude(), point.longitude()))
                 .orElseGet(() -> zoneCenters.getOrDefault(resolveZone(participant.baseAddress()), zoneCenters.get("기본")));
@@ -592,6 +606,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             List<VenueEvaluation> candidateEvaluations,
             RecommendationMode mode
     ) {
+        // CENTER/ANCHOR는 점수순, RANDOM은 상위 후보군 안에서 섞어서 3개까지 고른다.
         if (candidateEvaluations.isEmpty()) {
             return List.of();
         }
@@ -647,6 +662,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             GeoPoint midpointPoint,
             String anchorParticipantId
     ) {
+        // 전략별로 평균 이동시간, 공평성, 중심점 거리의 가중치를 다르게 준다.
         if (travelTimes.size() == 1) {
             return average * 3.2 + distance(venuePoint, midpointPoint) * 5200;
         }
@@ -708,6 +724,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     private String strategyNote(RecommendationMode mode, int participantCount, boolean usedFallbackRouting) {
+        // 화면에 왜 이런 추천이 나왔는지 설명하는 문구를 만든다.
         String routingNote = usedFallbackRouting
                 ? "일부 후보는 네이버 길찾기 대신 좌표 기반 보조 추정값으로 계산했습니다."
                 : "네이버 지역검색과 Directions 5 기준으로 이동시간을 계산했습니다.";
@@ -738,6 +755,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             ApiDtos.PlaceCandidateResponse place,
             int participantCount
     ) {
+        // 카드 UI에 노출할 짧은 강조 문구를 만든다.
         List<String> highlights = new ArrayList<>();
         highlights.add("네이버 검색 기반 실제 장소");
         highlights.add(place.distanceMeters() + "m");
@@ -859,24 +877,28 @@ public class ApiRecommendationService implements IApiRecommendationService {
             double strategyScore,
             boolean usedFallbackRouting
     ) {
+        // 후보 장소 한 개를 정렬 가능한 내부 평가 결과로 감싼 record다.
     }
 
     private record TravelResolution(
             Map<String, Integer> travelMinutesByUserId,
             boolean usedFallbackRouting
     ) {
+        // 참가자별 이동시간과 fallback 사용 여부를 함께 전달한다.
     }
 
     private record SearchAnchor(
             String query,
             GeoPoint point
     ) {
+        // 네이버 검색에 실제로 넣을 기준 질의어와 그 기준 좌표다.
     }
 
     private record GeoPoint(
             double latitude,
             double longitude
     ) {
+        // 추천 계산 과정에서 공통으로 쓰는 단순 위경도 값이다.
     }
 
     private record ParticipantProfile(
@@ -884,5 +906,6 @@ public class ApiRecommendationService implements IApiRecommendationService {
             String nickname,
             String baseAddress
     ) {
+        // 추천 계산에 꼭 필요한 참가자 최소 정보만 담은 내부 모델이다.
     }
 }

@@ -116,6 +116,7 @@ public class NaverPlaceTagCatalog {
             String normalizedTag,
             List<String> queryTerms
     ) {
+        // 사용자가 입력한 태그가 실제 네이버 검색에 어떤 질의어 묶음으로 변환됐는지 표현한다.
         public String primaryQueryTerm() {
             return queryTerms.isEmpty() ? requestedTag : queryTerms.get(0);
         }
@@ -126,6 +127,7 @@ public class NaverPlaceTagCatalog {
             List<String> queryTerms,
             List<String> categoryKeywords
     ) {
+        // 내부 카테고리 하나가 어떤 검색어/판별 키워드 세트를 갖는지 정의한다.
         private int matchScore(String rawCategory) {
             String normalizedCategory = rawCategory.toLowerCase(Locale.KOREA);
             return categoryKeywords.stream()

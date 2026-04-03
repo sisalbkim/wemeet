@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 
 public interface MeetingRepository extends JpaRepository<Meeting, String> {
+    // 참가자 기준으로 모임을 조회할 때 host/participants까지 한 번에 가져오도록 EntityGraph를 사용한다.
+
     @EntityGraph(attributePaths = {"host", "participants", "participants.user"})
     @Query("""
             select distinct m

@@ -87,6 +87,7 @@ public class OpenApiProperties {
     }
 
     public static class NaverSearch {
+        // 네이버 지역검색(Local Search) 호출용 설정이다.
         private String baseUrl = "https://openapi.naver.com";
         private String clientId = "";
         private String clientSecret = "";
@@ -117,6 +118,7 @@ public class OpenApiProperties {
     }
 
     public static class NaverMaps {
+        // 네이버 지도 Directions/Geocode/ReverseGeocode 호출용 설정이다.
         private String baseUrl = "https://maps.apigw.ntruss.com";
         private String apiKeyId = "";
         private String apiKey = "";

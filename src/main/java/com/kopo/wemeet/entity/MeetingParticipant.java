@@ -20,6 +20,8 @@ import java.time.LocalDateTime;
         uniqueConstraints = @UniqueConstraint(name = "uk_meeting_participant_meeting_user", columnNames = {"meeting_id", "user_id"})
 )
 public class MeetingParticipant {
+    // 특정 사용자가 어떤 모임에 어떤 역할로 참여하는지 나타내는 연결 엔티티다.
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -49,6 +51,7 @@ public class MeetingParticipant {
 
     @PrePersist
     void onCreate() {
+        // 참가 시점을 저장해 HOST를 먼저, 이후 참가자를 생성순으로 정렬할 때 활용한다.
         createdAt = LocalDateTime.now();
     }
 

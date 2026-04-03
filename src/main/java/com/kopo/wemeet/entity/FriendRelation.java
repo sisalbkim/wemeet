@@ -20,6 +20,9 @@ import java.time.LocalDateTime;
         uniqueConstraints = @UniqueConstraint(name = "uk_friend_relation_user_friend", columnNames = {"user_id", "friend_user_id"})
 )
 public class FriendRelation {
+    // 사용자와 친구 사이의 단방향 관계 한 건을 저장한다.
+    // 친구 추가 시 (A -> B), (B -> A) 두 행을 만들어 양방향처럼 동작시킨다.
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -45,6 +48,7 @@ public class FriendRelation {
 
     @PrePersist
     void onCreate() {
+        // 관계가 생성된 시각을 자동으로 남긴다.
         createdAt = LocalDateTime.now();
     }
 

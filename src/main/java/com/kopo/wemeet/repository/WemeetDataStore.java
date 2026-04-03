@@ -51,6 +51,7 @@ public class WemeetDataStore {
     @PostConstruct
     @Transactional
     void ensureDemoFriendExists() {
+        // 친구 코드 테스트를 바로 해볼 수 있도록 데모 친구 1명을 보장한다.
         if (userRepository.existsByFriendCode("AAAAAA")) {
             return;
         }
@@ -73,6 +74,7 @@ public class WemeetDataStore {
 
     @Transactional(readOnly = true)
     public List<UserAccount> listFriends(String userId) {
+        // 친구 엔티티를 화면/API 공용으로 쓰는 간단한 읽기 모델로 바꿔서 반환한다.
         return friendRelationRepository.findAllByUserIdOrderByFriend_NicknameAsc(userId).stream()
                 .map(FriendRelation::getFriend)
                 .map(this::toUserAccount)
@@ -81,6 +83,7 @@ public class WemeetDataStore {
 
     @Transactional
     public UserAccount addFriendByCode(String userId, String friendCode) {
+        // 친구코드는 상대방을 쉽게 찾기 위한 사용자 입력용 키다.
         if (friendCode == null || friendCode.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "friendCode is required");
         }
@@ -111,6 +114,7 @@ public class WemeetDataStore {
             String category,
             List<String> participantIds
     ) {
+        // 모임 생성 시 host는 항상 참가자 목록에 포함되도록 강제한다.
         if (title == null || title.isBlank() || meetingDate == null || category == null || category.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "title, meetingDate, and category are required");
         }
@@ -152,6 +156,7 @@ public class WemeetDataStore {
 
     @Transactional
     public void appendHistory(String userId, String query, String category) {
+        // 빈 검색어는 저장하지 않아 목록이 의미 없는 데이터로 채워지지 않게 한다.
         if (query == null || query.isBlank() || category == null || category.isBlank()) {
             return;
         }
@@ -184,6 +189,7 @@ public class WemeetDataStore {
     }
 
     private UserAccount toUserAccount(AppUser user) {
+        // 영속 엔티티 전체 대신 외부에 노출해도 되는 읽기 전용 값만 남긴다.
         LocalDate joinedOn = user.getCreatedAt() == null ? LocalDate.now() : user.getCreatedAt().toLocalDate();
         return new UserAccount(
                 user.getId(),
@@ -197,6 +203,7 @@ public class WemeetDataStore {
     }
 
     private MeetingRecord toMeetingRecord(Meeting meeting) {
+        // HOST를 먼저 보여주고 나머지 참가자는 가입 순서대로 유지하기 위한 정렬이다.
         List<String> participantIds = meeting.getParticipants().stream()
                 .sorted(Comparator
                         .comparing((MeetingParticipant participant) -> !"HOST".equals(participant.getRole()))
@@ -225,6 +232,7 @@ public class WemeetDataStore {
             String baseAddress,
             LocalDate joinedOn
     ) {
+        // 인증/추천/화면 서비스가 공통으로 쓰는 사용자 읽기 모델이다.
     }
 
     public record MeetingRecord(
@@ -237,6 +245,7 @@ public class WemeetDataStore {
             List<String> participantIds,
             LocalDateTime createdAt
     ) {
+        // 모임 엔티티를 화면/API 응답 직전에 가볍게 옮겨 담은 record다.
     }
 
     public record SearchHistoryEntry(
@@ -245,5 +254,6 @@ public class WemeetDataStore {
             String category,
             LocalDateTime searchedAt
     ) {
+        // 히스토리 엔티티에서 목록 출력에 필요한 값만 뽑은 record다.
     }
 }

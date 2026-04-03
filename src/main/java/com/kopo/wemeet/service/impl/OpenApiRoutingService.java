@@ -185,9 +185,11 @@ public class OpenApiRoutingService {
     }
 
     private record Coordinate(double latitude, double longitude) {
+        // 외부 API 내부 계산에만 쓰는 순수 좌표 record다.
     }
 
     public record MapCoordinate(double latitude, double longitude) {
+        // 화면 지도 표시처럼 외부에 넘길 수 있는 좌표 record다.
     }
 
     private record NominatimSearchResponse(String lat, String lon) {

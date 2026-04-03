@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "search_history")
 public class SearchHistory {
+    // 사용자가 어떤 조건으로 추천/검색을 했는지 남기는 엔티티다.
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -44,6 +46,7 @@ public class SearchHistory {
 
     @PrePersist
     void onCreate() {
+        // 검색한 시각을 자동 저장해 최신순 목록을 쉽게 만들 수 있게 한다.
         searchedAt = LocalDateTime.now();
     }
 

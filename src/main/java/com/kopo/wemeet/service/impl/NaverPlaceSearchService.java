@@ -50,6 +50,7 @@ public class NaverPlaceSearchService {
     }
 
     public ApiDtos.PlaceSearchResponse search(ApiDtos.PlaceSearchRequest request) {
+        // 출발지 해석 -> 태그 확장 -> 장소 검색 -> 길찾기 기반 정렬 순서로 동작한다.
         if (!properties.isEnabled() || !properties.isNaverSearchConfigured() || !properties.isNaverMapsConfigured()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Naver search/maps API credentials are not configured.");
         }
@@ -108,6 +109,7 @@ public class NaverPlaceSearchService {
             double destinationLatitude,
             double destinationLongitude
     ) {
+        // 추천 서비스가 후보별 참가자 이동시간을 다시 계산할 때 재사용하는 보조 메서드다.
         if (!properties.isEnabled() || !properties.isNaverMapsConfigured()) {
             return Optional.empty();
         }
@@ -122,6 +124,7 @@ public class NaverPlaceSearchService {
     }
 
     public Optional<String> reverseGeocodeArea(double latitude, double longitude) {
+        // 중심 좌표를 사람이 읽기 쉬운 행정구역 문자열로 바꿔 검색 anchor 후보로 쓴다.
         if (!properties.isEnabled() || !properties.isNaverMapsConfigured()) {
             return Optional.empty();
         }
@@ -162,6 +165,7 @@ public class NaverPlaceSearchService {
             int display,
             NaverPlaceTagCatalog.ResolvedTag resolvedTag
     ) {
+        // 여러 검색 베이스와 태그 조합을 순회하면서 중복 없는 후보를 최대치까지 모은다.
         LinkedHashMap<String, LocalSearchItem> deduplicated = new LinkedHashMap<>();
         List<String> searchBases = buildSearchBases(originQuery, origin);
 
@@ -238,6 +242,7 @@ public class NaverPlaceSearchService {
     }
 
     private ResolvedPlace resolveOrigin(String originQuery) {
+        // 주소 형태면 geocode 우선, 아니면 지역검색 우선으로 출발지를 해석한다.
         if (isAddressLikeQuery(originQuery)) {
             Optional<ResolvedPlace> geocoded = geocodeOrigin(originQuery);
             if (geocoded.isPresent()) {
@@ -300,6 +305,7 @@ public class NaverPlaceSearchService {
     }
 
     private ApiDtos.PlaceCandidateResponse mapCandidate(ResolvedPlace origin, LocalSearchItem item) {
+        // 네이버 검색 결과 한 건을 길찾기 포함 후보 DTO로 바꾼다.
         try {
             double longitude = parseNaverLongitude(item.mapx());
             double latitude = parseNaverLatitude(item.mapy());

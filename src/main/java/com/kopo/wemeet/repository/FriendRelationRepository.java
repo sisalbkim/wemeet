@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface FriendRelationRepository extends JpaRepository<FriendRelation, Long> {
+    // 특정 사용자의 친구 목록 조회와 중복 관계 확인에 쓰는 Repository다.
+
     List<FriendRelation> findAllByUserIdOrderByFriend_NicknameAsc(String userId);
 
     boolean existsByUserIdAndFriendId(String userId, String friendId);

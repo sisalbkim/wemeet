@@ -1,6 +1,7 @@
 package com.kopo.wemeet.dto;
 
 public enum RecommendationMode {
+    // 추천 결과를 어떤 기준으로 고를지 결정하는 전략 enum이다.
     CENTER("중심점 부근"),
     ANCHOR("특정 인물 근처"),
     RANDOM("랜덤");
@@ -16,6 +17,7 @@ public enum RecommendationMode {
     }
 
     public static RecommendationMode from(String value) {
+        // 외부 입력 문자열이 비어 있거나 잘못돼도 기본 전략(CENTER)으로 안전하게 복구한다.
         if (value == null || value.isBlank()) {
             return CENTER;
         }

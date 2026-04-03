@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
+    // 추천 결과 화면의 지도와 장소 카드 패널을 동기화한다.
     const initializeRecommendationMap = () => {
         const mapElement = document.querySelector("#recommendationMap");
         const pointsRoot = document.querySelector("#recommendationMapData");
@@ -319,6 +320,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // 페이지 이동/폼 제출 시 로딩 오버레이를 보여 주는 공통 UI 처리다.
     const loadingOverlay = document.querySelector("#pageLoadingOverlay");
     const loadingOverlayShell = loadingOverlay?.closest(".app-shell");
     const loadingOverlayTopbar = loadingOverlayShell?.querySelector(".topbar");
@@ -426,6 +428,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+    // 라디오 칩과 anchor 선택 UI 상태를 현재 선택값과 맞춰 준다.
     document.querySelectorAll(".radio-grid").forEach((radioGrid) => {
         const syncChoiceChipState = () => {
             radioGrid.querySelectorAll(".choice-chip").forEach((chip) => {
@@ -465,6 +468,7 @@ document.addEventListener("DOMContentLoaded", () => {
         syncAnchorState();
     }
 
+    // 회원가입 화면에서 이메일 중복확인/인증코드 발송/인증 완료 상태를 관리한다.
     const signupForm = document.querySelector("[data-signup-form]");
     if (signupForm instanceof HTMLFormElement) {
         const emailInput = signupForm.querySelector("#email");
@@ -624,6 +628,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // 데모 화면의 코드/토큰 값을 버튼 한 번으로 복사할 수 있게 한다.
     document.querySelectorAll("[data-copy-target]").forEach((button) => {
         button.addEventListener("click", async () => {
             const target = document.querySelector(button.dataset.copyTarget);

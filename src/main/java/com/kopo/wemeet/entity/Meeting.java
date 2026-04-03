@@ -20,6 +20,8 @@ import java.util.List;
 @Entity
 @Table(name = "meeting")
 public class Meeting {
+    // 모임의 기본 정보와 참가자 목록을 함께 관리하는 엔티티다.
+
     @Id
     @Column(length = 40, nullable = false)
     private String id;
@@ -60,10 +62,12 @@ public class Meeting {
 
     @PrePersist
     void onCreate() {
+        // 생성 시각은 모임 목록 정렬이나 최근 생성 확인에 사용한다.
         createdAt = LocalDateTime.now();
     }
 
     public void addParticipant(AppUser user, String role) {
+        // 참가자를 엔티티 내부에서 추가해 meeting 참조가 빠지지 않게 한다.
         participants.add(new MeetingParticipant(this, user, role));
     }
 

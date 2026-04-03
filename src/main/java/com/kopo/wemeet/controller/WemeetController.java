@@ -47,6 +47,7 @@ public class WemeetController {
         this.naverPlaceSearchService = naverPlaceSearchService;
     }
 
+    // 비로그인 진입 페이지와 로그인/회원가입 관련 화면 라우트다.
     @GetMapping("/")
     public String landing(Model model, HttpSession session) {
         AppUser currentUser = findLoggedInUser(session);
@@ -164,6 +165,7 @@ public class WemeetController {
         model.addAttribute("hideShellNavigation", redPlaceholderIndex != null);
     }
 
+    // 계정 찾기와 게스트 체험 진입 화면을 준비하는 라우트다.
     @GetMapping("/find-id")
     public String findId(Model model) {
         populateFindIdModel(model, null);
@@ -263,6 +265,7 @@ public class WemeetController {
         return "place-search";
     }
 
+    // 폼 제출을 처리해 세션/DB를 갱신하고 다시 적절한 화면으로 보내는 POST 라우트들이다.
     @PostMapping("/signup")
     public String signupSubmit(
             @RequestParam(defaultValue = "") String nickname,
@@ -454,6 +457,7 @@ public class WemeetController {
         return "redirect:/";
     }
 
+    // 로그인 이후 사용하는 메인 기능 화면 라우트다.
     @GetMapping("/home")
     public String home(Model model, HttpSession session) {
         requireLoggedInUser(session);
@@ -586,6 +590,7 @@ public class WemeetController {
         return "redirect:/history";
     }
 
+    // 프로필 확인, 비밀번호 검증, 주소/비밀번호 수정 흐름을 담당하는 라우트다.
     @GetMapping("/profile")
     public String profile(Model model, HttpSession session) {
         AppUser currentUser = requireLoggedInUser(session);
@@ -722,6 +727,7 @@ public class WemeetController {
         return "redirect:/profile/edit";
     }
 
+    // 모임 생성과 추천 결과 미리보기 화면을 만드는 라우트다.
     @GetMapping("/meetings/new")
     public String meetingForm(Model model, HttpSession session) {
         AppUser currentUser = requireLoggedInUser(session);
@@ -805,6 +811,7 @@ public class WemeetController {
         return "search-results";
     }
 
+    // 아래 private 메서드들은 템플릿별로 필요한 Model 속성을 채워 넣는 조립 계층이다.
     private void populateRecommendationModel(
             Model model,
             String activeTab,

@@ -3,10 +3,13 @@ package com.kopo.wemeet.dto;
 import java.util.List;
 
 public final class ApiDtos {
+    // REST API 요청/응답 payload를 모아 둔 record 모음이다.
+    // 컨트롤러와 서비스가 같은 타입을 공유하도록 한 파일에 정리했다.
 
     private ApiDtos() {
     }
 
+    // 인증/회원/친구/모임 생성에 쓰이는 요청 DTO들이다.
     public record SignUpRequest(
             String nickname,
             String loginId,
@@ -75,6 +78,7 @@ public final class ApiDtos {
     ) {
     }
 
+    // 로그인한 사용자 정보나 인증 결과처럼 기본 API 응답에 자주 쓰이는 DTO들이다.
     public record UserResponse(
             String id,
             String nickname,
@@ -152,6 +156,7 @@ public final class ApiDtos {
     ) {
     }
 
+    // 추천 결과와 네이버 장소 검색 결과에 쓰이는 상세 응답 DTO들이다.
     public record VenueResponse(
             String name,
             String category,

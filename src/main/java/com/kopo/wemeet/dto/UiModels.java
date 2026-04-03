@@ -3,10 +3,13 @@ package com.kopo.wemeet.dto;
 import java.util.List;
 
 public final class UiModels {
+    // Thymeleaf 템플릿이 직접 쓰는 화면 전용 모델 모음이다.
+    // API DTO를 그대로 노출하지 않고, 화면에 필요한 필드만 묶어서 전달한다.
 
     private UiModels() {
     }
 
+    // 프로필/친구/모임처럼 화면 상단 카드와 목록에 쓰이는 기본 모델들이다.
     public record UserProfile(
             String id,
             String name,
@@ -59,6 +62,7 @@ public final class UiModels {
     ) {
     }
 
+    // 추천 결과 화면에서 지도/카드/이동시간 영역을 채우는 모델들이다.
     public record MidpointSummary(
             String district,
             String station,

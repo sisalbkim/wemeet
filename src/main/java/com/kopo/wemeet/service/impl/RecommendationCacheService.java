@@ -91,5 +91,6 @@ public class RecommendationCacheService {
             ApiDtos.RecommendationResponse response,
             Instant expiresAt
     ) {
+        // 메모리 fallback 캐시에서 응답 본문과 만료 시각을 함께 보관한다.
     }
 }
