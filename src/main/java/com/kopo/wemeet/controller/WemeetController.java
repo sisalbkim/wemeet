@@ -376,26 +376,31 @@ public class WemeetController {
             @RequestParam(defaultValue = "") String name,
             @RequestParam(defaultValue = "") String loginId,
             @RequestParam(defaultValue = "") String email,
+            HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
-        String normalizedName = name == null ? "" : name.trim();
         String normalizedLoginId = loginId == null ? "" : loginId.trim();
         String normalizedEmail = email == null ? "" : email.trim();
         try {
-            String temporaryPassword = authService.issueTemporaryPassword(normalizedName, normalizedLoginId, normalizedEmail);
-            redirectAttributes.addFlashAttribute("passwordResetName", normalizedName);
+            String resetUserId = authService.findUserIdByLoginIdAndEmail(normalizedLoginId, normalizedEmail);
+            session.setAttribute(PASSWORD_RESET_USER_ID, resetUserId);
+            session.setAttribute(PASSWORD_RESET_LOGIN_ID, normalizedLoginId);
+            session.setAttribute(PASSWORD_RESET_EMAIL, normalizedEmail);
             redirectAttributes.addFlashAttribute("passwordResetLoginId", normalizedLoginId);
             redirectAttributes.addFlashAttribute("passwordResetEmail", normalizedEmail);
-            redirectAttributes.addFlashAttribute("passwordResetTemporaryPassword", temporaryPassword);
-            redirectAttributes.addFlashAttribute("passwordResetLookupSuccess", "일치하는 계정을 확인했습니다. 아래 임시 비밀번호로 로그인해 주세요.");
-            return "redirect:/find-password";
+            redirectAttributes.addFlashAttribute("passwordResetLookupSuccess", "계정이 확인되었습니다. 새 비밀번호를 입력해주세요.");
+            return "redirect:/find-password/reset";
         } catch (ResponseStatusException exception) {
+            if (session != null) {
+                session.removeAttribute(PASSWORD_RESET_USER_ID);
+                session.removeAttribute(PASSWORD_RESET_LOGIN_ID);
+                session.removeAttribute(PASSWORD_RESET_EMAIL);
+            }
             redirectAttributes.addFlashAttribute("passwordResetLookupError", switch (exception.getStatusCode().value()) {
-                case 400 -> "이름, 아이디, 올바른 이메일을 입력해주세요.";
-                case 404 -> "이름, 이메일, 아이디가 일치하는 계정을 찾지 못했습니다.";
+                case 400 -> "아이디와 올바른 이메일을 입력해주세요.";
+                case 404 -> "아이디와 이메일이 일치하는 계정을 찾지 못했습니다.";
                 default -> "비밀번호 변경 대상 계정을 확인하지 못했습니다.";
             });
-            redirectAttributes.addFlashAttribute("passwordResetName", normalizedName);
             redirectAttributes.addFlashAttribute("passwordResetLoginId", normalizedLoginId);
             redirectAttributes.addFlashAttribute("passwordResetEmail", normalizedEmail);
             return "redirect:/find-password";
@@ -696,8 +701,7 @@ public class WemeetController {
         AppUser currentUser = requireLoggedInUser(session);
         authService.updateBaseAddress(currentUser, baseAddress);
         redirectAttributes.addFlashAttribute("profileNotice", "기본 출발지 주소가 수정되었습니다.");
-        redirectAttributes.addAttribute("editTab", "address");
-        return "redirect:/profile/edit";
+        return "redirect:/profile";
     }
 
     @PostMapping("/profile/password")
