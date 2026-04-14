@@ -28,7 +28,8 @@ public final class UiModels {
             String name,
             String handle,
             String addressHint,
-            String joinedOn
+            String joinedOn,
+            boolean favorite
     ) {
     }
 

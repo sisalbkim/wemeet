@@ -14,7 +14,7 @@
             <a class="ghost-button" th:href="@{/meetings/new}">모임으로 이동</a>
         </section>
 
-        <section class="panel">
+        <section class="panel" data-friend-filter-scope>
             <div class="section-heading">
                 <h2>친구 코드로 추가</h2>
                 <span>상대가 공유한 코드를 입력합니다</span>
@@ -71,19 +71,38 @@
 
         <section class="panel">
             <div class="section-heading">
-                <h2 th:text="${'내 친구 (' + #lists.size(friends) + ')'}">내 친구 (2)</h2>
+                <h2 data-friend-count th:attr="data-total=${#lists.size(friends)}" th:text="${'내 친구 (' + #lists.size(friends) + ')'}">내 친구 (2)</h2>
+                <span>즐겨찾기한 친구가 먼저 보입니다</span>
             </div>
-            <div class="card-stack">
-                <article class="friend-card" th:each="friend : ${friends}">
+            <form class="search-form friend-search-form" method="get" th:action="@{/friends}" data-friend-filter>
+                <input class="text-input" type="search" name="keyword" placeholder="이름 또는 주소로 검색" th:value="${friendKeyword}" autocomplete="off" data-friend-search>
+                <button class="ghost-button" type="submit">검색</button>
+                <button class="text-link friend-search-clear" type="button" data-friend-search-clear hidden>전체</button>
+            </form>
+            <div class="card-stack" th:if="${!friends.isEmpty()}">
+                <article class="friend-card" th:each="friend : ${friends}" data-friend-card th:attr="data-friend-name=${friend.name},data-friend-address=${friend.addressHint}">
                     <div class="avatar-badge" th:text="${#strings.substring(friend.name,0,1)}">이</div>
                     <div class="friend-card__body">
-                        <strong th:text="${friend.name}">이영희</strong>
+                        <div class="friend-card__name-row">
+                            <strong th:text="${friend.name}">이영희</strong>
+                            <span class="mini-tag" th:if="${friend.favorite}">즐겨찾기</span>
+                        </div>
                         <span th:text="${friend.handle}">@user456</span>
                         <small th:text="${friend.addressHint}">성수동 출발</small>
                     </div>
-                    <time th:text="${friend.joinedOn}">2026. 3. 1.</time>
+                    <div class="friend-card__side">
+                        <time th:text="${friend.joinedOn}">2026. 3. 1.</time>
+                        <form method="post" th:action="@{/friends/favorite}">
+                            <input type="hidden" name="friendId" th:value="${friend.id}">
+                            <input type="hidden" name="favorite" th:value="${!friend.favorite}">
+                            <input type="hidden" name="keyword" th:value="${friendKeyword}">
+                            <button class="favorite-button" th:classappend="${friend.favorite} ? ' is-active'" type="submit" th:text="${friend.favorite} ? '해제' : '즐겨찾기'">즐겨찾기</button>
+                        </form>
+                    </div>
                 </article>
             </div>
+            <p class="empty-state" data-friend-no-results hidden>검색 결과가 없습니다.</p>
+            <p class="empty-state" th:if="${friends.isEmpty()}">아직 추가된 친구가 없습니다.</p>
         </section>
     </main>
 

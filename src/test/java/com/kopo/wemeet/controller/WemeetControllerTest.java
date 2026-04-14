@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -379,10 +381,111 @@ class WemeetControllerTest {
                 .andExpect(content().string(containsString("님을 친구로 추가했습니다.")));
     }
 
+    @Test
+    void friendsPageDoesNotShowDemoFriendRequests() throws Exception {
+        MockHttpSession session = signupAndLogin("friendrequestempty01", "friendrequestempty01@wemeet.local");
+
+        mockMvc.perform(get("/friends").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("최지우"))))
+                .andExpect(content().string(not(containsString("친구 요청"))));
+    }
+
+    @Test
+    void friendsPageProvidesClientSideSearchData() throws Exception {
+        MockHttpSession session = signupAndLogin("friendsearch01", "friendsearch01@wemeet.local");
+        addFriend(session, "FRIEND456");
+        addFriend(session, "FRIEND789");
+        mockMvc.perform(get("/friends").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-friend-filter")))
+                .andExpect(content().string(containsString("data-friend-card")))
+                .andExpect(content().string(containsString("박민수")))
+                .andExpect(content().string(containsString("이영희")))
+                .andExpect(content().string(containsString("서울특별시 마포구 공덕동")))
+                .andExpect(content().string(containsString("서울특별시 성동구 성수동1가")));
+
+        mockMvc.perform(get("/friends").session(session).param("keyword", "박민수"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("value=\"박민수\"")))
+                .andExpect(content().string(containsString("박민수")))
+                .andExpect(content().string(containsString("이영희")));
+    }
+
+    @Test
+    void favoriteFriendsArePinnedToTop() throws Exception {
+        MockHttpSession session = signupAndLogin("friendfavorite01", "friendfavorite01@wemeet.local");
+        addFriend(session, "FRIEND456");
+        addFriend(session, "FRIEND789");
+
+        mockMvc.perform(post("/friends/favorite")
+                        .session(session)
+                        .param("friendId", "friend-lee")
+                        .param("favorite", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/friends"));
+
+        String html = mockMvc.perform(get("/friends").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("즐겨찾기")))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertTrue(html.indexOf("이영희") < html.indexOf("박민수"));
+    }
+
+    @Test
+    void meetingFormProvidesClientSideFriendSearch() throws Exception {
+        MockHttpSession session = signupAndLogin("meetingfriendsearch01", "meetingfriendsearch01@wemeet.local");
+        addFriend(session, "FRIEND456");
+        addFriend(session, "FRIEND789");
+
+        mockMvc.perform(get("/meetings/new").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-friend-filter")))
+                .andExpect(content().string(containsString("data-friend-card")))
+                .andExpect(content().string(containsString("data-friend-search-submit")))
+                .andExpect(content().string(containsString("박민수")))
+                .andExpect(content().string(containsString("이영희")))
+                .andExpect(content().string(containsString("서울특별시 마포구 공덕동")))
+                .andExpect(content().string(containsString("서울특별시 성동구 성수동1가")));
+    }
+
     private MockHttpSession verifiedSignupSession(String email) {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute("SIGNUP_VERIFIED_EMAIL", email);
         return session;
+    }
+
+    private MockHttpSession signupAndLogin(String loginId, String email) throws Exception {
+        mockMvc.perform(post("/signup")
+                        .session(verifiedSignupSession(email))
+                        .param("nickname", loginId + "닉네임")
+                        .param("loginId", loginId)
+                        .param("email", email)
+                        .param("password", "pass1234")
+                        .param("confirmPassword", "pass1234")
+                        .param("baseAddress", "서울특별시 중구"))
+                .andExpect(status().is3xxRedirection());
+
+        MvcResult loginResult = mockMvc.perform(post("/login")
+                        .param("loginId", loginId)
+                        .param("password", "pass1234"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"))
+                .andReturn();
+
+        return (MockHttpSession) loginResult.getRequest().getSession(false);
+    }
+
+    private void addFriend(MockHttpSession session, String friendCode) throws Exception {
+        mockMvc.perform(post("/friends/add")
+                        .session(session)
+                        .param("friendCode", friendCode)
+                        .param("redirectTo", "/friends"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/friends"));
     }
 
     private ApiDtos.PlaceSearchResponse samplePlaceSearch(String originQuery, String address, String placeName) {

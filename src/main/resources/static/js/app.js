@@ -320,6 +320,73 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // 친구 목록 검색은 화면 안에서 카드 표시만 바꿔 새로고침 없이 처리한다.
+    document.querySelectorAll("[data-friend-filter]").forEach((friendFilter) => {
+        const filterScope = friendFilter.closest("[data-friend-filter-scope]") ?? document;
+        const searchInput = friendFilter.querySelector("[data-friend-search]");
+        const searchButton = friendFilter.querySelector("[data-friend-search-submit]");
+        const clearButton = friendFilter.querySelector("[data-friend-search-clear]");
+        const friendCards = Array.from(filterScope.querySelectorAll("[data-friend-card]"));
+        const noResults = filterScope.querySelector("[data-friend-no-results]");
+        const countHeading = filterScope.querySelector("[data-friend-count]");
+
+        const normalizeSearchText = (value) => String(value ?? "").trim().toLowerCase();
+        const setFriendCount = (visibleCount) => {
+            if (!(countHeading instanceof HTMLElement)) {
+                return;
+            }
+            countHeading.textContent = `내 친구 (${visibleCount})`;
+        };
+
+        const applyFriendFilter = () => {
+            if (!(searchInput instanceof HTMLInputElement)) {
+                return;
+            }
+
+            const keyword = normalizeSearchText(searchInput.value);
+            let visibleCount = 0;
+            friendCards.forEach((card) => {
+                if (!(card instanceof HTMLElement)) {
+                    return;
+                }
+                const name = normalizeSearchText(card.dataset.friendName);
+                const address = normalizeSearchText(card.dataset.friendAddress);
+                const matched = !keyword || name.includes(keyword) || address.includes(keyword);
+                card.hidden = !matched;
+                if (matched) {
+                    visibleCount += 1;
+                }
+            });
+
+            setFriendCount(visibleCount);
+            if (noResults instanceof HTMLElement) {
+                noResults.hidden = !keyword || visibleCount > 0;
+            }
+            if (clearButton instanceof HTMLElement) {
+                clearButton.hidden = !keyword;
+            }
+        };
+
+        if (friendFilter instanceof HTMLFormElement) {
+            friendFilter.addEventListener("submit", (event) => {
+                event.preventDefault();
+                applyFriendFilter();
+            });
+        }
+
+        searchButton?.addEventListener("click", applyFriendFilter);
+
+        clearButton?.addEventListener("click", () => {
+            if (searchInput instanceof HTMLInputElement) {
+                searchInput.value = "";
+                searchInput.focus();
+            }
+            applyFriendFilter();
+        });
+
+        applyFriendFilter();
+    });
+
     // 페이지 이동/폼 제출 시 로딩 오버레이를 보여 주는 공통 UI 처리다.
     const loadingOverlay = document.querySelector("#pageLoadingOverlay");
     const loadingOverlayShell = loadingOverlay?.closest(".app-shell");

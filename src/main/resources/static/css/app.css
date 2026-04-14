@@ -590,6 +590,57 @@ textarea {
     align-items: center;
 }
 
+.friend-search-form {
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.friend-search-form .text-input {
+    flex: 1 1 220px;
+}
+
+.friend-search-clear {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.friend-card__name-row,
+.friend-card__side {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.friend-card__name-row {
+    flex-wrap: wrap;
+}
+
+.friend-card__side {
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.favorite-button {
+    min-height: 34px;
+    padding: 0 10px;
+    border: 1px solid rgba(47, 107, 255, 0.22);
+    border-radius: var(--radius-sm);
+    background: rgba(47, 107, 255, 0.08);
+    color: var(--primary);
+    font-size: 0.84rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.favorite-button.is-active {
+    border-color: rgba(19, 185, 131, 0.24);
+    background: rgba(19, 185, 131, 0.14);
+    color: #126d50;
+}
+
 .login-links {
     display: flex;
     justify-content: center;

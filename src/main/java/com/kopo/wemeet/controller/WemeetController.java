@@ -470,9 +470,13 @@ public class WemeetController {
     }
 
     @GetMapping("/friends")
-    public String friends(Model model, HttpSession session) {
+    public String friends(
+            @RequestParam(defaultValue = "") String keyword,
+            Model model,
+            HttpSession session
+    ) {
         AppUser currentUser = requireLoggedInUser(session);
-        populateFriendsModel(model, toProfile(currentUser), viewService.getFriends(currentUser.getId()), null, false);
+        populateFriendsModel(model, toProfile(currentUser), viewService.getFriends(currentUser.getId()), keyword, null, false);
         return "friends";
     }
 
@@ -480,17 +484,17 @@ public class WemeetController {
     public String friendsMock4(Model model) {
         UiModels.UserProfile profile = viewService.getGuestUser();
         List<UiModels.FriendSummary> sampleFriends = List.of(
-                new UiModels.FriendSummary("friend-101", "이영희", "@user456", "성수동 출발", "2026. 3. 1."),
-                new UiModels.FriendSummary("friend-102", "박민수", "@user789", "잠실동 출발", "2026. 3. 3.")
+                new UiModels.FriendSummary("friend-101", "이영희", "@user456", "성수동 출발", "2026. 3. 1.", true),
+                new UiModels.FriendSummary("friend-102", "박민수", "@user789", "잠실동 출발", "2026. 3. 3.", false)
         );
-        populateFriendsModel(model, profile, sampleFriends, null, true);
+        populateFriendsModel(model, profile, sampleFriends, "", null, true);
         return "friends";
     }
 
     @GetMapping("/friends1")
     public String friendsMock1(Model model) {
         UiModels.UserProfile profile = viewService.getGuestUser();
-        populateFriendsModel(model, profile, List.of(), 1, true);
+        populateFriendsModel(model, profile, List.of(), "", 1, true);
         return "friends";
     }
 
@@ -516,6 +520,22 @@ public class WemeetController {
             });
         }
         return "redirect:" + redirectTo;
+    }
+
+    @PostMapping("/friends/favorite")
+    public String updateFriendFavorite(
+            @RequestParam String friendId,
+            @RequestParam(defaultValue = "false") boolean favorite,
+            @RequestParam(defaultValue = "") String keyword,
+            HttpSession session,
+            RedirectAttributes redirectAttributes
+    ) {
+        AppUser currentUser = requireLoggedInUser(session);
+        viewService.updateFriendFavorite(currentUser.getId(), friendId, favorite);
+        if (keyword != null && !keyword.isBlank()) {
+            redirectAttributes.addAttribute("keyword", keyword.trim());
+        }
+        return "redirect:/friends";
     }
 
     @PostMapping("/friends/request/respond")
@@ -768,8 +788,8 @@ public class WemeetController {
     public String meetingFormMock4(Model model) {
         UiModels.UserProfile profile = viewService.getGuestUser();
         List<UiModels.FriendSummary> sampleFriends = List.of(
-                new UiModels.FriendSummary("friend-201", "이영희", "@user456", "성수동 출발", "2026. 3. 1."),
-                new UiModels.FriendSummary("friend-202", "박민수", "@user789", "잠실동 출발", "2026. 3. 3.")
+                new UiModels.FriendSummary("friend-201", "이영희", "@user456", "성수동 출발", "2026. 3. 1.", false),
+                new UiModels.FriendSummary("friend-202", "박민수", "@user789", "잠실동 출발", "2026. 3. 3.", false)
         );
         populateMeetingFormModel(model, profile, sampleFriends, List.of(), null, true);
         return "meeting-form";
@@ -953,6 +973,7 @@ public class WemeetController {
             Model model,
             UiModels.UserProfile profile,
             List<UiModels.FriendSummary> friends,
+            String keyword,
             Integer redPlaceholderIndex,
             boolean hideShellNavigation
     ) {
@@ -962,6 +983,7 @@ public class WemeetController {
             model.addAttribute("friendRequests", viewService.getFriendRequests());
         }
         model.addAttribute("friends", friends);
+        model.addAttribute("friendKeyword", keyword == null ? "" : keyword);
         model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
         model.addAttribute("hideShellNavigation", hideShellNavigation);
     }

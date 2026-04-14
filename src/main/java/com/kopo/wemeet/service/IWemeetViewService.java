@@ -16,11 +16,15 @@ public interface IWemeetViewService {
 
     List<UiModels.FriendSummary> getFriends(String userId);
 
+    List<UiModels.FriendSummary> getFriends(String userId, String keyword);
+
     List<UiModels.FriendRequest> getFriendRequests();
 
     List<UiModels.UpcomingMeeting> getUpcomingMeetings();
 
     ApiDtos.UserResponse addFriendByCode(String userId, String friendCode);
+
+    void updateFriendFavorite(String userId, String friendId, boolean favorite);
 
     List<UiModels.SearchHistoryItem> getSearchHistory(String userId, String filter, String keyword);
 

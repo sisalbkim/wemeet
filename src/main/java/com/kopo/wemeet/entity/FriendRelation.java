@@ -38,6 +38,9 @@ public class FriendRelation {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean favorite;
+
     protected FriendRelation() {
     }
 
@@ -58,5 +61,13 @@ public class FriendRelation {
 
     public AppUser getFriend() {
         return friend;
+    }
+
+    public boolean isFavorite() {
+        return favorite;
+    }
+
+    public void changeFavorite(boolean favorite) {
+        this.favorite = favorite;
     }
 }

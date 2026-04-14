@@ -27,7 +27,7 @@
                 <textarea class="text-area" th:classappend="${redPlaceholderIndex == 2} ? ' text-area--danger-placeholder'" id="meetingDescription" name="meetingDescription" placeholder="모임에 대해 설명해주세요"></textarea>
             </section>
 
-            <section class="panel">
+            <section class="panel" data-friend-filter-scope>
                 <div class="section-heading">
                     <h2>참여 인원 먼저 정하기</h2>
                 </div>
@@ -41,6 +41,11 @@
                     <span class="muted-note">친구 페이지에서 먼저 추가해도 됩니다.</span>
                     <a class="text-link" th:href="@{/friends}">친구 관리로 이동</a>
                 </div>
+                <div class="search-form friend-search-form" data-friend-filter>
+                    <input class="text-input" type="search" placeholder="이름 또는 주소로 검색" autocomplete="off" data-friend-search>
+                    <button class="ghost-button" type="button" data-friend-search-submit>검색</button>
+                    <button class="text-link friend-search-clear" type="button" data-friend-search-clear hidden>전체</button>
+                </div>
                 <div class="card-stack">
                     <label class="friend-selector">
                         <input type="checkbox" name="friendIds" th:value="${profile.id}" checked disabled>
@@ -52,16 +57,20 @@
                             <small th:text="${profile.baseAddress}">서울특별시 중구 명동길 74</small>
                         </span>
                     </label>
-                    <label class="friend-selector" th:each="friend : ${friends}">
+                    <label class="friend-selector" th:each="friend : ${friends}" data-friend-card th:attr="data-friend-name=${friend.name},data-friend-address=${friend.addressHint}">
                         <input type="checkbox" name="friendIds" th:value="${friend.id}" th:checked="${preselectedFriendIds != null and #lists.contains(preselectedFriendIds, friend.id)}">
                         <span class="avatar-badge" th:text="${#strings.substring(friend.name,0,1)}">이</span>
                         <span class="friend-selector__body">
-                            <strong th:text="${friend.name}">이영희</strong>
+                            <span class="friend-card__name-row">
+                                <strong th:text="${friend.name}">이영희</strong>
+                                <span class="mini-tag" th:if="${friend.favorite}">즐겨찾기</span>
+                            </span>
                             <small th:text="${friend.handle}">@user456</small>
                             <small th:text="${friend.addressHint}">성수동 출발</small>
                         </span>
                     </label>
                 </div>
+                <p class="empty-state" data-friend-no-results hidden>검색 결과가 없습니다.</p>
             </section>
 
             <section class="panel">

@@ -31,10 +31,6 @@ public class WemeetViewService implements IWemeetViewService {
             new UiModels.CategoryChip("기타", "기타")
     );
 
-    private final List<UiModels.FriendRequest> friendRequests = List.of(
-            new UiModels.FriendRequest("최지우", "@user321")
-    );
-
     private final List<UiModels.UpcomingMeeting> upcomingMeetings = List.of(
             new UiModels.UpcomingMeeting("주말 맛집 탐방", "주말에 새로운 맛집 찾아가요!", "2026. 3. 15.", "김철수", "예정", "scheduled"),
             new UiModels.UpcomingMeeting("친구들과 보드게임", "보드게임 카페에서 즐겁게 놀아요", "2026. 3. 20.", "이영희", "예정", "scheduled"),
@@ -82,6 +78,12 @@ public class WemeetViewService implements IWemeetViewService {
 
     @Override
     public List<UiModels.FriendSummary> getFriends(String userId) {
+        return getFriends(userId, "");
+    }
+
+    @Override
+    public List<UiModels.FriendSummary> getFriends(String userId, String keyword) {
+        String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
         // 저장소 데이터를 화면에서 바로 쓰기 쉽게 FriendSummary 형태로 변환한다.
         return store.listFriends(userId).stream()
                 .map(friend -> new UiModels.FriendSummary(
@@ -89,15 +91,19 @@ public class WemeetViewService implements IWemeetViewService {
                         friend.nickname(),
                         "@" + friend.loginId(),
                         friend.baseAddress(),
-                        friend.joinedOn().format(historyFormatter)
+                        friend.joinedOn().format(historyFormatter),
+                        friend.favorite()
                 ))
+                .filter(friend -> normalizedKeyword.isBlank()
+                        || friend.name().toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                        || friend.addressHint().toLowerCase(Locale.ROOT).contains(normalizedKeyword))
                 .toList();
     }
 
     @Override
     public List<UiModels.FriendRequest> getFriendRequests() {
-        // 친구 요청 기능은 아직 시연용 더미 데이터로 유지한다.
-        return friendRequests;
+        // 실제 친구 요청 기능이 붙기 전까지는 더미 요청을 노출하지 않는다.
+        return List.of();
     }
 
     @Override
@@ -110,6 +116,11 @@ public class WemeetViewService implements IWemeetViewService {
     public ApiDtos.UserResponse addFriendByCode(String userId, String friendCode) {
         // 화면 계층에서는 저장소를 직접 다루지 않고 인증 서비스의 DTO 변환 결과를 재사용한다.
         return authService.toUserResponse(store.addFriendByCode(userId, friendCode));
+    }
+
+    @Override
+    public void updateFriendFavorite(String userId, String friendId, boolean favorite) {
+        store.updateFriendFavorite(userId, friendId, favorite);
     }
 
     @Override
@@ -161,7 +172,8 @@ public class WemeetViewService implements IWemeetViewService {
                         participant.nickname(),
                         "@" + participant.loginId(),
                         participant.baseAddress(),
-                        "활성 사용자"
+                        "활성 사용자",
+                        false
                 ))
                 .toList();
 
@@ -243,7 +255,8 @@ public class WemeetViewService implements IWemeetViewService {
                                 participant.nickname(),
                                 "@" + participant.loginId(),
                                 participant.baseAddress(),
-                                "게스트"
+                                "게스트",
+                                false
                         ))
                         .toList(),
                 new UiModels.MidpointSummary(

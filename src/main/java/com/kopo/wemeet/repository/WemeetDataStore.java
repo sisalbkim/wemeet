@@ -76,8 +76,10 @@ public class WemeetDataStore {
     public List<UserAccount> listFriends(String userId) {
         // 친구 엔티티를 화면/API 공용으로 쓰는 간단한 읽기 모델로 바꿔서 반환한다.
         return friendRelationRepository.findAllByUserIdOrderByFriend_NicknameAsc(userId).stream()
-                .map(FriendRelation::getFriend)
-                .map(this::toUserAccount)
+                .sorted(Comparator
+                        .comparing(FriendRelation::isFavorite).reversed()
+                        .thenComparing(relation -> relation.getFriend().getNickname()))
+                .map(relation -> toUserAccount(relation.getFriend(), relation.isFavorite()))
                 .toList();
     }
 
@@ -103,6 +105,13 @@ public class WemeetDataStore {
         friendRelationRepository.save(new FriendRelation(user, friend));
         friendRelationRepository.save(new FriendRelation(friend, user));
         return toUserAccount(friend);
+    }
+
+    @Transactional
+    public void updateFriendFavorite(String userId, String friendId, boolean favorite) {
+        FriendRelation relation = friendRelationRepository.findByUserIdAndFriendId(userId, friendId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Friend relation not found"));
+        relation.changeFavorite(favorite);
     }
 
     @Transactional
@@ -189,6 +198,10 @@ public class WemeetDataStore {
     }
 
     private UserAccount toUserAccount(AppUser user) {
+        return toUserAccount(user, false);
+    }
+
+    private UserAccount toUserAccount(AppUser user, boolean favorite) {
         // 영속 엔티티 전체 대신 외부에 노출해도 되는 읽기 전용 값만 남긴다.
         LocalDate joinedOn = user.getCreatedAt() == null ? LocalDate.now() : user.getCreatedAt().toLocalDate();
         return new UserAccount(
@@ -198,7 +211,8 @@ public class WemeetDataStore {
                 "",
                 user.getFriendCode(),
                 user.getBaseAddress(),
-                joinedOn
+                joinedOn,
+                favorite
         );
     }
 
@@ -230,7 +244,8 @@ public class WemeetDataStore {
             String password,
             String friendCode,
             String baseAddress,
-            LocalDate joinedOn
+            LocalDate joinedOn,
+            boolean favorite
     ) {
         // 인증/추천/화면 서비스가 공통으로 쓰는 사용자 읽기 모델이다.
     }
