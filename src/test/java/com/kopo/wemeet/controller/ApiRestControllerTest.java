@@ -232,6 +232,7 @@ class ApiRestControllerTest {
                 "title", "첫 모임",
                 "description", "API로 생성한 모임",
                 "meetingDate", "2026-04-01",
+                "meetingTime", "19:30",
                 "category", "카페",
                 "participantIds", List.of()
         ));
@@ -242,6 +243,8 @@ class ApiRestControllerTest {
                         .content(meetingPayload))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("첫 모임")))
+                .andExpect(jsonPath("$.meetingDate").value("2026-04-01"))
+                .andExpect(jsonPath("$.meetingTime").value("19:30"))
                 .andExpect(jsonPath("$.category").value("카페"));
     }
 

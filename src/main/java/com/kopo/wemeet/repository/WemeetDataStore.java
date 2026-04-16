@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -120,6 +121,7 @@ public class WemeetDataStore {
             String title,
             String description,
             LocalDate meetingDate,
+            LocalTime meetingTime,
             String category,
             List<String> participantIds
     ) {
@@ -144,6 +146,7 @@ public class WemeetDataStore {
                 title.trim(),
                 description == null ? "" : description.trim(),
                 meetingDate,
+                meetingTime,
                 category.trim(),
                 host
         );
@@ -230,6 +233,7 @@ public class WemeetDataStore {
                 meeting.getTitle(),
                 meeting.getDescription(),
                 meeting.getMeetingDate(),
+                meeting.getMeetingTime(),
                 meeting.getCategory(),
                 meeting.getHost().getId(),
                 participantIds,
@@ -255,6 +259,7 @@ public class WemeetDataStore {
             String title,
             String description,
             LocalDate meetingDate,
+            LocalTime meetingTime,
             String category,
             String hostUserId,
             List<String> participantIds,

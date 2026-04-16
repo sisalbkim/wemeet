@@ -446,10 +446,37 @@ class WemeetControllerTest {
                 .andExpect(content().string(containsString("data-friend-filter")))
                 .andExpect(content().string(containsString("data-friend-card")))
                 .andExpect(content().string(containsString("data-friend-search-submit")))
+                .andExpect(content().string(containsString("data-friend-modal-open")))
+                .andExpect(content().string(containsString("data-friend-modal")))
+                .andExpect(content().string(containsString("data-friend-modal-checkbox")))
+                .andExpect(content().string(containsString("data-participant-friend-checkbox")))
+                .andExpect(content().string(containsString("전체 친구 보기")))
+                .andExpect(content().string(not(containsString("친구 관리로 이동"))))
+                .andExpect(content().string(containsString("name=\"meetingHour\"")))
+                .andExpect(content().string(containsString("name=\"meetingMinute\"")))
                 .andExpect(content().string(containsString("박민수")))
                 .andExpect(content().string(containsString("이영희")))
                 .andExpect(content().string(containsString("서울특별시 마포구 공덕동")))
                 .andExpect(content().string(containsString("서울특별시 성동구 성수동1가")));
+    }
+
+    @Test
+    void meetingPreviewComposesTimeFromHourAndMinute() throws Exception {
+        MockHttpSession session = signupAndLogin("meetingtime01", "meetingtime01@wemeet.local");
+
+        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
+
+        mockMvc.perform(post("/meetings/preview")
+                        .session(session)
+                        .param("category", "카페")
+                        .param("friendIds", "user-123")
+                        .param("mode", "CENTER")
+                        .param("meetingName", "저녁 모임")
+                        .param("meetingDate", "2026-04-20")
+                        .param("meetingHour", "19")
+                        .param("meetingMinute", "30"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("중구 로컬 카페")));
     }
 
     private MockHttpSession verifiedSignupSession(String email) {

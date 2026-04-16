@@ -13,6 +13,7 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -35,6 +36,9 @@ public class Meeting {
     @Column(nullable = false)
     private LocalDate meetingDate;
 
+    @Column
+    private LocalTime meetingTime;
+
     @Column(length = 30, nullable = false)
     private String category;
 
@@ -51,11 +55,12 @@ public class Meeting {
     protected Meeting() {
     }
 
-    public Meeting(String id, String title, String description, LocalDate meetingDate, String category, AppUser host) {
+    public Meeting(String id, String title, String description, LocalDate meetingDate, LocalTime meetingTime, String category, AppUser host) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.meetingDate = meetingDate;
+        this.meetingTime = meetingTime;
         this.category = category;
         this.host = host;
     }
@@ -85,6 +90,10 @@ public class Meeting {
 
     public LocalDate getMeetingDate() {
         return meetingDate;
+    }
+
+    public LocalTime getMeetingTime() {
+        return meetingTime;
     }
 
     public String getCategory() {

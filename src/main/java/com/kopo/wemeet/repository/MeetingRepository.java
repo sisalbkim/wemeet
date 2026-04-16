@@ -20,7 +20,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, String> {
                 from MeetingParticipant mp
                 where mp.meeting = m and mp.user.id = :userId
             )
-            order by m.meetingDate, m.createdAt
+            order by m.meetingDate, m.meetingTime, m.createdAt
             """)
     List<Meeting> findAllParticipatingByUserId(String userId);
 }

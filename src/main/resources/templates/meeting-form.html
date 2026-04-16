@@ -39,7 +39,7 @@
                 </div>
                 <div class="helper-row">
                     <span class="muted-note">친구 페이지에서 먼저 추가해도 됩니다.</span>
-                    <a class="text-link" th:href="@{/friends}">친구 관리로 이동</a>
+                    <button class="text-link friend-modal-open" type="button" data-friend-modal-open>전체 친구 보기</button>
                 </div>
                 <div class="search-form friend-search-form" data-friend-filter>
                     <input class="text-input" type="search" placeholder="이름 또는 주소로 검색" autocomplete="off" data-friend-search>
@@ -58,7 +58,7 @@
                         </span>
                     </label>
                     <label class="friend-selector" th:each="friend : ${friends}" data-friend-card th:attr="data-friend-name=${friend.name},data-friend-address=${friend.addressHint}">
-                        <input type="checkbox" name="friendIds" th:value="${friend.id}" th:checked="${preselectedFriendIds != null and #lists.contains(preselectedFriendIds, friend.id)}">
+                        <input type="checkbox" name="friendIds" th:value="${friend.id}" th:checked="${preselectedFriendIds != null and #lists.contains(preselectedFriendIds, friend.id)}" data-participant-friend-checkbox th:attr="data-friend-id=${friend.id}">
                         <span class="avatar-badge" th:text="${#strings.substring(friend.name,0,1)}">이</span>
                         <span class="friend-selector__body">
                             <span class="friend-card__name-row">
@@ -74,8 +74,33 @@
             </section>
 
             <section class="panel">
-                <label class="field-label" for="meetingDate">모임 날짜</label>
-                <input class="text-input" id="meetingDate" name="meetingDate" type="date">
+                <div class="section-heading">
+                    <h2>모임 날짜와 시간</h2>
+                </div>
+                <div class="time-picker-grid">
+                    <label class="field-stack" for="meetingDate">
+                        <span class="field-label">날짜</span>
+                        <input class="text-input" id="meetingDate" name="meetingDate" type="date">
+                    </label>
+                    <label class="field-stack" for="meetingHour">
+                        <span class="field-label">시</span>
+                        <select class="text-input" id="meetingHour" name="meetingHour">
+                            <option value="">시</option>
+                            <option th:each="hour : ${#numbers.sequence(0,23)}"
+                                    th:value="${#numbers.formatInteger(hour, 2)}"
+                                    th:text="${#numbers.formatInteger(hour, 2) + '시'}">19시</option>
+                        </select>
+                    </label>
+                    <label class="field-stack" for="meetingMinute">
+                        <span class="field-label">분</span>
+                        <select class="text-input" id="meetingMinute" name="meetingMinute">
+                            <option th:each="minute : ${#numbers.sequence(0,59)}"
+                                    th:value="${#numbers.formatInteger(minute, 2)}"
+                                    th:text="${#numbers.formatInteger(minute, 2) + '분'}"
+                                    th:selected="${minute == 0}">00분</option>
+                        </select>
+                    </label>
+                </div>
             </section>
 
             <section class="panel">
@@ -148,6 +173,39 @@
                 <a class="secondary-button" th:href="@{/}">취소</a>
             </div>
         </form>
+
+        <div class="friend-modal" data-friend-modal hidden role="dialog" aria-modal="true" aria-labelledby="friendModalTitle">
+            <div class="friend-modal__backdrop" data-friend-modal-close></div>
+            <section class="friend-modal__dialog">
+                <div class="friend-modal__header">
+                    <div>
+                        <p class="eyebrow">내 친구</p>
+                        <h2 id="friendModalTitle" th:text="${'전체 친구 (' + #lists.size(friends) + ')'}">전체 친구 (2)</h2>
+                    </div>
+                    <button class="friend-modal__close" type="button" data-friend-modal-close aria-label="전체 친구 닫기">닫기</button>
+                </div>
+                <div class="friend-modal__list" th:if="${!friends.isEmpty()}">
+                    <article class="friend-modal__item" th:each="friend : ${friends}">
+                        <input class="friend-modal__check"
+                               type="checkbox"
+                               th:checked="${preselectedFriendIds != null and #lists.contains(preselectedFriendIds, friend.id)}"
+                               data-friend-modal-checkbox
+                               th:attr="data-friend-id=${friend.id}"
+                               th:aria-label="${friend.name + ' 참여 여부'}">
+                        <div class="avatar-badge" th:text="${#strings.substring(friend.name,0,1)}">이</div>
+                        <div class="friend-modal__body">
+                            <div class="friend-card__name-row">
+                                <strong th:text="${friend.name}">이영희</strong>
+                                <span class="mini-tag" th:if="${friend.favorite}">즐겨찾기</span>
+                            </div>
+                            <span th:text="${friend.handle}">@user456</span>
+                            <small th:text="${friend.addressHint}">성수동 출발</small>
+                        </div>
+                    </article>
+                </div>
+                <p class="empty-state" th:if="${friends.isEmpty()}">아직 추가된 친구가 없습니다.</p>
+            </section>
+        </div>
 
         <div class="loading-overlay" id="pageLoadingOverlay" hidden aria-live="polite" aria-busy="true">
             <div class="loading-overlay__backdrop"></div>

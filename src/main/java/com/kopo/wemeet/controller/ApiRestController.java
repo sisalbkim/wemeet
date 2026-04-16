@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
@@ -198,11 +199,13 @@ public class ApiRestController {
         // 날짜 문자열은 컨트롤러에서 먼저 검증해 서비스/저장소 쪽에는 정상 값만 넘긴다.
         AppUser requester = authService.requireUser(authorization);
         LocalDate meetingDate = parseMeetingDate(request.meetingDate());
+        LocalTime meetingTime = parseMeetingTime(request.meetingTime());
         WemeetDataStore.MeetingRecord meeting = store.createMeeting(
                 requester.getId(),
                 request.title(),
                 request.description(),
                 meetingDate,
+                meetingTime,
                 request.category(),
                 request.participantIds()
         );
@@ -258,6 +261,7 @@ public class ApiRestController {
                 meeting.title(),
                 meeting.description(),
                 meeting.meetingDate().toString(),
+                meeting.meetingTime() == null ? "" : meeting.meetingTime().toString(),
                 meeting.category(),
                 authService.toUserResponse(host),
                 participants
@@ -270,6 +274,17 @@ public class ApiRestController {
         } catch (DateTimeParseException exception) {
             // 입력 포맷 오류는 400으로 명확하게 돌려줘야 프론트에서도 처리하기 쉽다.
             throw new org.springframework.web.server.ResponseStatusException(BAD_REQUEST, "meetingDate must be ISO-8601 format (yyyy-MM-dd)");
+        }
+    }
+
+    private LocalTime parseMeetingTime(String meetingTime) {
+        if (meetingTime == null || meetingTime.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalTime.parse(meetingTime);
+        } catch (DateTimeParseException exception) {
+            throw new org.springframework.web.server.ResponseStatusException(BAD_REQUEST, "meetingTime must be ISO-8601 format (HH:mm)");
         }
     }
 

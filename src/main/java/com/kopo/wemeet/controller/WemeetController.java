@@ -825,6 +825,8 @@ public class WemeetController {
             @RequestParam(required = false) String anchorId,
             @RequestParam(defaultValue = "") String meetingName,
             @RequestParam(defaultValue = "") String meetingDate,
+            @RequestParam(defaultValue = "") String meetingHour,
+            @RequestParam(defaultValue = "") String meetingMinute,
             Model model,
             HttpSession session
     ) {
@@ -832,6 +834,7 @@ public class WemeetController {
         populateRecommendationModel(model, "create", currentUser, category, friendIds, mode, anchorId, false, null);
         model.addAttribute("meetingName", meetingName);
         model.addAttribute("meetingDate", meetingDate);
+        model.addAttribute("meetingTime", composeMeetingTime(meetingHour, meetingMinute));
         return "search-results";
     }
 
@@ -967,6 +970,15 @@ public class WemeetController {
 
     private List<String> extractFriendIds(List<UiModels.FriendSummary> friends) {
         return friends.stream().map(UiModels.FriendSummary::id).toList();
+    }
+
+    private String composeMeetingTime(String meetingHour, String meetingMinute) {
+        String hour = meetingHour == null ? "" : meetingHour.trim();
+        if (hour.isBlank()) {
+            return "";
+        }
+        String minute = meetingMinute == null || meetingMinute.isBlank() ? "00" : meetingMinute.trim();
+        return hour + ":" + minute;
     }
 
     private void populateFriendsModel(

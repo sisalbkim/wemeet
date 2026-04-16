@@ -387,6 +387,165 @@ document.addEventListener("DOMContentLoaded", () => {
         applyFriendFilter();
     });
 
+    const friendModal = document.querySelector("[data-friend-modal]");
+    const friendModalOpenButton = document.querySelector("[data-friend-modal-open]");
+    if (friendModal instanceof HTMLElement && friendModalOpenButton instanceof HTMLElement) {
+        const closeButtons = Array.from(friendModal.querySelectorAll("[data-friend-modal-close]"));
+        const friendModalShell = friendModal.closest(".app-shell");
+        const friendModalTopbar = friendModalShell?.querySelector(".topbar");
+        const friendModalBottomNav = friendModalShell?.querySelector(".bottom-nav");
+        const friendModalDialog = friendModal.querySelector(".friend-modal__dialog");
+        const participantCheckboxes = Array.from(document.querySelectorAll("[data-participant-friend-checkbox]"));
+        const modalCheckboxes = Array.from(friendModal.querySelectorAll("[data-friend-modal-checkbox]"));
+        let modalReturnFocus = null;
+
+        const participantCheckboxByFriendId = new Map(
+            participantCheckboxes
+                .filter((checkbox) => checkbox instanceof HTMLInputElement)
+                .map((checkbox) => [checkbox.dataset.friendId, checkbox])
+        );
+        const modalCheckboxesByFriendId = new Map();
+        modalCheckboxes
+            .filter((checkbox) => checkbox instanceof HTMLInputElement)
+            .forEach((checkbox) => {
+                const friendId = checkbox.dataset.friendId;
+                if (!friendId) {
+                    return;
+                }
+                if (!modalCheckboxesByFriendId.has(friendId)) {
+                    modalCheckboxesByFriendId.set(friendId, []);
+                }
+                modalCheckboxesByFriendId.get(friendId).push(checkbox);
+            });
+
+        const syncModalCheckbox = (friendId) => {
+            const participantCheckbox = participantCheckboxByFriendId.get(friendId);
+            const relatedModalCheckboxes = modalCheckboxesByFriendId.get(friendId) ?? [];
+            if (!(participantCheckbox instanceof HTMLInputElement)) {
+                return;
+            }
+            relatedModalCheckboxes.forEach((checkbox) => {
+                checkbox.checked = participantCheckbox.checked;
+            });
+        };
+
+        participantCheckboxes.forEach((checkbox) => {
+            if (!(checkbox instanceof HTMLInputElement)) {
+                return;
+            }
+            checkbox.addEventListener("change", () => {
+                syncModalCheckbox(checkbox.dataset.friendId);
+            });
+        });
+
+        modalCheckboxes.forEach((checkbox) => {
+            if (!(checkbox instanceof HTMLInputElement)) {
+                return;
+            }
+            checkbox.addEventListener("change", () => {
+                const participantCheckbox = participantCheckboxByFriendId.get(checkbox.dataset.friendId);
+                if (participantCheckbox instanceof HTMLInputElement) {
+                    participantCheckbox.checked = checkbox.checked;
+                    participantCheckbox.dispatchEvent(new Event("change", { bubbles: true }));
+                }
+                syncModalCheckbox(checkbox.dataset.friendId);
+            });
+        });
+
+        const syncFriendModalFrame = () => {
+            if (!(friendModalShell instanceof HTMLElement)) {
+                return;
+            }
+
+            const shellRect = friendModalShell.getBoundingClientRect();
+            const topbarRect = friendModalTopbar?.getBoundingClientRect();
+            const bottomNavRect = friendModalBottomNav?.getBoundingClientRect();
+
+            let visibleTop = Math.max(0, shellRect.top);
+            let visibleBottom = Math.min(window.innerHeight, shellRect.bottom);
+
+            if (topbarRect && topbarRect.bottom > visibleTop) {
+                visibleTop = Math.max(visibleTop, Math.min(window.innerHeight, topbarRect.bottom));
+            }
+            if (bottomNavRect && bottomNavRect.top < visibleBottom) {
+                visibleBottom = Math.min(visibleBottom, Math.max(0, bottomNavRect.top));
+            }
+
+            if (visibleBottom - visibleTop < 180) {
+                visibleTop = Math.max(0, shellRect.top);
+                visibleBottom = Math.min(window.innerHeight, shellRect.bottom);
+            }
+
+            const modalTop = Math.max(0, visibleTop - shellRect.top);
+            const modalBottom = Math.max(0, shellRect.bottom - visibleBottom);
+            const modalHeight = Math.max(180, visibleBottom - visibleTop);
+            const dialogHeight = friendModalDialog?.getBoundingClientRect().height || 260;
+            const dialogOffset = Math.max(22, Math.round((modalHeight - dialogHeight) / 2));
+
+            friendModal.style.setProperty("--friend-modal-top", `${modalTop}px`);
+            friendModal.style.setProperty("--friend-modal-bottom", `${modalBottom}px`);
+            friendModal.style.setProperty("--friend-modal-dialog-offset", `${dialogOffset}px`);
+        };
+
+        const openFriendModal = () => {
+            modalReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : friendModalOpenButton;
+            participantCheckboxes.forEach((checkbox) => {
+                if (checkbox instanceof HTMLInputElement) {
+                    syncModalCheckbox(checkbox.dataset.friendId);
+                }
+            });
+            friendModal.style.visibility = "hidden";
+            friendModal.hidden = false;
+            syncFriendModalFrame();
+            friendModal.style.visibility = "";
+            document.body.classList.add("is-loading");
+            const closeButton = friendModal.querySelector(".friend-modal__close");
+            if (closeButton instanceof HTMLElement) {
+                closeButton.focus();
+            }
+        };
+
+        const closeFriendModal = () => {
+            friendModal.hidden = true;
+            document.body.classList.remove("is-loading");
+            if (modalReturnFocus instanceof HTMLElement) {
+                modalReturnFocus.focus();
+            }
+        };
+
+        friendModalOpenButton.addEventListener("click", openFriendModal);
+        closeButtons.forEach((button) => {
+            button.addEventListener("click", closeFriendModal);
+        });
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && !friendModal.hidden) {
+                closeFriendModal();
+            }
+        });
+        window.addEventListener("resize", () => {
+            if (!friendModal.hidden) {
+                syncFriendModalFrame();
+            }
+        });
+        window.addEventListener("scroll", () => {
+            if (!friendModal.hidden) {
+                syncFriendModalFrame();
+            }
+        }, { passive: true });
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener("resize", () => {
+                if (!friendModal.hidden) {
+                    syncFriendModalFrame();
+                }
+            });
+            window.visualViewport.addEventListener("scroll", () => {
+                if (!friendModal.hidden) {
+                    syncFriendModalFrame();
+                }
+            });
+        }
+    }
+
     // 페이지 이동/폼 제출 시 로딩 오버레이를 보여 주는 공통 UI 처리다.
     const loadingOverlay = document.querySelector("#pageLoadingOverlay");
     const loadingOverlayShell = loadingOverlay?.closest(".app-shell");

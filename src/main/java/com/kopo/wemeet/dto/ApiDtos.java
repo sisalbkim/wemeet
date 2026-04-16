@@ -50,6 +50,7 @@ public final class ApiDtos {
             String title,
             String description,
             String meetingDate,
+            String meetingTime,
             String category,
             List<String> participantIds
     ) {
@@ -143,6 +144,7 @@ public final class ApiDtos {
             String title,
             String description,
             String meetingDate,
+            String meetingTime,
             String category,
             UserResponse host,
             List<UserResponse> participants
