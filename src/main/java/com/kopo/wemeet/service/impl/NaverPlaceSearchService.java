@@ -1,7 +1,8 @@
 package com.kopo.wemeet.service.impl;
 
+import com.kopo.wemeet.dto.*;
+
 import com.kopo.wemeet.config.OpenApiProperties;
-import com.kopo.wemeet.dto.ApiDtos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -49,7 +50,7 @@ public class NaverPlaceSearchService {
                 .build();
     }
 
-    public ApiDtos.PlaceSearchResponse search(ApiDtos.PlaceSearchRequest request) {
+    public PlaceDTO.PlaceSearchResponse search(PlaceDTO.PlaceSearchRequest request) {
         // 출발지 해석 -> 태그 확장 -> 장소 검색 -> 길찾기 기반 정렬 순서로 동작한다.
         if (!properties.isEnabled() || !properties.isNaverSearchConfigured() || !properties.isNaverMapsConfigured()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Naver search/maps API credentials are not configured.");
@@ -63,17 +64,17 @@ public class NaverPlaceSearchService {
         ResolvedPlace origin = resolveOrigin(originQuery);
         String combinedQuery = originQuery + " " + resolvedTag.primaryQueryTerm();
 
-        List<ApiDtos.PlaceCandidateResponse> places = searchCandidates(originQuery, origin, display, resolvedTag).stream()
+        List<PlaceDTO.PlaceCandidateResponse> places = searchCandidates(originQuery, origin, display, resolvedTag).stream()
                 .map(item -> mapCandidate(origin, item))
                 .filter(Objects::nonNull)
                 .sorted(Comparator
-                        .comparingInt(ApiDtos.PlaceCandidateResponse::durationMinutes)
-                        .thenComparingInt(ApiDtos.PlaceCandidateResponse::distanceMeters)
-                        .thenComparing(ApiDtos.PlaceCandidateResponse::name))
+                        .comparingInt(PlaceDTO.PlaceCandidateResponse::durationMinutes)
+                        .thenComparingInt(PlaceDTO.PlaceCandidateResponse::distanceMeters)
+                        .thenComparing(PlaceDTO.PlaceCandidateResponse::name))
                 .limit(display)
                 .toList();
         List<String> observedCategories = places.stream()
-                .map(ApiDtos.PlaceCandidateResponse::category)
+                .map(PlaceDTO.PlaceCandidateResponse::category)
                 .filter(category -> category != null && !category.isBlank())
                 .distinct()
                 .toList();
@@ -87,13 +88,13 @@ public class NaverPlaceSearchService {
                 observedCategories
         );
 
-        return new ApiDtos.PlaceSearchResponse(
+        return new PlaceDTO.PlaceSearchResponse(
                 combinedQuery,
                 tag,
                 resolvedTag.normalizedTag(),
                 resolvedTag.queryTerms(),
                 observedCategories,
-                new ApiDtos.PlaceSearchOriginResponse(
+                new PlaceDTO.PlaceSearchOriginResponse(
                         originQuery,
                         origin.name(),
                         origin.address(),
@@ -304,14 +305,14 @@ public class NaverPlaceSearchService {
         return response.items();
     }
 
-    private ApiDtos.PlaceCandidateResponse mapCandidate(ResolvedPlace origin, LocalSearchItem item) {
+    private PlaceDTO.PlaceCandidateResponse mapCandidate(ResolvedPlace origin, LocalSearchItem item) {
         // 네이버 검색 결과 한 건을 길찾기 포함 후보 DTO로 바꾼다.
         try {
             double longitude = parseNaverLongitude(item.mapx());
             double latitude = parseNaverLatitude(item.mapy());
             RouteSummary route = route(origin, latitude, longitude);
 
-            return new ApiDtos.PlaceCandidateResponse(
+            return new PlaceDTO.PlaceCandidateResponse(
                     sanitizeText(item.title()),
                     tagCatalog.normalizeCategory(item.category()),
                     sanitizeText(item.category()),
@@ -362,11 +363,11 @@ public class NaverPlaceSearchService {
 
         DirectionsRoute route = routes.get(0);
         int durationMinutes = (int) Math.max(1, Math.round(route.summary().duration() / 60000d));
-        List<ApiDtos.PlaceRoutePointResponse> path = route.path() == null
+        List<PlaceDTO.PlaceRoutePointResponse> path = route.path() == null
                 ? List.of()
                 : route.path().stream()
                 .filter(point -> point.size() >= 2)
-                .map(point -> new ApiDtos.PlaceRoutePointResponse(point.get(1), point.get(0)))
+                .map(point -> new PlaceDTO.PlaceRoutePointResponse(point.get(1), point.get(0)))
                 .toList();
 
         return new RouteSummary(route.summary().distance(), durationMinutes, path);
@@ -534,7 +535,7 @@ public class NaverPlaceSearchService {
     private record RouteSummary(
             int distanceMeters,
             int durationMinutes,
-            List<ApiDtos.PlaceRoutePointResponse> path
+            List<PlaceDTO.PlaceRoutePointResponse> path
     ) {
     }
 }

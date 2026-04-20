@@ -1,7 +1,7 @@
 package com.kopo.wemeet.service.impl;
 
-import com.kopo.wemeet.dto.ApiDtos;
-import com.kopo.wemeet.dto.RecommendationMode;
+import com.kopo.wemeet.dto.*;
+
 import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IApiRecommendationService;
@@ -59,13 +59,13 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     @Override
-    public ApiDtos.CategoryResponse categories() {
-        return new ApiDtos.CategoryResponse(categories);
+    public RecommendationDTO.CategoryResponse categories() {
+        return new RecommendationDTO.CategoryResponse(categories);
     }
 
-    public ApiDtos.RecommendationResponse recommend(
+    public RecommendationDTO.RecommendationResponse recommend(
             String requesterId,
-            ApiDtos.RecommendationRequest request,
+            RecommendationDTO.RecommendationRequest request,
             IApiAuthService authService
     ) {
         // 실제 사용자 추천은 참가자 계정 정보와 응답 DTO를 함께 준비해서 내부 계산기로 넘긴다.
@@ -77,7 +77,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
                         participant.baseAddress()
                 ))
                 .toList();
-        List<ApiDtos.UserResponse> participantResponses = participantAccounts.stream()
+        List<UserDTO.UserResponse> participantResponses = participantAccounts.stream()
                 .map(authService::toUserResponse)
                 .toList();
 
@@ -85,9 +85,9 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     @Override
-    public ApiDtos.RecommendationResponse recommendForGuest(
-            ApiDtos.UserResponse guestUser,
-            ApiDtos.RecommendationRequest request
+    public RecommendationDTO.RecommendationResponse recommendForGuest(
+            UserDTO.UserResponse guestUser,
+            RecommendationDTO.RecommendationRequest request
     ) {
         List<ParticipantProfile> participants = List.of(
                 new ParticipantProfile(
@@ -100,11 +100,11 @@ public class ApiRecommendationService implements IApiRecommendationService {
         return recommendInternal(guestUser.id(), request, participants, List.of(guestUser), false);
     }
 
-    private ApiDtos.RecommendationResponse recommendInternal(
+    private RecommendationDTO.RecommendationResponse recommendInternal(
             String requesterId,
-            ApiDtos.RecommendationRequest request,
+            RecommendationDTO.RecommendationRequest request,
             List<ParticipantProfile> participants,
-            List<ApiDtos.UserResponse> participantResponses,
+            List<UserDTO.UserResponse> participantResponses,
             boolean persistHistory
     ) {
         // 추천 흐름의 중심 메서드다: 입력 정규화 -> 좌표 계산 -> 캐시 확인 -> 실제 장소 검색 순서로 진행한다.
@@ -118,7 +118,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
         String cacheKey = buildCacheKey(requesterId, category, participants) + ":" + mode.name() + ":" + anchorParticipantId;
 
         if (mode != RecommendationMode.RANDOM) {
-            Optional<ApiDtos.RecommendationResponse> cached = recommendationCacheService.get(cacheKey);
+            Optional<RecommendationDTO.RecommendationResponse> cached = recommendationCacheService.get(cacheKey);
             if (cached.isPresent()) {
                 if (persistHistory) {
                     store.appendHistory(requesterId, cached.get().midpoint().district() + " " + category, category);
@@ -127,7 +127,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             }
         }
 
-        ApiDtos.RecommendationResponse response = recommendWithNaverPlaces(
+        RecommendationDTO.RecommendationResponse response = recommendWithNaverPlaces(
                 requesterId,
                 category,
                 mode,
@@ -145,12 +145,12 @@ public class ApiRecommendationService implements IApiRecommendationService {
         return response;
     }
 
-    private ApiDtos.RecommendationResponse recommendWithNaverPlaces(
+    private RecommendationDTO.RecommendationResponse recommendWithNaverPlaces(
             String requesterId,
             String category,
             RecommendationMode mode,
             List<ParticipantProfile> participants,
-            List<ApiDtos.UserResponse> participantResponses,
+            List<UserDTO.UserResponse> participantResponses,
             List<GeoPoint> participantPoints,
             GeoPoint midpointPoint,
             String anchorParticipantId,
@@ -158,10 +158,10 @@ public class ApiRecommendationService implements IApiRecommendationService {
     ) {
         // 네이버 실제 장소 후보를 가져와 평가 점수를 매기고 최종 장소 1~3개를 선정한다.
         SearchAnchor searchAnchor = resolveSearchAnchor(mode, participants, participantPoints, midpointPoint, anchorParticipantId);
-        ApiDtos.PlaceSearchResponse placeSearch;
+        PlaceDTO.PlaceSearchResponse placeSearch;
         try {
             placeSearch = naverPlaceSearchService.search(
-                    new ApiDtos.PlaceSearchRequest(searchAnchor.query(), category, DEFAULT_SEARCH_DISPLAY)
+                    new PlaceDTO.PlaceSearchRequest(searchAnchor.query(), category, DEFAULT_SEARCH_DISPLAY)
             );
         } catch (ResponseStatusException exception) {
             return buildUnavailableRecommendation(
@@ -176,7 +176,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             );
         }
 
-        List<ApiDtos.PlaceCandidateResponse> candidatePlaces = participants.size() == 1
+        List<PlaceDTO.PlaceCandidateResponse> candidatePlaces = participants.size() == 1
                 ? narrowToNearbyPlaces(placeSearch.places())
                 : placeSearch.places();
 
@@ -207,17 +207,17 @@ public class ApiRecommendationService implements IApiRecommendationService {
         }
 
         List<VenueEvaluation> selectedEvaluations = selectEvaluationsByMode(evaluatedPlaces, mode);
-        List<ApiDtos.VenueResponse> venues = selectedEvaluations.stream()
+        List<RecommendationDTO.VenueResponse> venues = selectedEvaluations.stream()
                 .map(VenueEvaluation::response)
                 .toList();
 
-        ApiDtos.VenueResponse bestVenue = venues.get(0);
+        RecommendationDTO.VenueResponse bestVenue = venues.get(0);
         boolean usedFallbackRouting = selectedEvaluations.stream().anyMatch(VenueEvaluation::usedFallbackRouting);
         GeoPoint referencePoint = mode == RecommendationMode.ANCHOR
                 ? resolveAnchorPoint(anchorParticipantId, participants, participantPoints)
                 : midpointPoint;
 
-        ApiDtos.MidpointResponse midpoint = new ApiDtos.MidpointResponse(
+        RecommendationDTO.MidpointResponse midpoint = new RecommendationDTO.MidpointResponse(
                 extractArea(placeSearch.origin().address(), searchAnchor.query()),
                 placeSearch.origin().name(),
                 referencePoint.latitude(),
@@ -227,7 +227,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 strategyNote(mode, participants.size(), usedFallbackRouting)
         );
 
-        List<ApiDtos.MapPointResponse> mapPoints = buildMapPoints(
+        List<RecommendationDTO.MapPointResponse> mapPoints = buildMapPoints(
                 participants,
                 participantPoints,
                 midpointPoint,
@@ -240,7 +240,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             store.appendHistory(requesterId, placeSearch.combinedQuery(), category);
         }
 
-        return new ApiDtos.RecommendationResponse(
+        return new RecommendationDTO.RecommendationResponse(
                 category,
                 participantResponses,
                 midpoint,
@@ -250,15 +250,15 @@ public class ApiRecommendationService implements IApiRecommendationService {
         );
     }
 
-    private ApiDtos.RecommendationResponse buildEmptyRecommendation(
+    private RecommendationDTO.RecommendationResponse buildEmptyRecommendation(
             String category,
-            List<ApiDtos.UserResponse> participantResponses,
+            List<UserDTO.UserResponse> participantResponses,
             List<ParticipantProfile> participants,
             List<GeoPoint> participantPoints,
             GeoPoint midpointPoint,
             RecommendationMode mode,
             String anchorParticipantId,
-            ApiDtos.PlaceSearchResponse placeSearch,
+            PlaceDTO.PlaceSearchResponse placeSearch,
             SearchAnchor searchAnchor
     ) {
         // 검색은 성공했지만 후보가 없을 때도 지도 기준점과 설명 문구는 유지한다.
@@ -266,10 +266,10 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 ? resolveAnchorPoint(anchorParticipantId, participants, participantPoints)
                 : midpointPoint;
 
-        return new ApiDtos.RecommendationResponse(
+        return new RecommendationDTO.RecommendationResponse(
                 category,
                 participantResponses,
-                new ApiDtos.MidpointResponse(
+                new RecommendationDTO.MidpointResponse(
                         extractArea(placeSearch.origin().address(), searchAnchor.query()),
                         placeSearch.origin().name(),
                         referencePoint.latitude(),
@@ -284,9 +284,9 @@ public class ApiRecommendationService implements IApiRecommendationService {
         );
     }
 
-    private ApiDtos.RecommendationResponse buildUnavailableRecommendation(
+    private RecommendationDTO.RecommendationResponse buildUnavailableRecommendation(
             String category,
-            List<ApiDtos.UserResponse> participantResponses,
+            List<UserDTO.UserResponse> participantResponses,
             List<ParticipantProfile> participants,
             List<GeoPoint> participantPoints,
             GeoPoint midpointPoint,
@@ -299,10 +299,10 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 ? resolveAnchorPoint(anchorParticipantId, participants, participantPoints)
                 : midpointPoint;
 
-        return new ApiDtos.RecommendationResponse(
+        return new RecommendationDTO.RecommendationResponse(
                 category,
                 participantResponses,
-                new ApiDtos.MidpointResponse(
+                new RecommendationDTO.MidpointResponse(
                         extractArea(searchAnchor.query(), searchAnchor.query()),
                         searchAnchor.query(),
                         referencePoint.latitude(),
@@ -318,8 +318,8 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     private VenueEvaluation evaluatePlaceCandidate(
-            ApiDtos.PlaceSearchResponse placeSearch,
-            ApiDtos.PlaceCandidateResponse place,
+            PlaceDTO.PlaceSearchResponse placeSearch,
+            PlaceDTO.PlaceCandidateResponse place,
             List<ParticipantProfile> participants,
             List<GeoPoint> participantPoints,
             GeoPoint midpointPoint,
@@ -328,17 +328,17 @@ public class ApiRecommendationService implements IApiRecommendationService {
     ) {
         // 장소 하나를 참가자별 이동시간, 공평성, 전략 점수로 평가해 정렬 가능한 값으로 바꾼다.
         TravelResolution travelResolution = resolveTravelMinutes(placeSearch, place, participants, participantPoints);
-        List<ApiDtos.TravelTimeResponse> travelTimes = participants.stream()
-                .map(participant -> new ApiDtos.TravelTimeResponse(
+        List<RecommendationDTO.TravelTimeResponse> travelTimes = participants.stream()
+                .map(participant -> new RecommendationDTO.TravelTimeResponse(
                         participant.id(),
                         participant.nickname(),
                         travelResolution.travelMinutesByUserId().getOrDefault(participant.id(), place.durationMinutes())
                 ))
                 .toList();
 
-        int min = travelTimes.stream().mapToInt(ApiDtos.TravelTimeResponse::minutes).min().orElse(0);
-        int max = travelTimes.stream().mapToInt(ApiDtos.TravelTimeResponse::minutes).max().orElse(0);
-        int average = (int) Math.round(travelTimes.stream().mapToInt(ApiDtos.TravelTimeResponse::minutes).average().orElse(0));
+        int min = travelTimes.stream().mapToInt(RecommendationDTO.TravelTimeResponse::minutes).min().orElse(0);
+        int max = travelTimes.stream().mapToInt(RecommendationDTO.TravelTimeResponse::minutes).max().orElse(0);
+        int average = (int) Math.round(travelTimes.stream().mapToInt(RecommendationDTO.TravelTimeResponse::minutes).average().orElse(0));
         int fairnessGap = max - min;
         GeoPoint venuePoint = new GeoPoint(place.latitude(), place.longitude());
 
@@ -352,7 +352,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 anchorParticipantId
         );
 
-        ApiDtos.VenueResponse response = new ApiDtos.VenueResponse(
+        RecommendationDTO.VenueResponse response = new RecommendationDTO.VenueResponse(
                 place.name(),
                 place.normalizedCategory(),
                 extractArea(place.roadAddress(), place.address()),
@@ -373,8 +373,8 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     private TravelResolution resolveTravelMinutes(
-            ApiDtos.PlaceSearchResponse placeSearch,
-            ApiDtos.PlaceCandidateResponse place,
+            PlaceDTO.PlaceSearchResponse placeSearch,
+            PlaceDTO.PlaceCandidateResponse place,
             List<ParticipantProfile> participants,
             List<GeoPoint> participantPoints
     ) {
@@ -409,7 +409,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     private Map<String, Integer> buildHeuristicTravelMinutes(
-            ApiDtos.PlaceCandidateResponse place,
+            PlaceDTO.PlaceCandidateResponse place,
             List<ParticipantProfile> participants,
             List<GeoPoint> participantPoints
     ) {
@@ -529,22 +529,22 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 .toList();
     }
 
-    private List<ApiDtos.MapPointResponse> buildMapPoints(
+    private List<RecommendationDTO.MapPointResponse> buildMapPoints(
             List<ParticipantProfile> participants,
             List<GeoPoint> participantPoints,
             GeoPoint midpointPoint,
-            List<ApiDtos.VenueResponse> venues,
+            List<RecommendationDTO.VenueResponse> venues,
             RecommendationMode mode,
             String anchorParticipantId
     ) {
         // 참가자, 중심점, 추천 장소를 지도에서 그대로 찍을 수 있는 포인트 목록으로 변환한다.
-        List<ApiDtos.MapPointResponse> mapPoints = new ArrayList<>();
+        List<RecommendationDTO.MapPointResponse> mapPoints = new ArrayList<>();
         boolean singleParticipant = participants.size() == 1;
 
         for (int index = 0; index < participants.size(); index++) {
             ParticipantProfile participant = participants.get(index);
             GeoPoint point = participantPoints.get(index);
-            mapPoints.add(new ApiDtos.MapPointResponse(
+            mapPoints.add(new RecommendationDTO.MapPointResponse(
                     participant.id(),
                     participant.nickname(),
                     participant.baseAddress(),
@@ -556,7 +556,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
         }
 
         if (!singleParticipant && (mode == RecommendationMode.CENTER || mode == RecommendationMode.RANDOM)) {
-            mapPoints.add(new ApiDtos.MapPointResponse(
+            mapPoints.add(new RecommendationDTO.MapPointResponse(
                     "midpoint",
                     "참가자 중심점",
                     "참가자 좌표 평균 중심",
@@ -568,8 +568,8 @@ public class ApiRecommendationService implements IApiRecommendationService {
         }
 
         for (int index = 0; index < venues.size(); index++) {
-            ApiDtos.VenueResponse venue = venues.get(index);
-            mapPoints.add(new ApiDtos.MapPointResponse(
+            RecommendationDTO.VenueResponse venue = venues.get(index);
+            mapPoints.add(new RecommendationDTO.MapPointResponse(
                     "venue-" + index,
                     venue.name(),
                     venue.description(),
@@ -656,7 +656,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     private double calculateStrategyScore(
             RecommendationMode mode,
             GeoPoint venuePoint,
-            List<ApiDtos.TravelTimeResponse> travelTimes,
+            List<RecommendationDTO.TravelTimeResponse> travelTimes,
             int average,
             int fairnessGap,
             GeoPoint midpointPoint,
@@ -672,7 +672,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
         if (mode == RecommendationMode.ANCHOR) {
             int anchorMinutes = travelTimes.stream()
                     .filter(time -> time.participantId().equals(anchorParticipantId))
-                    .mapToInt(ApiDtos.TravelTimeResponse::minutes)
+                    .mapToInt(RecommendationDTO.TravelTimeResponse::minutes)
                     .findFirst()
                     .orElse(average);
             return anchorMinutes * 2.4 + average * 0.8 + fairnessGap * 1.5;
@@ -751,8 +751,8 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     private List<String> buildPlaceHighlights(
-            ApiDtos.PlaceSearchResponse placeSearch,
-            ApiDtos.PlaceCandidateResponse place,
+            PlaceDTO.PlaceSearchResponse placeSearch,
+            PlaceDTO.PlaceCandidateResponse place,
             int participantCount
     ) {
         // 카드 UI에 노출할 짧은 강조 문구를 만든다.
@@ -771,14 +771,14 @@ public class ApiRecommendationService implements IApiRecommendationService {
         return highlights.stream().filter(value -> value != null && !value.isBlank()).distinct().limit(4).toList();
     }
 
-    private List<ApiDtos.PlaceCandidateResponse> narrowToNearbyPlaces(List<ApiDtos.PlaceCandidateResponse> places) {
+    private List<PlaceDTO.PlaceCandidateResponse> narrowToNearbyPlaces(List<PlaceDTO.PlaceCandidateResponse> places) {
         if (places == null || places.isEmpty()) {
             return List.of();
         }
 
         List<Integer> distanceThresholds = List.of(2000, 5000, 8000);
         for (Integer threshold : distanceThresholds) {
-            List<ApiDtos.PlaceCandidateResponse> filtered = places.stream()
+            List<PlaceDTO.PlaceCandidateResponse> filtered = places.stream()
                     .filter(place -> place.distanceMeters() <= threshold)
                     .toList();
             if (!filtered.isEmpty()) {
@@ -873,7 +873,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     private record VenueEvaluation(
-            ApiDtos.VenueResponse response,
+            RecommendationDTO.VenueResponse response,
             double strategyScore,
             boolean usedFallbackRouting
     ) {

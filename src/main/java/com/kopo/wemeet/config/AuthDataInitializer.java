@@ -1,6 +1,6 @@
 package com.kopo.wemeet.config;
 
-import com.kopo.wemeet.entity.AppUser;
+import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.repository.AppUserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;

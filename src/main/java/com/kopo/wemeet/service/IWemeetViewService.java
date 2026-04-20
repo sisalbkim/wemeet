@@ -1,38 +1,38 @@
 package com.kopo.wemeet.service;
 
-import com.kopo.wemeet.dto.ApiDtos;
-import com.kopo.wemeet.dto.UiModels;
+import com.kopo.wemeet.dto.*;
+
 
 import java.util.List;
 
 public interface IWemeetViewService {
     // 템플릿 화면에서 필요한 데이터를 화면 전용 모델로 제공하는 서비스 계약이다.
 
-    UiModels.UserProfile getGuestUser();
+    UserDTO.UserProfile getGuestUser();
 
-    UiModels.UserProfile getGuestUser(String baseAddress);
+    UserDTO.UserProfile getGuestUser(String baseAddress);
 
-    List<UiModels.CategoryChip> getCategories();
+    List<RecommendationDTO.CategoryChip> getCategories();
 
-    List<UiModels.FriendSummary> getFriends(String userId);
+    List<FriendDTO.FriendSummary> getFriends(String userId);
 
-    List<UiModels.FriendSummary> getFriends(String userId, String keyword);
+    List<FriendDTO.FriendSummary> getFriends(String userId, String keyword);
 
-    List<UiModels.FriendRequest> getFriendRequests();
+    List<FriendDTO.FriendRequest> getFriendRequests();
 
-    List<UiModels.UpcomingMeeting> getUpcomingMeetings();
+    List<MeetingDTO.UpcomingMeeting> getUpcomingMeetings();
 
-    ApiDtos.UserResponse addFriendByCode(String userId, String friendCode);
+    UserDTO.UserResponse addFriendByCode(String userId, String friendCode);
 
     void updateFriendFavorite(String userId, String friendId, boolean favorite);
 
-    List<UiModels.SearchHistoryItem> getSearchHistory(String userId, String filter, String keyword);
+    List<HistoryDTO.SearchHistoryItem> getSearchHistory(String userId, String filter, String keyword);
 
     void clearSearchHistory(String userId);
 
     void removeSearchHistory(String userId, Long historyId);
 
-    UiModels.RecommendationBundle buildRecommendation(
+    RecommendationDTO.RecommendationBundle buildRecommendation(
             String requesterId,
             String category,
             List<String> selectedFriendIds,
@@ -40,7 +40,7 @@ public interface IWemeetViewService {
             String anchorId
     );
 
-    UiModels.RecommendationBundle buildGuestRecommendation(
+    RecommendationDTO.RecommendationBundle buildGuestRecommendation(
             String baseAddress,
             String category,
             String mode,

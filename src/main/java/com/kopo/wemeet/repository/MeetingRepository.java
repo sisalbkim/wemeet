@@ -1,6 +1,6 @@
 package com.kopo.wemeet.repository;
 
-import com.kopo.wemeet.entity.Meeting;
+import com.kopo.wemeet.repository.entity.Meeting;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

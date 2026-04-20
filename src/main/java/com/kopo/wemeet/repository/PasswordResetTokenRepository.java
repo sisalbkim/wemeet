@@ -1,6 +1,6 @@
 package com.kopo.wemeet.repository;
 
-import com.kopo.wemeet.entity.PasswordResetToken;
+import com.kopo.wemeet.repository.entity.PasswordResetToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;

@@ -1,8 +1,9 @@
 package com.kopo.wemeet.service.impl;
 
-import com.kopo.wemeet.dto.ApiDtos;
-import com.kopo.wemeet.entity.AppUser;
-import com.kopo.wemeet.entity.PasswordResetToken;
+import com.kopo.wemeet.dto.*;
+
+import com.kopo.wemeet.repository.entity.AppUser;
+import com.kopo.wemeet.repository.entity.PasswordResetToken;
 import com.kopo.wemeet.repository.AppUserRepository;
 import com.kopo.wemeet.repository.PasswordResetTokenRepository;
 import com.kopo.wemeet.repository.SessionTokenStore;
@@ -49,7 +50,7 @@ public class ApiAuthService implements IApiAuthService {
     }
 
     @Override
-    public ApiDtos.AuthResponse signUp(ApiDtos.SignUpRequest request) {
+    public AuthDTO.AuthResponse signUp(AuthDTO.SignUpRequest request) {
         // 회원가입은 입력값 검증 -> 중복 확인 -> 사용자 저장 -> 세션 발급 순서로 진행한다.
         validateSignupRequest(request);
 
@@ -72,11 +73,11 @@ public class ApiAuthService implements IApiAuthService {
         userRepository.save(user);
 
         String token = createSession(user.getId());
-        return new ApiDtos.AuthResponse(token, toUserResponse(user));
+        return new AuthDTO.AuthResponse(token, toUserResponse(user));
     }
 
     @Override
-    public ApiDtos.AuthResponse login(ApiDtos.LoginRequest request) {
+    public AuthDTO.AuthResponse login(AuthDTO.LoginRequest request) {
         // 로그인은 아이디로 사용자를 찾은 뒤 비밀번호 해시를 비교한다.
         AppUser user = userRepository.findByLoginId(request.loginId())
                 .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Invalid credentials"));
@@ -86,11 +87,11 @@ public class ApiAuthService implements IApiAuthService {
         }
 
         String token = createSession(user.getId());
-        return new ApiDtos.AuthResponse(token, toUserResponse(user));
+        return new AuthDTO.AuthResponse(token, toUserResponse(user));
     }
 
     @Override
-    public ApiDtos.PasswordResetResponse createPasswordResetToken(ApiDtos.PasswordResetRequest request) {
+    public AuthDTO.PasswordResetResponse createPasswordResetToken(AuthDTO.PasswordResetRequest request) {
         // 실제 메일 발송 전 단계라서 화면 시연용으로 raw token을 preview 형태로 함께 돌려준다.
         if (request.email() == null || request.email().isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "email is required");
@@ -110,7 +111,7 @@ public class ApiAuthService implements IApiAuthService {
         );
         passwordResetTokenRepository.save(token);
 
-        return new ApiDtos.PasswordResetResponse(
+        return new AuthDTO.PasswordResetResponse(
                 "비밀번호 재설정 토큰이 생성되었습니다. 메일 연동 전 단계라 preview 값을 같이 반환합니다.",
                 rawToken
         );
@@ -118,7 +119,7 @@ public class ApiAuthService implements IApiAuthService {
 
     @Transactional
     @Override
-    public ApiDtos.PasswordResetResponse resetPassword(ApiDtos.PasswordResetConfirmRequest request) {
+    public AuthDTO.PasswordResetResponse resetPassword(AuthDTO.PasswordResetConfirmRequest request) {
         // 사용 가능하고 만료되지 않은 토큰만 조회해서 비밀번호를 바꾼다.
         if (request.token() == null || request.token().isBlank() || request.newPassword() == null || request.newPassword().isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "token and newPassword are required");
@@ -135,7 +136,7 @@ public class ApiAuthService implements IApiAuthService {
         userRepository.save(user);
         passwordResetTokenRepository.save(token);
 
-        return new ApiDtos.PasswordResetResponse("비밀번호가 변경되었습니다.", null);
+        return new AuthDTO.PasswordResetResponse("비밀번호가 변경되었습니다.", null);
     }
 
     @Override
@@ -234,7 +235,7 @@ public class ApiAuthService implements IApiAuthService {
 
     @Transactional
     @Override
-    public ApiDtos.UserResponse updateBaseAddress(AppUser user, String baseAddress) {
+    public UserDTO.UserResponse updateBaseAddress(AppUser user, String baseAddress) {
         // 주소가 바뀌면 이후 추천 계산에 쓰일 출발지도 함께 바뀐다.
         if (baseAddress == null || baseAddress.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "baseAddress is required");
@@ -260,8 +261,8 @@ public class ApiAuthService implements IApiAuthService {
     }
 
     @Override
-    public ApiDtos.UserResponse toUserResponse(AppUser user) {
-        return new ApiDtos.UserResponse(
+    public UserDTO.UserResponse toUserResponse(AppUser user) {
+        return new UserDTO.UserResponse(
                 user.getId(),
                 user.getNickname(),
                 user.getLoginId(),
@@ -272,10 +273,10 @@ public class ApiAuthService implements IApiAuthService {
     }
 
     @Override
-    public ApiDtos.UserResponse toUserResponse(WemeetDataStore.UserAccount user) {
+    public UserDTO.UserResponse toUserResponse(WemeetDataStore.UserAccount user) {
         AppUser persistentUser = userRepository.findById(user.id())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found: " + user.id()));
-        return new ApiDtos.UserResponse(
+        return new UserDTO.UserResponse(
                 persistentUser.getId(),
                 persistentUser.getNickname(),
                 persistentUser.getLoginId(),
@@ -285,7 +286,7 @@ public class ApiAuthService implements IApiAuthService {
         );
     }
 
-    private void validateSignupRequest(ApiDtos.SignUpRequest request) {
+    private void validateSignupRequest(AuthDTO.SignUpRequest request) {
         // 수업용 예제에서는 필수값 검증을 서비스에서 먼저 처리한다.
         if (request.loginId() == null || request.loginId().isBlank()
                 || request.password() == null || request.password().isBlank()

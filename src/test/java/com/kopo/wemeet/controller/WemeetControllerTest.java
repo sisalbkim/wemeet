@@ -1,6 +1,7 @@
 package com.kopo.wemeet.controller;
 
-import com.kopo.wemeet.dto.ApiDtos;
+import com.kopo.wemeet.dto.*;
+
 import com.kopo.wemeet.service.impl.NaverPlaceSearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -167,15 +168,15 @@ class WemeetControllerTest {
 
     @Test
     void guestPlaceSearchPageRendersNaverResults() throws Exception {
-        given(naverPlaceSearchService.search(any())).willReturn(new ApiDtos.PlaceSearchResponse(
+        given(naverPlaceSearchService.search(any())).willReturn(new PlaceDTO.PlaceSearchResponse(
                 "성수역 카페",
                 "카페",
                 "카페",
                 List.of("카페", "디저트", "베이커리"),
                 List.of("카페,디저트"),
-                new ApiDtos.PlaceSearchOriginResponse("성수역", "성수역", "서울 성동구 성수동2가", 37.5446, 127.0557),
+                new PlaceDTO.PlaceSearchOriginResponse("성수역", "성수역", "서울 성동구 성수동2가", 37.5446, 127.0557),
                 List.of(
-                        new ApiDtos.PlaceCandidateResponse(
+                        new PlaceDTO.PlaceCandidateResponse(
                                 "어니언 성수",
                                 "카페",
                                 "카페,디저트",
@@ -188,8 +189,8 @@ class WemeetControllerTest {
                                 410,
                                 3,
                                 List.of(
-                                        new ApiDtos.PlaceRoutePointResponse(37.5446, 127.0557),
-                                        new ApiDtos.PlaceRoutePointResponse(37.5448, 127.0561)
+                                        new PlaceDTO.PlaceRoutePointResponse(37.5446, 127.0557),
+                                        new PlaceDTO.PlaceRoutePointResponse(37.5448, 127.0561)
                                 )
                         )
                 )
@@ -515,16 +516,16 @@ class WemeetControllerTest {
                 .andExpect(redirectedUrl("/friends"));
     }
 
-    private ApiDtos.PlaceSearchResponse samplePlaceSearch(String originQuery, String address, String placeName) {
-        return new ApiDtos.PlaceSearchResponse(
+    private PlaceDTO.PlaceSearchResponse samplePlaceSearch(String originQuery, String address, String placeName) {
+        return new PlaceDTO.PlaceSearchResponse(
                 originQuery + " 카페",
                 "카페",
                 "카페",
                 List.of("카페"),
                 List.of("카페,디저트"),
-                new ApiDtos.PlaceSearchOriginResponse(originQuery, originQuery, address, 37.575, 127.04),
+                new PlaceDTO.PlaceSearchOriginResponse(originQuery, originQuery, address, 37.575, 127.04),
                 List.of(
-                        new ApiDtos.PlaceCandidateResponse(
+                        new PlaceDTO.PlaceCandidateResponse(
                                 placeName,
                                 "카페",
                                 "카페,디저트",

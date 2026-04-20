@@ -1,7 +1,8 @@
 package com.kopo.wemeet.service.impl;
 
+import com.kopo.wemeet.dto.*;
+
 import com.kopo.wemeet.config.RedisIntegrationProperties;
-import com.kopo.wemeet.dto.ApiDtos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -37,13 +38,13 @@ public class RecommendationCacheService {
         this.redisTemplate = redisTemplate;
     }
 
-    public Optional<ApiDtos.RecommendationResponse> get(String cacheKey) {
+    public Optional<RecommendationDTO.RecommendationResponse> get(String cacheKey) {
         if (shouldUseRedis()) {
             try {
                 // Redis에는 JSON 문자열로 저장해 두었다가 다시 DTO로 복원한다.
                 String payload = redisTemplate.opsForValue().get(CACHE_PREFIX + cacheKey);
                 if (payload != null && !payload.isBlank()) {
-                    return Optional.of(objectMapper.readValue(payload, ApiDtos.RecommendationResponse.class));
+                    return Optional.of(objectMapper.readValue(payload, RecommendationDTO.RecommendationResponse.class));
                 }
             } catch (Exception exception) {
                 log.warn("Redis recommendation cache lookup failed, using fallback cache", exception);
@@ -58,7 +59,7 @@ public class RecommendationCacheService {
         return Optional.of(cached.response());
     }
 
-    public void put(String cacheKey, ApiDtos.RecommendationResponse response) {
+    public void put(String cacheKey, RecommendationDTO.RecommendationResponse response) {
         if (shouldUseRedis()) {
             try {
                 // TTL을 둬서 주소나 후보 데이터가 조금씩 바뀌더라도 캐시가 오래 고정되지 않게 한다.
@@ -88,7 +89,7 @@ public class RecommendationCacheService {
     }
 
     private record CachedRecommendation(
-            ApiDtos.RecommendationResponse response,
+            RecommendationDTO.RecommendationResponse response,
             Instant expiresAt
     ) {
         // 메모리 fallback 캐시에서 응답 본문과 만료 시각을 함께 보관한다.

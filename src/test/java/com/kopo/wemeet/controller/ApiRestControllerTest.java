@@ -1,6 +1,7 @@
 package com.kopo.wemeet.controller;
 
-import com.kopo.wemeet.dto.ApiDtos;
+import com.kopo.wemeet.dto.*;
+
 import com.kopo.wemeet.service.impl.NaverPlaceSearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,15 +79,15 @@ class ApiRestControllerTest {
     @Test
     void placeSearchEndpointReturnsNaverCandidatesSortedForMapRendering() throws Exception {
         String token = loginAndGetToken("user123", "pass1234");
-        given(naverPlaceSearchService.search(any())).willReturn(new ApiDtos.PlaceSearchResponse(
+        given(naverPlaceSearchService.search(any())).willReturn(new PlaceDTO.PlaceSearchResponse(
                 "성수역 카페",
                 "카페",
                 "카페",
                 List.of("카페", "디저트", "베이커리"),
                 List.of("카페,디저트"),
-                new ApiDtos.PlaceSearchOriginResponse("성수역", "성수역", "서울 성동구 성수동2가", 37.5446, 127.0557),
+                new PlaceDTO.PlaceSearchOriginResponse("성수역", "성수역", "서울 성동구 성수동2가", 37.5446, 127.0557),
                 List.of(
-                        new ApiDtos.PlaceCandidateResponse(
+                        new PlaceDTO.PlaceCandidateResponse(
                                 "어니언 성수",
                                 "카페",
                                 "카페,디저트",
@@ -99,8 +100,8 @@ class ApiRestControllerTest {
                                 410,
                                 3,
                                 List.of(
-                                        new ApiDtos.PlaceRoutePointResponse(37.5446, 127.0557),
-                                        new ApiDtos.PlaceRoutePointResponse(37.5448, 127.0561)
+                                        new PlaceDTO.PlaceRoutePointResponse(37.5446, 127.0557),
+                                        new PlaceDTO.PlaceRoutePointResponse(37.5448, 127.0561)
                                 )
                         )
                 )
@@ -126,15 +127,15 @@ class ApiRestControllerTest {
 
     @Test
     void publicPlaceSearchEndpointWorksWithoutAuthentication() throws Exception {
-        given(naverPlaceSearchService.search(any())).willReturn(new ApiDtos.PlaceSearchResponse(
+        given(naverPlaceSearchService.search(any())).willReturn(new PlaceDTO.PlaceSearchResponse(
                 "성수역 카페",
                 "카페",
                 "카페",
                 List.of("카페", "디저트", "베이커리"),
                 List.of("카페,디저트"),
-                new ApiDtos.PlaceSearchOriginResponse("성수역", "성수역", "서울 성동구 성수동2가", 37.5446, 127.0557),
+                new PlaceDTO.PlaceSearchOriginResponse("성수역", "성수역", "서울 성동구 성수동2가", 37.5446, 127.0557),
                 List.of(
-                        new ApiDtos.PlaceCandidateResponse(
+                        new PlaceDTO.PlaceCandidateResponse(
                                 "어니언 성수",
                                 "카페",
                                 "카페,디저트",
@@ -167,15 +168,15 @@ class ApiRestControllerTest {
 
     @Test
     void publicRecommendationsEndpointWorksWithoutAuthentication() throws Exception {
-        given(naverPlaceSearchService.search(any())).willReturn(new ApiDtos.PlaceSearchResponse(
+        given(naverPlaceSearchService.search(any())).willReturn(new PlaceDTO.PlaceSearchResponse(
                 "가산로5길54-1 카페",
                 "카페",
                 "카페",
                 List.of("카페", "디저트"),
                 List.of("카페,디저트"),
-                new ApiDtos.PlaceSearchOriginResponse("가산로5길54-1", "가산로5길54-1", "서울 금천구 가산로5길 54-1", 37.4765, 126.8876),
+                new PlaceDTO.PlaceSearchOriginResponse("가산로5길54-1", "가산로5길54-1", "서울 금천구 가산로5길 54-1", 37.4765, 126.8876),
                 List.of(
-                        new ApiDtos.PlaceCandidateResponse(
+                        new PlaceDTO.PlaceCandidateResponse(
                                 "가산 로컬 카페",
                                 "카페",
                                 "카페,디저트",
@@ -324,16 +325,16 @@ class ApiRestControllerTest {
         return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
     }
 
-    private ApiDtos.PlaceSearchResponse samplePlaceSearch(String originQuery, String address, String placeName) {
-        return new ApiDtos.PlaceSearchResponse(
+    private PlaceDTO.PlaceSearchResponse samplePlaceSearch(String originQuery, String address, String placeName) {
+        return new PlaceDTO.PlaceSearchResponse(
                 originQuery + " 맛집",
                 "맛집",
                 "맛집",
                 List.of("맛집", "한식"),
                 List.of("한식"),
-                new ApiDtos.PlaceSearchOriginResponse(originQuery, originQuery, address, 37.5665, 126.9780),
+                new PlaceDTO.PlaceSearchOriginResponse(originQuery, originQuery, address, 37.5665, 126.9780),
                 List.of(
-                        new ApiDtos.PlaceCandidateResponse(
+                        new PlaceDTO.PlaceCandidateResponse(
                                 placeName,
                                 "맛집",
                                 "한식",

@@ -1,6 +1,7 @@
 package com.kopo.wemeet.service.impl;
 
-import com.kopo.wemeet.dto.ApiDtos;
+import com.kopo.wemeet.dto.*;
+
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -89,10 +90,10 @@ public class NaverPlaceTagCatalog {
         return bestScore > 0 ? bestLabel : "기타";
     }
 
-    public ApiDtos.PlaceTagCatalogResponse catalogResponse() {
-        return new ApiDtos.PlaceTagCatalogResponse(
+    public PlaceDTO.PlaceTagCatalogResponse catalogResponse() {
+        return new PlaceDTO.PlaceTagCatalogResponse(
                 profiles.values().stream()
-                        .map(profile -> new ApiDtos.PlaceTagResponse(profile.label(), profile.queryTerms()))
+                        .map(profile -> new PlaceDTO.PlaceTagResponse(profile.label(), profile.queryTerms()))
                         .toList()
         );
     }

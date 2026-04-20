@@ -1,10 +1,10 @@
 package com.kopo.wemeet.repository;
 
-import com.kopo.wemeet.entity.AppUser;
-import com.kopo.wemeet.entity.FriendRelation;
-import com.kopo.wemeet.entity.Meeting;
-import com.kopo.wemeet.entity.MeetingParticipant;
-import com.kopo.wemeet.entity.SearchHistory;
+import com.kopo.wemeet.repository.entity.AppUser;
+import com.kopo.wemeet.repository.entity.FriendRelation;
+import com.kopo.wemeet.repository.entity.Meeting;
+import com.kopo.wemeet.repository.entity.MeetingParticipant;
+import com.kopo.wemeet.repository.entity.SearchHistory;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
 import org.springframework.security.crypto.password.PasswordEncoder;

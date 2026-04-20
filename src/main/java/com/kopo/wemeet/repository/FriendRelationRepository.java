@@ -1,6 +1,6 @@
 package com.kopo.wemeet.repository;
 
-import com.kopo.wemeet.entity.FriendRelation;
+import com.kopo.wemeet.repository.entity.FriendRelation;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
