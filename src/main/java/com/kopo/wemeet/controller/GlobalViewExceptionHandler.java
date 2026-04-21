@@ -1,0 +1,28 @@
+package com.kopo.wemeet.controller;
+
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+@ControllerAdvice
+public class GlobalViewExceptionHandler {
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public String handleResponseStatusException(ResponseStatusException exception, RedirectAttributes redirectAttributes) {
+        if (exception.getStatusCode().value() == 401) {
+            if ("Login required".equals(exception.getReason())) {
+                return "redirect:/login";
+            }
+            redirectAttributes.addFlashAttribute("loginErrorMessage", "아이디 또는 비밀번호가 올바르지 않습니다.");
+            return "redirect:/login?error=true";
+        }
+
+        if (exception.getStatusCode().value() == 409 || exception.getStatusCode().value() == 400) {
+            redirectAttributes.addFlashAttribute("signupError", exception.getReason());
+            return "redirect:/signup";
+        }
+
+        throw exception;
+    }
+}
