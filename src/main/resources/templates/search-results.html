@@ -51,9 +51,18 @@
 
         <section class="panel">
             <div class="section-heading section-heading--stacked section-heading--map">
-                <h2>이동시간 기준 추천 지도</h2>
-                <span th:if="${#lists.size(recommendation.participants) > 1}">출발지, 기준 인물, 중심점, 추천 장소를 한 지도에서 확인할 수 있습니다</span>
-                <span th:if="${#lists.size(recommendation.participants) == 1}">출발지와 추천 장소를 한 지도에서 확인할 수 있습니다</span>
+                <div class="section-heading__body">
+                    <h2>이동시간 기준 추천 지도</h2>
+                    <span th:if="${#lists.size(recommendation.participants) > 1}">출발지, 기준 인물, 중심점, 추천 장소를 한 지도에서 확인할 수 있습니다</span>
+                    <span th:if="${#lists.size(recommendation.participants) == 1}">출발지와 추천 장소를 한 지도에서 확인할 수 있습니다</span>
+                </div>
+                <button th:if="${naverMapEnabled}"
+                        type="button"
+                        id="recommendationRouteToggle"
+                        class="secondary-button secondary-button--compact map-route-toggle"
+                        aria-pressed="true">
+                    경로선 끄기
+                </button>
             </div>
             <div th:if="${naverMapEnabled}" id="recommendationMap" class="map-canvas"></div>
             <div th:if="${naverMapEnabled}" id="recommendationMapError" class="notice-banner notice-banner--error" hidden>
@@ -162,6 +171,14 @@
                     <span th:each="highlight : ${venue.highlights}" data-venue-highlight th:text="${highlight}">태그</span>
                     <span th:each="time : ${venue.travelTimes}" data-venue-time
                           th:attr="data-name=${guestMode ? guestAddress : time.participantName}, data-minutes=${time.minutes}">18</span>
+                    <span th:each="time : ${venue.travelTimes}" data-venue-route
+                          th:attr="data-venue-id=${'venue-' + venueStat.index},
+                                   data-participant-id=${time.participantId},
+                                   data-participant-name=${guestMode ? guestAddress : time.participantName},
+                                   data-minutes=${time.minutes}">
+                        <span th:each="routePoint : ${time.routePath}" data-route-point
+                              th:attr="data-lat=${routePoint.latitude}, data-lng=${routePoint.longitude}"></span>
+                    </span>
                 </div>
             </article>
         </section>

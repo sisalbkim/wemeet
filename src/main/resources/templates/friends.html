@@ -17,14 +17,14 @@
         <section class="panel" data-friend-filter-scope>
             <div class="section-heading">
                 <h2>친구 코드로 추가</h2>
-                <span>상대가 공유한 코드를 입력합니다</span>
+                <span>상대가 승인하면 서로 친구로 추가됩니다</span>
             </div>
             <div class="notice-banner notice-banner--error" th:if="${friendError}" th:text="${friendError}">친구 추가 실패</div>
             <div class="notice-banner" th:if="${friendNotice}" th:text="${friendNotice}">친구 추가 성공</div>
             <form class="form-stack" method="post" th:action="@{/friends/add}">
                 <input class="text-input" th:classappend="${redPlaceholderIndex == 1} ? ' text-input--danger-placeholder'" name="friendCode" placeholder="예: FRIEND456" autocomplete="off">
                 <input type="hidden" name="redirectTo" value="/friends">
-                <button class="primary-button" type="submit">친구 코드 추가</button>
+                <button class="primary-button" type="submit">친구 요청 보내기</button>
             </form>
         </section>
 
@@ -44,7 +44,8 @@
 
         <section class="panel" th:if="${!friendRequests.isEmpty()}">
             <div class="section-heading">
-                <h2>친구 요청</h2>
+                <h2>받은 친구 요청</h2>
+                <span>승인하면 양쪽 모두 친구 목록에 추가됩니다</span>
             </div>
             <div class="card-stack">
                 <article class="friend-card friend-card--request" th:each="request : ${friendRequests}">
@@ -52,14 +53,17 @@
                     <div class="friend-card__body">
                         <strong th:text="${request.name}">최지우</strong>
                         <span th:text="${request.handle}">@user321</span>
+                        <small th:text="${request.addressHint}">서울특별시 중구</small>
                     </div>
                     <div class="friend-card__actions">
                         <form method="post" th:action="@{/friends/request/respond}">
+                            <input type="hidden" name="requesterId" th:value="${request.id}">
                             <input type="hidden" name="action" value="approve">
                             <input type="hidden" name="redirectTo" th:value="${hideShellNavigation} ? '/friends4' : '/friends'">
                             <button class="icon-button icon-button--accept" type="submit">승인</button>
                         </form>
                         <form method="post" th:action="@{/friends/request/respond}">
+                            <input type="hidden" name="requesterId" th:value="${request.id}">
                             <input type="hidden" name="action" value="reject">
                             <input type="hidden" name="redirectTo" th:value="${hideShellNavigation} ? '/friends4' : '/friends'">
                             <button class="icon-button icon-button--reject" type="submit">거절</button>
@@ -69,40 +73,82 @@
             </div>
         </section>
 
+        <section class="panel" th:if="${!sentFriendRequests.isEmpty()}">
+            <div class="section-heading">
+                <h2>수락 대기중</h2>
+                <span>상대가 승인하기 전까지 친구 목록에는 표시되지 않습니다</span>
+            </div>
+            <div class="card-stack">
+                <article class="friend-card friend-card--request" th:each="request : ${sentFriendRequests}">
+                    <div class="avatar-badge" th:text="${#strings.substring(request.name,0,1)}">이</div>
+                    <div class="friend-card__body">
+                        <strong th:text="${request.name}">이영희</strong>
+                        <span th:text="${request.handle}">@user456</span>
+                        <small th:text="${request.addressHint}">성수동 출발</small>
+                    </div>
+                    <div class="friend-card__side">
+                        <span class="mini-tag">승인 대기</span>
+                        <time th:text="${request.requestedOn}">2026. 3. 1.</time>
+                    </div>
+                </article>
+            </div>
+        </section>
+
         <section class="panel">
             <div class="section-heading">
-                <h2 data-friend-count th:attr="data-total=${#lists.size(friends)}" th:text="${'내 친구 (' + #lists.size(friends) + ')'}">내 친구 (2)</h2>
+                <h2 data-friend-count th:attr="data-total=${friendTotalCount}" th:text="${'내 친구 (' + friendTotalCount + ')'}">내 친구 (2)</h2>
                 <span>즐겨찾기한 친구가 먼저 보입니다</span>
             </div>
-            <form class="search-form friend-search-form" method="get" th:action="@{/friends}" data-friend-filter>
-                <input class="text-input" type="search" name="keyword" placeholder="이름 또는 주소로 검색" th:value="${friendKeyword}" autocomplete="off" data-friend-search>
+            <form class="search-form friend-search-form" method="get" th:action="@{/friends}">
+                <input class="text-input" type="search" name="keyword" placeholder="이름 또는 주소로 검색" th:value="${friendKeyword}" autocomplete="off">
                 <button class="ghost-button" type="submit">검색</button>
-                <button class="text-link friend-search-clear" type="button" data-friend-search-clear hidden>전체</button>
+                <a class="text-link friend-search-clear" th:href="@{/friends}" th:hidden="${#strings.isEmpty(friendKeyword)}">전체</a>
             </form>
-            <div class="card-stack" th:if="${!friends.isEmpty()}">
-                <article class="friend-card" th:each="friend : ${friends}" data-friend-card th:attr="data-friend-name=${friend.name},data-friend-address=${friend.addressHint}">
+            <div class="card-stack" th:if="${!friends.isEmpty()}" data-friend-list>
+                <article class="friend-card"
+                         th:each="friend, friendStat : ${friends}"
+                         data-friend-card
+                         th:attr="data-friend-id=${friend.id},data-friend-name=${friend.name},data-friend-address=${friend.addressHint},data-friend-favorite=${friend.favorite},data-friend-index=${friendStat.index}">
                     <div class="avatar-badge" th:text="${#strings.substring(friend.name,0,1)}">이</div>
                     <div class="friend-card__body">
                         <div class="friend-card__name-row">
                             <strong th:text="${friend.name}">이영희</strong>
-                            <span class="mini-tag" th:if="${friend.favorite}">즐겨찾기</span>
+                            <span class="mini-tag" data-friend-favorite-tag th:hidden="${!friend.favorite}">즐겨찾기</span>
                         </div>
                         <span th:text="${friend.handle}">@user456</span>
                         <small th:text="${friend.addressHint}">성수동 출발</small>
                     </div>
                     <div class="friend-card__side">
                         <time th:text="${friend.joinedOn}">2026. 3. 1.</time>
-                        <form method="post" th:action="@{/friends/favorite}">
+                        <form method="post" th:action="@{/friends/favorite}" data-friend-favorite-form>
                             <input type="hidden" name="friendId" th:value="${friend.id}">
-                            <input type="hidden" name="favorite" th:value="${!friend.favorite}">
+                            <input type="hidden" name="favorite" th:value="${!friend.favorite}" data-friend-favorite-input>
                             <input type="hidden" name="keyword" th:value="${friendKeyword}">
-                            <button class="favorite-button" th:classappend="${friend.favorite} ? ' is-active'" type="submit" th:text="${friend.favorite} ? '해제' : '즐겨찾기'">즐겨찾기</button>
+                            <button class="favorite-button" th:classappend="${friend.favorite} ? ' is-active'" type="submit" data-friend-favorite-button th:text="${friend.favorite} ? '해제' : '즐겨찾기'">즐겨찾기</button>
                         </form>
                     </div>
                 </article>
             </div>
             <p class="empty-state" data-friend-no-results hidden>검색 결과가 없습니다.</p>
-            <p class="empty-state" th:if="${friends.isEmpty()}">아직 추가된 친구가 없습니다.</p>
+            <p class="empty-state" th:if="${friends.isEmpty() and #strings.isEmpty(friendKeyword)}">아직 추가된 친구가 없습니다.</p>
+            <p class="empty-state" th:if="${friends.isEmpty() and !#strings.isEmpty(friendKeyword)}">검색 결과가 없습니다.</p>
+            <nav class="pagination" th:if="${friendTotalPages > 1}" aria-label="친구 목록 페이지">
+                <a class="pagination__link"
+                   th:if="${friendHasPrevious}"
+                   th:href="@{/friends(page=${friendPage - 1}, keyword=${friendKeyword})}">이전</a>
+                <span class="pagination__link pagination__link--disabled" th:if="${!friendHasPrevious}">이전</span>
+
+                <a class="pagination__link"
+                   th:each="pageNo : ${friendPages}"
+                   th:classappend="${pageNo == friendPage} ? ' is-active'"
+                   th:href="@{/friends(page=${pageNo}, keyword=${friendKeyword})}"
+                   th:text="${pageNo}">1</a>
+
+                <a class="pagination__link"
+                   th:if="${friendHasNext}"
+                   th:href="@{/friends(page=${friendPage + 1}, keyword=${friendKeyword})}">다음</a>
+                <span class="pagination__link pagination__link--disabled" th:if="${!friendHasNext}">다음</span>
+            </nav>
         </section>
     </main>
 

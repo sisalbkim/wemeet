@@ -101,9 +101,17 @@ public class WemeetViewService implements IWemeetViewService {
     }
 
     @Override
-    public List<FriendDTO.FriendRequest> getFriendRequests() {
-        // 실제 친구 요청 기능이 붙기 전까지는 더미 요청을 노출하지 않는다.
-        return List.of();
+    public List<FriendDTO.FriendRequest> getFriendRequests(String userId) {
+        return store.listIncomingFriendRequests(userId).stream()
+                .map(this::toFriendRequest)
+                .toList();
+    }
+
+    @Override
+    public List<FriendDTO.FriendRequest> getSentFriendRequests(String userId) {
+        return store.listOutgoingFriendRequests(userId).stream()
+                .map(this::toFriendRequest)
+                .toList();
     }
 
     @Override
@@ -114,13 +122,18 @@ public class WemeetViewService implements IWemeetViewService {
 
     @Override
     public UserDTO.UserResponse addFriendByCode(String userId, String friendCode) {
-        // 화면 계층에서는 저장소를 직접 다루지 않고 인증 서비스의 DTO 변환 결과를 재사용한다.
+        // 친구 코드를 입력하면 즉시 친구가 되지 않고 상대에게 승인 요청을 보낸다.
         return authService.toUserResponse(store.addFriendByCode(userId, friendCode));
     }
 
     @Override
     public void updateFriendFavorite(String userId, String friendId, boolean favorite) {
         store.updateFriendFavorite(userId, friendId, favorite);
+    }
+
+    @Override
+    public UserDTO.UserResponse respondFriendRequest(String userId, String requesterId, boolean approve) {
+        return authService.toUserResponse(store.respondFriendRequest(userId, requesterId, approve));
     }
 
     @Override
@@ -192,7 +205,12 @@ public class WemeetViewService implements IWemeetViewService {
                         venue.averageMinutes(),
                         venue.highlights(),
                         venue.travelTimes().stream()
-                                .map(time -> new RecommendationDTO.TravelTime(time.participantName(), time.minutes()))
+                                .map(time -> new RecommendationDTO.TravelTime(
+                                        time.participantId(),
+                                        time.participantName(),
+                                        time.minutes(),
+                                        time.routePath()
+                                ))
                                 .toList()
                 ))
                 .toList();
@@ -283,7 +301,12 @@ public class WemeetViewService implements IWemeetViewService {
                                 venue.averageMinutes(),
                                 venue.highlights(),
                                 venue.travelTimes().stream()
-                                        .map(time -> new RecommendationDTO.TravelTime(time.participantName(), time.minutes()))
+                                        .map(time -> new RecommendationDTO.TravelTime(
+                                                time.participantId(),
+                                                time.participantName(),
+                                                time.minutes(),
+                                                time.routePath()
+                                        ))
                                         .toList()
                         ))
                         .toList(),
@@ -308,5 +331,15 @@ public class WemeetViewService implements IWemeetViewService {
             return "맛집";
         }
         return category;
+    }
+
+    private FriendDTO.FriendRequest toFriendRequest(WemeetDataStore.FriendRequestEntry request) {
+        return new FriendDTO.FriendRequest(
+                request.id(),
+                request.nickname(),
+                "@" + request.loginId(),
+                request.baseAddress(),
+                request.requestedOn().format(historyFormatter)
+        );
     }
 }

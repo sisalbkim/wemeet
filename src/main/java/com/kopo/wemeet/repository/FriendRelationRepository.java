@@ -1,6 +1,7 @@
 package com.kopo.wemeet.repository;
 
 import com.kopo.wemeet.repository.entity.FriendRelation;
+import com.kopo.wemeet.repository.entity.FriendRelation.FriendStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -11,7 +12,15 @@ public interface FriendRelationRepository extends JpaRepository<FriendRelation, 
 
     List<FriendRelation> findAllByUserIdOrderByFriend_NicknameAsc(String userId);
 
+    List<FriendRelation> findAllByUserIdAndStatusOrderByFriend_NicknameAsc(String userId, FriendStatus status);
+
+    List<FriendRelation> findAllByFriendIdAndStatusOrderByUser_NicknameAsc(String friendId, FriendStatus status);
+
     boolean existsByUserIdAndFriendId(String userId, String friendId);
 
+    boolean existsByUserIdAndFriendIdAndStatus(String userId, String friendId, FriendStatus status);
+
     Optional<FriendRelation> findByUserIdAndFriendId(String userId, String friendId);
+
+    Optional<FriendRelation> findByUserIdAndFriendIdAndStatus(String userId, String friendId, FriendStatus status);
 }

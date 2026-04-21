@@ -57,7 +57,7 @@
                             <small th:text="${profile.baseAddress}">서울특별시 중구 명동길 74</small>
                         </span>
                     </label>
-                    <label class="friend-selector" th:each="friend : ${friends}" data-friend-card th:attr="data-friend-name=${friend.name},data-friend-address=${friend.addressHint}">
+                    <label class="friend-selector" th:each="friend : ${favoriteFriends}" data-friend-card th:attr="data-friend-name=${friend.name},data-friend-address=${friend.addressHint}">
                         <input type="checkbox" name="friendIds" th:value="${friend.id}" th:checked="${preselectedFriendIds != null and #lists.contains(preselectedFriendIds, friend.id)}" data-participant-friend-checkbox th:attr="data-friend-id=${friend.id}">
                         <span class="avatar-badge" th:text="${#strings.substring(friend.name,0,1)}">이</span>
                         <span class="friend-selector__body">
@@ -70,7 +70,18 @@
                         </span>
                     </label>
                 </div>
+                <div hidden>
+                    <input th:each="friend : ${friends}"
+                           th:if="${!friend.favorite}"
+                           type="checkbox"
+                           name="friendIds"
+                           th:value="${friend.id}"
+                           th:checked="${preselectedFriendIds != null and #lists.contains(preselectedFriendIds, friend.id)}"
+                           data-participant-friend-checkbox
+                           th:attr="data-friend-id=${friend.id}">
+                </div>
                 <p class="empty-state" data-friend-no-results hidden>검색 결과가 없습니다.</p>
+                <p class="empty-state" th:if="${favoriteFriends.isEmpty() and !friends.isEmpty()}">즐겨찾기한 친구가 없습니다. 전체 친구 보기에서 선택해 주세요.</p>
             </section>
 
             <section class="panel">

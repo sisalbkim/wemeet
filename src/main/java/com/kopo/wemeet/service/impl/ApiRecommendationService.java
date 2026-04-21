@@ -332,7 +332,12 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 .map(participant -> new RecommendationDTO.TravelTimeResponse(
                         participant.id(),
                         participant.nickname(),
-                        travelResolution.travelMinutesByUserId().getOrDefault(participant.id(), place.durationMinutes())
+                        travelResolution.travelByUserId()
+                                .getOrDefault(participant.id(), new ParticipantRouteEstimate(place.durationMinutes(), List.of()))
+                                .minutes(),
+                        travelResolution.travelByUserId()
+                                .getOrDefault(participant.id(), new ParticipantRouteEstimate(place.durationMinutes(), List.of()))
+                                .routePath()
                 ))
                 .toList();
 
@@ -379,49 +384,88 @@ public class ApiRecommendationService implements IApiRecommendationService {
             List<GeoPoint> participantPoints
     ) {
         // 우선 네이버 길찾기 실측값을 시도하고, 실패하면 전체 참가자를 같은 휴리스틱 방식으로 계산한다.
+        GeoPoint destination = new GeoPoint(place.latitude(), place.longitude());
         if (participants.size() == 1) {
-            return new TravelResolution(Map.of(participants.get(0).id(), place.durationMinutes()), false);
+            return new TravelResolution(
+                    Map.of(participants.get(0).id(), new ParticipantRouteEstimate(
+                            place.durationMinutes(),
+                            toRecommendationRoutePath(place.routePath(), participantPoints.get(0), destination)
+                    )),
+                    false
+            );
         }
 
-        Map<String, Integer> routedMinutes = new LinkedHashMap<>();
-        for (ParticipantProfile participant : participants) {
-            Optional<Integer> travelMinutes = Optional.ofNullable(
-                    naverPlaceSearchService.estimateTravelMinutes(
+        Map<String, ParticipantRouteEstimate> routedTravel = new LinkedHashMap<>();
+        for (int index = 0; index < participants.size(); index++) {
+            ParticipantProfile participant = participants.get(index);
+            GeoPoint origin = participantPoints.get(index);
+            Optional<NaverPlaceSearchService.RouteEstimate> travelRoute = Optional.ofNullable(
+                    naverPlaceSearchService.estimateTravelRoute(
                             participant.baseAddress(),
                             place.latitude(),
                             place.longitude()
                     )
             ).orElse(Optional.empty());
-            if (travelMinutes.isEmpty()) {
-                return new TravelResolution(buildHeuristicTravelMinutes(place, participants, participantPoints), true);
+            if (travelRoute.isEmpty()) {
+                return new TravelResolution(buildHeuristicTravelEstimates(place, participants, participantPoints), true);
             }
-            routedMinutes.put(participant.id(), travelMinutes.get());
+            routedTravel.put(participant.id(), new ParticipantRouteEstimate(
+                    travelRoute.get().durationMinutes(),
+                    toRecommendationRoutePath(travelRoute.get().routePath(), origin, destination)
+            ));
         }
 
         for (ParticipantProfile participant : participants) {
             if (normalizeAddressForCache(participant.baseAddress()).equals(normalizeAddressForCache(placeSearch.origin().address()))
                     || normalizeAddressForCache(participant.baseAddress()).equals(normalizeAddressForCache(placeSearch.origin().query()))) {
-                routedMinutes.put(participant.id(), place.durationMinutes());
+                routedTravel.put(participant.id(), new ParticipantRouteEstimate(
+                        place.durationMinutes(),
+                        toRecommendationRoutePath(place.routePath(), participantPoints.get(participants.indexOf(participant)), destination)
+                ));
             }
         }
 
-        return new TravelResolution(routedMinutes, false);
+        return new TravelResolution(routedTravel, false);
     }
 
-    private Map<String, Integer> buildHeuristicTravelMinutes(
+    private Map<String, ParticipantRouteEstimate> buildHeuristicTravelEstimates(
             PlaceDTO.PlaceCandidateResponse place,
             List<ParticipantProfile> participants,
             List<GeoPoint> participantPoints
     ) {
-        Map<String, Integer> heuristicMinutes = new LinkedHashMap<>();
+        Map<String, ParticipantRouteEstimate> heuristicTravel = new LinkedHashMap<>();
         GeoPoint destination = new GeoPoint(place.latitude(), place.longitude());
         for (int index = 0; index < participants.size(); index++) {
-            heuristicMinutes.put(
+            GeoPoint origin = participantPoints.get(index);
+            heuristicTravel.put(
                     participants.get(index).id(),
-                    estimateTravelMinutesHeuristically(participantPoints.get(index), destination)
+                    new ParticipantRouteEstimate(
+                            estimateTravelMinutesHeuristically(origin, destination),
+                            straightRoutePath(origin, destination)
+                    )
             );
         }
-        return heuristicMinutes;
+        return heuristicTravel;
+    }
+
+    private List<RecommendationDTO.RoutePointResponse> toRecommendationRoutePath(
+            List<PlaceDTO.PlaceRoutePointResponse> routePath,
+            GeoPoint origin,
+            GeoPoint destination
+    ) {
+        if (routePath == null || routePath.size() < 2) {
+            return straightRoutePath(origin, destination);
+        }
+        return routePath.stream()
+                .map(point -> new RecommendationDTO.RoutePointResponse(point.latitude(), point.longitude()))
+                .toList();
+    }
+
+    private List<RecommendationDTO.RoutePointResponse> straightRoutePath(GeoPoint origin, GeoPoint destination) {
+        return List.of(
+                new RecommendationDTO.RoutePointResponse(origin.latitude(), origin.longitude()),
+                new RecommendationDTO.RoutePointResponse(destination.latitude(), destination.longitude())
+        );
     }
 
     private int estimateTravelMinutesHeuristically(GeoPoint origin, GeoPoint destination) {
@@ -881,10 +925,17 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     private record TravelResolution(
-            Map<String, Integer> travelMinutesByUserId,
+            Map<String, ParticipantRouteEstimate> travelByUserId,
             boolean usedFallbackRouting
     ) {
         // 참가자별 이동시간과 fallback 사용 여부를 함께 전달한다.
+    }
+
+    private record ParticipantRouteEstimate(
+            int minutes,
+            List<RecommendationDTO.RoutePointResponse> routePath
+    ) {
+        // 지도 렌더링에 필요한 참가자별 이동시간과 경로 좌표다.
     }
 
     private record SearchAnchor(

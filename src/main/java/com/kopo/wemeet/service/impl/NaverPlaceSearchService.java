@@ -111,13 +111,24 @@ public class NaverPlaceSearchService {
             double destinationLongitude
     ) {
         // 추천 서비스가 후보별 참가자 이동시간을 다시 계산할 때 재사용하는 보조 메서드다.
+        return estimateTravelRoute(originQuery, destinationLatitude, destinationLongitude)
+                .map(RouteEstimate::durationMinutes);
+    }
+
+    public Optional<RouteEstimate> estimateTravelRoute(
+            String originQuery,
+            double destinationLatitude,
+            double destinationLongitude
+    ) {
+        // 추천 지도에서 참가자별 경로선을 그릴 수 있도록 시간과 경로 좌표를 함께 반환한다.
         if (!properties.isEnabled() || !properties.isNaverMapsConfigured()) {
             return Optional.empty();
         }
 
         try {
             ResolvedPlace origin = resolveOrigin(originQuery);
-            return Optional.of(route(origin, destinationLatitude, destinationLongitude).durationMinutes());
+            RouteSummary route = route(origin, destinationLatitude, destinationLongitude);
+            return Optional.of(new RouteEstimate(route.durationMinutes(), route.path()));
         } catch (RuntimeException exception) {
             log.warn("Failed to estimate travel minutes with Naver Directions. originQuery={}", originQuery, exception);
             return Optional.empty();
@@ -536,6 +547,12 @@ public class NaverPlaceSearchService {
             int distanceMeters,
             int durationMinutes,
             List<PlaceDTO.PlaceRoutePointResponse> path
+    ) {
+    }
+
+    public record RouteEstimate(
+            int durationMinutes,
+            List<PlaceDTO.PlaceRoutePointResponse> routePath
     ) {
     }
 }

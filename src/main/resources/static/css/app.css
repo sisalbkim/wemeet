@@ -377,10 +377,27 @@ textarea {
     margin-bottom: 12px;
 }
 
+.section-heading--map .section-heading__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 .section-heading--map span {
     margin-top: 0;
     font-size: 0.95rem;
     line-height: 1.55;
+}
+
+.map-route-toggle {
+    min-width: 112px;
+    align-self: flex-start;
+    flex-shrink: 0;
+}
+
+.map-route-toggle.is-active {
+    background: rgba(47, 107, 255, 0.12);
+    color: var(--primary);
 }
 
 .section-heading h2,
@@ -1588,6 +1605,41 @@ textarea {
     color: var(--muted);
 }
 
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.pagination__link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0 10px;
+    border: 1px solid rgba(91, 112, 152, 0.16);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.pagination__link.is-active {
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--primary), #255eff);
+    color: #ffffff;
+}
+
+.pagination__link--disabled {
+    opacity: 0.45;
+}
+
 .visually-hidden {
     position: absolute;
     width: 1px;
@@ -1622,6 +1674,10 @@ textarea {
     .section-heading {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .map-route-toggle {
+        width: 100%;
     }
 
     .hero-brand__full {

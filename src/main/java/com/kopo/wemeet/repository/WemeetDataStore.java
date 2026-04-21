@@ -2,6 +2,7 @@ package com.kopo.wemeet.repository;
 
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.repository.entity.FriendRelation;
+import com.kopo.wemeet.repository.entity.FriendRelation.FriendStatus;
 import com.kopo.wemeet.repository.entity.Meeting;
 import com.kopo.wemeet.repository.entity.MeetingParticipant;
 import com.kopo.wemeet.repository.entity.SearchHistory;
@@ -76,7 +77,7 @@ public class WemeetDataStore {
     @Transactional(readOnly = true)
     public List<UserAccount> listFriends(String userId) {
         // 친구 엔티티를 화면/API 공용으로 쓰는 간단한 읽기 모델로 바꿔서 반환한다.
-        return friendRelationRepository.findAllByUserIdOrderByFriend_NicknameAsc(userId).stream()
+        return friendRelationRepository.findAllByUserIdAndStatusOrderByFriend_NicknameAsc(userId, FriendStatus.ACCEPTED).stream()
                 .sorted(Comparator
                         .comparing(FriendRelation::isFavorite).reversed()
                         .thenComparing(relation -> relation.getFriend().getNickname()))
@@ -86,7 +87,7 @@ public class WemeetDataStore {
 
     @Transactional
     public UserAccount addFriendByCode(String userId, String friendCode) {
-        // 친구코드는 상대방을 쉽게 찾기 위한 사용자 입력용 키다.
+        // 친구코드는 상대방을 쉽게 찾기 위한 사용자 입력용 키다. 실제 친구 관계는 상대가 승인한 뒤 만들어진다.
         if (friendCode == null || friendCode.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "friendCode is required");
         }
@@ -99,18 +100,64 @@ public class WemeetDataStore {
             throw new ResponseStatusException(BAD_REQUEST, "You cannot add yourself");
         }
 
-        if (friendRelationRepository.existsByUserIdAndFriendId(user.getId(), friend.getId())) {
-            throw new ResponseStatusException(CONFLICT, "Already added friend");
+        if (friendRelationRepository.existsByUserIdAndFriendIdAndStatus(user.getId(), friend.getId(), FriendStatus.ACCEPTED)
+                || friendRelationRepository.existsByUserIdAndFriendIdAndStatus(friend.getId(), user.getId(), FriendStatus.ACCEPTED)) {
+            throw new ResponseStatusException(CONFLICT, "Friend already added");
         }
 
-        friendRelationRepository.save(new FriendRelation(user, friend));
-        friendRelationRepository.save(new FriendRelation(friend, user));
+        if (friendRelationRepository.existsByUserIdAndFriendIdAndStatus(user.getId(), friend.getId(), FriendStatus.PENDING)) {
+            throw new ResponseStatusException(CONFLICT, "Friend request already sent");
+        }
+
+        if (friendRelationRepository.existsByUserIdAndFriendIdAndStatus(friend.getId(), user.getId(), FriendStatus.PENDING)) {
+            throw new ResponseStatusException(CONFLICT, "Friend request already received");
+        }
+
+        friendRelationRepository.save(FriendRelation.pending(user, friend));
         return toUserAccount(friend);
+    }
+
+    @Transactional(readOnly = true)
+    public List<FriendRequestEntry> listIncomingFriendRequests(String userId) {
+        return friendRelationRepository.findAllByFriendIdAndStatusOrderByUser_NicknameAsc(userId, FriendStatus.PENDING).stream()
+                .map(relation -> toFriendRequestEntry(relation.getUser(), relation.getCreatedAt()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<FriendRequestEntry> listOutgoingFriendRequests(String userId) {
+        return friendRelationRepository.findAllByUserIdAndStatusOrderByFriend_NicknameAsc(userId, FriendStatus.PENDING).stream()
+                .map(relation -> toFriendRequestEntry(relation.getFriend(), relation.getCreatedAt()))
+                .toList();
+    }
+
+    @Transactional
+    public UserAccount respondFriendRequest(String recipientUserId, String requesterUserId, boolean approve) {
+        if (requesterUserId == null || requesterUserId.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "requesterId is required");
+        }
+
+        AppUser recipient = requireUser(recipientUserId);
+        AppUser requester = requireUser(requesterUserId);
+        FriendRelation request = friendRelationRepository
+                .findByUserIdAndFriendIdAndStatus(requester.getId(), recipient.getId(), FriendStatus.PENDING)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Friend request not found"));
+
+        if (!approve) {
+            friendRelationRepository.delete(request);
+            return toUserAccount(requester);
+        }
+
+        request.accept();
+        if (!friendRelationRepository.existsByUserIdAndFriendIdAndStatus(recipient.getId(), requester.getId(), FriendStatus.ACCEPTED)) {
+            friendRelationRepository.save(new FriendRelation(recipient, requester));
+        }
+        return toUserAccount(requester);
     }
 
     @Transactional
     public void updateFriendFavorite(String userId, String friendId, boolean favorite) {
-        FriendRelation relation = friendRelationRepository.findByUserIdAndFriendId(userId, friendId)
+        FriendRelation relation = friendRelationRepository.findByUserIdAndFriendIdAndStatus(userId, friendId, FriendStatus.ACCEPTED)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Friend relation not found"));
         relation.changeFavorite(favorite);
     }
@@ -219,6 +266,17 @@ public class WemeetDataStore {
         );
     }
 
+    private FriendRequestEntry toFriendRequestEntry(AppUser user, LocalDateTime requestedAt) {
+        LocalDate requestedOn = requestedAt == null ? LocalDate.now() : requestedAt.toLocalDate();
+        return new FriendRequestEntry(
+                user.getId(),
+                user.getNickname(),
+                user.getLoginId(),
+                user.getBaseAddress(),
+                requestedOn
+        );
+    }
+
     private MeetingRecord toMeetingRecord(Meeting meeting) {
         // HOST를 먼저 보여주고 나머지 참가자는 가입 순서대로 유지하기 위한 정렬이다.
         List<String> participantIds = meeting.getParticipants().stream()
@@ -275,5 +333,15 @@ public class WemeetDataStore {
             LocalDateTime searchedAt
     ) {
         // 히스토리 엔티티에서 목록 출력에 필요한 값만 뽑은 record다.
+    }
+
+    public record FriendRequestEntry(
+            String id,
+            String nickname,
+            String loginId,
+            String baseAddress,
+            LocalDate requestedOn
+    ) {
+        // 친구 요청 목록 출력에 필요한 상대 사용자 값이다.
     }
 }

@@ -58,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
             center: toLatLng(points[0]),
             zoom: 15
         });
+        const pointsById = new Map(points.map((point) => [point.id, point]));
         const markersById = new Map();
         const infoWindowsById = new Map();
         const bounds = new window.naver.maps.LatLngBounds();
@@ -74,8 +75,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const venuePanelFairness = document.querySelector("#recommendationVenuePanelFairness");
         const venuePanelHighlights = document.querySelector("#recommendationVenuePanelHighlights");
         const venuePanelTravelTimes = document.querySelector("#recommendationVenuePanelTravelTimes");
+        const routeToggleButton = document.querySelector("#recommendationRouteToggle");
         const venueCardsByPointId = new Map(venueCards.map((card) => [card.dataset.mapTarget, card]));
         const mapSection = mapElement.closest(".panel");
+        const routePalette = ["#f97316", "#16a34a", "#2563eb", "#0891b2", "#dc2626", "#7c3aed"];
+        const participantRouteCount = Math.max(0, ...venueCards.map((card) => card.querySelectorAll("[data-venue-route]").length));
+        let routesVisible = participantRouteCount < 6;
+        let activeRouteLines = [];
         let activeInfoWindow = null;
         let activeVenueCard = null;
         let venuePanelAnimationToken = 0;
@@ -84,6 +90,75 @@ document.addEventListener("DOMContentLoaded", () => {
         const buildNaverSearchUrl = (searchQuery) => searchQuery
             ? `https://map.naver.com/p/search/${encodeURIComponent(searchQuery)}`
             : "#";
+
+        const readRoutePath = (routeNode) => Array.from(routeNode.querySelectorAll("[data-route-point]"))
+            .map((node) => ({
+                latitude: Number(node.dataset.lat),
+                longitude: Number(node.dataset.lng)
+            }))
+            .filter((point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude))
+            .map((point) => new window.naver.maps.LatLng(point.latitude, point.longitude));
+
+        const buildFallbackRoutePath = (routeNode, card) => {
+            const originPoint = pointsById.get(routeNode.dataset.participantId);
+            const destinationPoint = pointsById.get(card.dataset.mapTarget);
+            if (!originPoint || !destinationPoint) {
+                return [];
+            }
+            return [toLatLng(originPoint), toLatLng(destinationPoint)];
+        };
+
+        const clearRouteLines = () => {
+            activeRouteLines.forEach((routeLine) => routeLine.setMap(null));
+            activeRouteLines = [];
+        };
+
+        const syncRouteToggleButton = () => {
+            if (!(routeToggleButton instanceof HTMLButtonElement)) {
+                return;
+            }
+            routeToggleButton.textContent = routesVisible ? "경로선 끄기" : "경로선 켜기";
+            routeToggleButton.setAttribute("aria-pressed", String(routesVisible));
+            routeToggleButton.classList.toggle("is-active", routesVisible);
+        };
+
+        const drawRoutesForCard = (card) => {
+            clearRouteLines();
+            if (!card || !routesVisible) {
+                return;
+            }
+
+            Array.from(card.querySelectorAll("[data-venue-route]")).forEach((routeNode, index) => {
+                let path = readRoutePath(routeNode);
+                if (path.length < 2) {
+                    path = buildFallbackRoutePath(routeNode, card);
+                }
+                if (path.length < 2) {
+                    return;
+                }
+
+                const routeLine = new window.naver.maps.Polyline({
+                    map,
+                    path,
+                    strokeColor: routePalette[index % routePalette.length],
+                    strokeOpacity: 0.86,
+                    strokeWeight: 5,
+                    strokeStyle: "solid",
+                    strokeLineCap: "round",
+                    strokeLineJoin: "round",
+                    zIndex: 90
+                });
+                activeRouteLines.push(routeLine);
+            });
+        };
+
+        routeToggleButton?.addEventListener("click", () => {
+            routesVisible = !routesVisible;
+            syncRouteToggleButton();
+            drawRoutesForCard(activeVenueCard ?? venueCards[0] ?? null);
+        });
+
+        syncRouteToggleButton();
 
         const applyVenuePanelContent = (card) => {
             if (!venuePanel || !card) {
@@ -149,6 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!venuePanel || !card) {
                 return;
             }
+            drawRoutesForCard(card);
             if (activeVenueCard === card) {
                 applyVenuePanelContent(card);
                 return;
@@ -385,6 +461,86 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         applyFriendFilter();
+    });
+
+    // 친구 즐겨찾기는 서버에 저장하되 화면 전체 새로고침 없이 카드 상태만 갱신한다.
+    document.querySelectorAll("[data-friend-favorite-form]").forEach((favoriteForm) => {
+        if (!(favoriteForm instanceof HTMLFormElement)) {
+            return;
+        }
+
+        const friendCard = favoriteForm.closest("[data-friend-card]");
+        const favoriteInput = favoriteForm.querySelector("[data-friend-favorite-input]");
+        const favoriteButton = favoriteForm.querySelector("[data-friend-favorite-button]");
+        const favoriteTag = friendCard?.querySelector("[data-friend-favorite-tag]");
+        const friendList = friendCard?.closest("[data-friend-list]");
+
+        const reorderFriendCards = () => {
+            if (!(friendList instanceof HTMLElement)) {
+                return;
+            }
+
+            const cards = Array.from(friendList.querySelectorAll("[data-friend-card]"))
+                .filter((card) => card instanceof HTMLElement);
+
+            cards.sort((left, right) => {
+                const leftFavorite = left.dataset.friendFavorite === "true" ? 0 : 1;
+                const rightFavorite = right.dataset.friendFavorite === "true" ? 0 : 1;
+                if (leftFavorite !== rightFavorite) {
+                    return leftFavorite - rightFavorite;
+                }
+                return Number(left.dataset.friendIndex ?? 0) - Number(right.dataset.friendIndex ?? 0);
+            });
+
+            cards.forEach((card) => friendList.append(card));
+        };
+
+        const applyFavoriteState = (favorite) => {
+            if (!(friendCard instanceof HTMLElement)
+                    || !(favoriteInput instanceof HTMLInputElement)
+                    || !(favoriteButton instanceof HTMLButtonElement)) {
+                return;
+            }
+
+            friendCard.dataset.friendFavorite = String(favorite);
+            favoriteInput.value = String(!favorite);
+            favoriteButton.classList.toggle("is-active", favorite);
+            favoriteButton.textContent = favorite ? "해제" : "즐겨찾기";
+            if (favoriteTag instanceof HTMLElement) {
+                favoriteTag.hidden = !favorite;
+            }
+            reorderFriendCards();
+        };
+
+        favoriteForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (!(favoriteInput instanceof HTMLInputElement) || !(favoriteButton instanceof HTMLButtonElement)) {
+                favoriteForm.submit();
+                return;
+            }
+
+            const nextFavorite = favoriteInput.value === "true";
+            favoriteButton.disabled = true;
+
+            try {
+                const response = await fetch(favoriteForm.action, {
+                    method: favoriteForm.method || "POST",
+                    body: new FormData(favoriteForm),
+                    credentials: "same-origin"
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Favorite update failed: ${response.status}`);
+                }
+
+                applyFavoriteState(nextFavorite);
+            } catch (error) {
+                console.warn("Friend favorite update failed", error);
+                favoriteForm.submit();
+            } finally {
+                favoriteButton.disabled = false;
+            }
+        });
     });
 
     const friendModal = document.querySelector("[data-friend-modal]");

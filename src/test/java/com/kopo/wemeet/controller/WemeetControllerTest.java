@@ -2,6 +2,7 @@ package com.kopo.wemeet.controller;
 
 import com.kopo.wemeet.dto.*;
 
+import com.kopo.wemeet.repository.AppUserRepository;
 import com.kopo.wemeet.service.impl.NaverPlaceSearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,9 @@ class WemeetControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private AppUserRepository userRepository;
 
     @MockitoBean
     private NaverPlaceSearchService naverPlaceSearchService;
@@ -378,8 +382,25 @@ class WemeetControllerTest {
 
         mockMvc.perform(get("/friends").session(session))
                 .andExpect(status().isOk())
+                .andExpect(content().string(containsString("수락 대기중")))
                 .andExpect(content().string(containsString("이영희")))
-                .andExpect(content().string(containsString("님을 친구로 추가했습니다.")));
+                .andExpect(content().string(containsString("님에게 친구 요청을 보냈습니다.")))
+                .andExpect(content().string(not(containsString("data-friend-card"))));
+
+        MockHttpSession friendSession = login("user456", "pass1234");
+        String requesterId = userRepository.findByLoginId("friendadd01").orElseThrow().getId();
+        mockMvc.perform(post("/friends/request/respond")
+                        .session(friendSession)
+                        .param("requesterId", requesterId)
+                        .param("action", "approve")
+                        .param("redirectTo", "/friends"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/friends"));
+
+        mockMvc.perform(get("/friends").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("이영희")))
+                .andExpect(content().string(containsString("data-friend-card")));
     }
 
     @Test
@@ -389,17 +410,16 @@ class WemeetControllerTest {
         mockMvc.perform(get("/friends").session(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("최지우"))))
-                .andExpect(content().string(not(containsString("친구 요청"))));
+                .andExpect(content().string(not(containsString("받은 친구 요청"))));
     }
 
     @Test
-    void friendsPageProvidesClientSideSearchData() throws Exception {
+    void friendsPageSearchesOnServer() throws Exception {
         MockHttpSession session = signupAndLogin("friendsearch01", "friendsearch01@wemeet.local");
-        addFriend(session, "FRIEND456");
-        addFriend(session, "FRIEND789");
+        addFriend(session, "friendsearch01", "FRIEND456");
+        addFriend(session, "friendsearch01", "FRIEND789");
         mockMvc.perform(get("/friends").session(session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("data-friend-filter")))
                 .andExpect(content().string(containsString("data-friend-card")))
                 .andExpect(content().string(containsString("박민수")))
                 .andExpect(content().string(containsString("이영희")))
@@ -410,14 +430,48 @@ class WemeetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("value=\"박민수\"")))
                 .andExpect(content().string(containsString("박민수")))
-                .andExpect(content().string(containsString("이영희")));
+                .andExpect(content().string(not(containsString("이영희"))));
+    }
+
+    @Test
+    void friendsPageShowsTenFriendsPerPage() throws Exception {
+        MockHttpSession session = signupAndLogin("friendpage01", "friendpage01@wemeet.local");
+        for (String friendCode : List.of(
+                "FRIEND456",
+                "FRIEND789",
+                "FRIENDKIM",
+                "FRIENDYH",
+                "FRIENDAREUM",
+                "FRIENDMJ",
+                "FRIENDHN",
+                "FRIENDYS",
+                "FRIENDDY",
+                "FRIENDJS",
+                "AAAAAA"
+        )) {
+            addFriend(session, "friendpage01", friendCode);
+        }
+
+        String firstPageHtml = mockMvc.perform(get("/friends").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("내 친구 (11)")))
+                .andExpect(content().string(containsString("다음")))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertTrue(firstPageHtml.split("data-friend-card", -1).length - 1 <= 10);
+
+        mockMvc.perform(get("/friends").session(session).param("page", "2"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("이전")));
     }
 
     @Test
     void favoriteFriendsArePinnedToTop() throws Exception {
         MockHttpSession session = signupAndLogin("friendfavorite01", "friendfavorite01@wemeet.local");
-        addFriend(session, "FRIEND456");
-        addFriend(session, "FRIEND789");
+        addFriend(session, "friendfavorite01", "FRIEND456");
+        addFriend(session, "friendfavorite01", "FRIEND789");
 
         mockMvc.perform(post("/friends/favorite")
                         .session(session)
@@ -439,8 +493,13 @@ class WemeetControllerTest {
     @Test
     void meetingFormProvidesClientSideFriendSearch() throws Exception {
         MockHttpSession session = signupAndLogin("meetingfriendsearch01", "meetingfriendsearch01@wemeet.local");
-        addFriend(session, "FRIEND456");
-        addFriend(session, "FRIEND789");
+        addFriend(session, "meetingfriendsearch01", "FRIEND456");
+        addFriend(session, "meetingfriendsearch01", "FRIEND789");
+        mockMvc.perform(post("/friends/favorite")
+                        .session(session)
+                        .param("friendId", "friend-lee")
+                        .param("favorite", "true"))
+                .andExpect(status().is3xxRedirection());
 
         mockMvc.perform(get("/meetings/new").session(session))
                 .andExpect(status().isOk())
@@ -497,9 +556,13 @@ class WemeetControllerTest {
                         .param("baseAddress", "서울특별시 중구"))
                 .andExpect(status().is3xxRedirection());
 
+        return login(loginId, "pass1234");
+    }
+
+    private MockHttpSession login(String loginId, String password) throws Exception {
         MvcResult loginResult = mockMvc.perform(post("/login")
                         .param("loginId", loginId)
-                        .param("password", "pass1234"))
+                        .param("password", password))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
@@ -507,13 +570,44 @@ class WemeetControllerTest {
         return (MockHttpSession) loginResult.getRequest().getSession(false);
     }
 
-    private void addFriend(MockHttpSession session, String friendCode) throws Exception {
+    private void addFriend(MockHttpSession session, String requesterLoginId, String friendCode) throws Exception {
         mockMvc.perform(post("/friends/add")
                         .session(session)
                         .param("friendCode", friendCode)
                         .param("redirectTo", "/friends"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/friends"));
+
+        MockHttpSession recipientSession = login(loginIdForFriendCode(friendCode), passwordForFriendCode(friendCode));
+        String requesterId = userRepository.findByLoginId(requesterLoginId).orElseThrow().getId();
+        mockMvc.perform(post("/friends/request/respond")
+                        .session(recipientSession)
+                        .param("requesterId", requesterId)
+                        .param("action", "approve")
+                        .param("redirectTo", "/friends"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/friends"));
+    }
+
+    private String loginIdForFriendCode(String friendCode) {
+        return switch (friendCode) {
+            case "FRIEND456" -> "user456";
+            case "FRIEND789" -> "user789";
+            case "FRIENDKIM" -> "friendkim";
+            case "FRIENDYH" -> "parkyounghee";
+            case "FRIENDAREUM" -> "goareum";
+            case "FRIENDMJ" -> "choiminjun";
+            case "FRIENDHN" -> "junghana";
+            case "FRIENDYS" -> "yoonseo";
+            case "FRIENDDY" -> "kangdoyun";
+            case "FRIENDJS" -> "hanjisoo";
+            case "AAAAAA" -> "demo_friend_aaaaaa";
+            default -> throw new IllegalArgumentException("Unknown friend code: " + friendCode);
+        };
+    }
+
+    private String passwordForFriendCode(String friendCode) {
+        return "AAAAAA".equals(friendCode) ? "Passw0rd!" : "pass1234";
     }
 
     private PlaceDTO.PlaceSearchResponse samplePlaceSearch(String originQuery, String address, String placeName) {

@@ -18,11 +18,15 @@ public interface IWemeetViewService {
 
     List<FriendDTO.FriendSummary> getFriends(String userId, String keyword);
 
-    List<FriendDTO.FriendRequest> getFriendRequests();
+    List<FriendDTO.FriendRequest> getFriendRequests(String userId);
+
+    List<FriendDTO.FriendRequest> getSentFriendRequests(String userId);
 
     List<MeetingDTO.UpcomingMeeting> getUpcomingMeetings();
 
     UserDTO.UserResponse addFriendByCode(String userId, String friendCode);
+
+    UserDTO.UserResponse respondFriendRequest(String userId, String requesterId, boolean approve);
 
     void updateFriendFavorite(String userId, String friendId, boolean favorite);
 
