@@ -73,9 +73,10 @@ public class MeetController {
     public String guestPlan(
             @RequestParam(defaultValue = "") String guestAddress,
             @RequestParam(defaultValue = "맛집") String category,
+            @RequestParam(defaultValue = "car") String routeMode,
             Model model
     ) {
-        populateGuestPlanModel(model, guestAddress, category, null);
+        populateGuestPlanModel(model, guestAddress, category, routeMode, null);
         return "guest-plan";
     }
 
@@ -83,9 +84,10 @@ public class MeetController {
     public String guestPlanMock1(
             @RequestParam(defaultValue = "") String guestAddress,
             @RequestParam(defaultValue = "맛집") String category,
+            @RequestParam(defaultValue = "car") String routeMode,
             Model model
     ) {
-        populateGuestPlanModel(model, guestAddress, category, 1);
+        populateGuestPlanModel(model, guestAddress, category, routeMode, 1);
         return "guest-plan";
     }
 
@@ -109,12 +111,14 @@ public class MeetController {
             @RequestParam(defaultValue = "") String guestAddress,
             @RequestParam(defaultValue = "맛집") String category,
             @RequestParam(defaultValue = "CENTER") String mode,
+            @RequestParam(defaultValue = "car") String routeMode,
             RedirectAttributes redirectAttributes
     ) {
         redirectAttributes.addAttribute("guest", true);
         redirectAttributes.addAttribute("guestAddress", guestAddress);
         redirectAttributes.addAttribute("category", category);
         redirectAttributes.addAttribute("mode", mode);
+        redirectAttributes.addAttribute("routeMode", normalizeRouteMode(routeMode));
         return "redirect:/search/results";
     }
 
@@ -169,11 +173,12 @@ public class MeetController {
         return recommendationService.recommendForGuest(guestUser, recommendationRequest);
     }
 
-    private void populateGuestPlanModel(Model model, String guestAddress, String category, Integer redPlaceholderIndex) {
+    private void populateGuestPlanModel(Model model, String guestAddress, String category, String routeMode, Integer redPlaceholderIndex) {
         viewHelper.populateCommon(model, "nearby", true);
         model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
         model.addAttribute("guestAddress", guestAddress);
         model.addAttribute("selectedCategory", category);
+        model.addAttribute("selectedRouteMode", normalizeRouteMode(routeMode));
         model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
         model.addAttribute("hideShellNavigation", redPlaceholderIndex != null);
     }
@@ -251,5 +256,12 @@ public class MeetController {
                 "GUEST",
                 normalizedBaseAddress
         );
+    }
+
+    private String normalizeRouteMode(String routeMode) {
+        if ("transit".equalsIgnoreCase(routeMode) || "walk".equalsIgnoreCase(routeMode)) {
+            return routeMode.toLowerCase(java.util.Locale.ROOT);
+        }
+        return "car";
     }
 }

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -95,6 +96,7 @@ public class MeetingController {
             @RequestParam(required = false) String anchorId,
             @RequestParam(defaultValue = "false") boolean guest,
             @RequestParam(required = false) String guestAddress,
+            @RequestParam(defaultValue = "car") String routeMode,
             Model model,
             HttpSession session
     ) {
@@ -103,6 +105,7 @@ public class MeetingController {
             currentUser = viewHelper.requireLoggedInUser(session);
         }
         populateRecommendationModel(model, guest ? "nearby" : "home", currentUser, category, friendIds, mode, anchorId, guest, guestAddress);
+        model.addAttribute("selectedRouteMode", normalizeRouteMode(routeMode));
         return "search-results";
     }
 
@@ -113,18 +116,57 @@ public class MeetingController {
             @RequestParam(defaultValue = "CENTER") String mode,
             @RequestParam(required = false) String anchorId,
             @RequestParam(defaultValue = "") String meetingName,
+            @RequestParam(defaultValue = "") String meetingDescription,
             @RequestParam(defaultValue = "") String meetingDate,
             @RequestParam(defaultValue = "") String meetingHour,
             @RequestParam(defaultValue = "") String meetingMinute,
+            @RequestParam(defaultValue = "car") String routeMode,
             Model model,
             HttpSession session
     ) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
         populateRecommendationModel(model, "create", currentUser, category, friendIds, mode, anchorId, false, null);
         model.addAttribute("meetingName", meetingName);
+        model.addAttribute("meetingDescription", meetingDescription);
         model.addAttribute("meetingDate", meetingDate);
         model.addAttribute("meetingTime", composeMeetingTime(meetingHour, meetingMinute));
+        model.addAttribute("meetingCreationAvailable", true);
+        model.addAttribute("selectedRouteMode", normalizeRouteMode(routeMode));
         return "search-results";
+    }
+
+    @PostMapping("/meetings")
+    public String createMeeting(
+            @RequestParam(defaultValue = "") String meetingName,
+            @RequestParam(defaultValue = "") String meetingDescription,
+            @RequestParam(defaultValue = "") String meetingDate,
+            @RequestParam(defaultValue = "") String meetingTime,
+            @RequestParam(defaultValue = "") String meetingPlaceName,
+            @RequestParam(defaultValue = "") String meetingPlaceAddress,
+            @RequestParam(defaultValue = "맛집") String category,
+            @RequestParam(required = false) List<String> friendIds,
+            HttpSession session,
+            RedirectAttributes redirectAttributes
+    ) {
+        AppUser currentUser = viewHelper.requireLoggedInUser(session);
+        if (meetingName == null || meetingName.isBlank() || meetingDate == null || meetingDate.isBlank()) {
+            redirectAttributes.addFlashAttribute("meetingCreateError", "모임 이름과 날짜를 입력해주세요.");
+            return "redirect:/meetings/new";
+        }
+
+        store.createMeeting(
+                currentUser.getId(),
+                meetingName,
+                meetingDescription,
+                parseMeetingDate(meetingDate),
+                parseMeetingTime(meetingTime),
+                category,
+                meetingPlaceName,
+                meetingPlaceAddress,
+                friendIds == null ? List.of() : friendIds
+        );
+        redirectAttributes.addFlashAttribute("profileNotice", "모임이 생성되었습니다.");
+        return "redirect:/profile";
     }
 
     @ResponseBody
@@ -152,6 +194,8 @@ public class MeetingController {
                 meetingDate,
                 meetingTime,
                 request.category(),
+                request.meetingPlaceName(),
+                request.meetingPlaceAddress(),
                 request.participantIds()
         );
         return toMeetingResponse(meeting);
@@ -177,6 +221,7 @@ public class MeetingController {
         model.addAttribute("selectedCategory", "");
         model.addAttribute("selectedMode", RecommendationMode.CENTER.name());
         model.addAttribute("selectedAnchorId", profile.id());
+        model.addAttribute("selectedRouteMode", "car");
         model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
         model.addAttribute("hideShellNavigation", hideShellNavigation);
     }
@@ -203,6 +248,8 @@ public class MeetingController {
                 ? (guestMode ? guestProfile.id() : currentUser.getId())
                 : anchorId);
         model.addAttribute("selectedFriendIds", guestMode ? List.of() : friendIds == null ? List.of() : friendIds);
+        model.addAttribute("meetingCreationAvailable", false);
+        model.addAttribute("selectedRouteMode", "car");
         model.addAttribute("recommendation", guestMode
                 ? viewService.buildGuestRecommendation(guestProfile.baseAddress(), category, mode, anchorId)
                 : viewService.buildRecommendation(
@@ -228,6 +275,8 @@ public class MeetingController {
                 meeting.meetingDate().toString(),
                 meeting.meetingTime() == null ? "" : meeting.meetingTime().toString(),
                 meeting.category(),
+                meeting.meetingPlaceName(),
+                meeting.meetingPlaceAddress(),
                 authService.toUserResponse(host),
                 participants
         );
@@ -266,5 +315,12 @@ public class MeetingController {
         } catch (DateTimeParseException exception) {
             throw new org.springframework.web.server.ResponseStatusException(BAD_REQUEST, "meetingTime must be ISO-8601 format (HH:mm)");
         }
+    }
+
+    private String normalizeRouteMode(String routeMode) {
+        if ("transit".equalsIgnoreCase(routeMode) || "walk".equalsIgnoreCase(routeMode)) {
+            return routeMode.toLowerCase(java.util.Locale.ROOT);
+        }
+        return "car";
     }
 }

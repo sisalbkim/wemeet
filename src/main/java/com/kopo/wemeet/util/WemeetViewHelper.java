@@ -58,6 +58,10 @@ public class WemeetViewHelper {
     }
 
     public UserDTO.UserProfile toProfile(AppUser user) {
+        return toProfile(user, 2, 2, 3);
+    }
+
+    public UserDTO.UserProfile toProfile(AppUser user, int createdMeetings, int friendCount, int joinedMeetings) {
         return new UserDTO.UserProfile(
                 user.getId(),
                 user.getNickname(),
@@ -65,9 +69,9 @@ public class WemeetViewHelper {
                 user.getFriendCode(),
                 user.getBaseAddress(),
                 "••••••••",
-                2,
-                2,
-                3
+                createdMeetings,
+                friendCount,
+                joinedMeetings
         );
     }
 }

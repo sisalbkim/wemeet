@@ -75,14 +75,22 @@ document.addEventListener("DOMContentLoaded", () => {
         const venuePanelFairness = document.querySelector("#recommendationVenuePanelFairness");
         const venuePanelHighlights = document.querySelector("#recommendationVenuePanelHighlights");
         const venuePanelTravelTimes = document.querySelector("#recommendationVenuePanelTravelTimes");
+        const meetingPlaceNameInput = document.querySelector("[data-meeting-place-name-input]");
+        const meetingPlaceAddressInput = document.querySelector("[data-meeting-place-address-input]");
+        const meetingPlaceNameText = document.querySelector("[data-meeting-place-name]");
+        const meetingPlaceAddressText = document.querySelector("[data-meeting-place-address]");
         const routeToggleButton = document.querySelector("#recommendationRouteToggle");
+        const routeModeButtons = Array.from(document.querySelectorAll("[data-route-mode-button]"));
         const venueCardsByPointId = new Map(venueCards.map((card) => [card.dataset.mapTarget, card]));
         const mapSection = mapElement.closest(".panel");
         const routePalette = ["#f97316", "#16a34a", "#2563eb", "#0891b2", "#dc2626", "#7c3aed"];
-        const participantRouteCount = Math.max(0, ...venueCards.map((card) => card.querySelectorAll("[data-venue-route]").length));
+        const participantRouteCount = Math.max(0, ...venueCards.map((card) => card.querySelectorAll("[data-venue-route][data-route-mode='car']").length));
         let routesVisible = participantRouteCount < 6;
+        const initialRouteMode = mapElement.dataset.initialRouteMode || "car";
+        let activeRouteMode = ["car", "transit", "walk"].includes(initialRouteMode) ? initialRouteMode : "car";
         let activeRouteLines = [];
         let activeInfoWindow = null;
+        let activeInfoWindowPointId = null;
         let activeVenueCard = null;
         let venuePanelAnimationToken = 0;
         let activeVenueSearchQuery = "";
@@ -128,9 +136,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            Array.from(card.querySelectorAll("[data-venue-route]")).forEach((routeNode, index) => {
+            Array.from(card.querySelectorAll(`[data-venue-route][data-route-mode="${activeRouteMode}"]`))
+                .filter((routeNode) => routeNode.dataset.routeAvailable !== "false")
+                .forEach((routeNode, index) => {
                 let path = readRoutePath(routeNode);
-                if (path.length < 2) {
+                if (path.length < 2 && activeRouteMode !== "transit") {
                     path = buildFallbackRoutePath(routeNode, card);
                 }
                 if (path.length < 2) {
@@ -152,6 +162,35 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         };
 
+        const syncRouteModeButtons = () => {
+            routeModeButtons.forEach((button) => {
+                const active = button.dataset.routeMode === activeRouteMode;
+                button.classList.toggle("is-active", active);
+                button.setAttribute("aria-pressed", String(active));
+            });
+        };
+
+        const renderPanelTravelTimes = (card) => {
+            if (!venuePanelTravelTimes || !card) {
+                return;
+            }
+            venuePanelTravelTimes.replaceChildren();
+            card.querySelectorAll("[data-venue-time]").forEach((node) => {
+                const routeNode = card.querySelector(
+                    `[data-venue-route][data-participant-id="${CSS.escape(node.dataset.participantId ?? "")}"][data-route-mode="${activeRouteMode}"]`
+                );
+                const available = routeNode?.dataset.routeAvailable !== "false";
+                const minutes = routeNode?.dataset.minutes ?? node.dataset.minutes ?? "0";
+                const label = routeNode?.dataset.routeLabel ?? "자동차";
+                const pill = document.createElement("span");
+                pill.className = "participant-pill participant-pill--light";
+                pill.textContent = available
+                    ? `${node.dataset.name ?? ""} ${label} ${minutes}분`
+                    : `${node.dataset.name ?? ""} ${label} 확인 불가`;
+                venuePanelTravelTimes.append(pill);
+            });
+        };
+
         routeToggleButton?.addEventListener("click", () => {
             routesVisible = !routesVisible;
             syncRouteToggleButton();
@@ -159,6 +198,16 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         syncRouteToggleButton();
+        syncRouteModeButtons();
+
+        routeModeButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                activeRouteMode = button.dataset.routeMode || "car";
+                syncRouteModeButtons();
+                drawRoutesForCard(activeVenueCard ?? venueCards[0] ?? null);
+                renderPanelTravelTimes(activeVenueCard ?? venueCards[0] ?? null);
+            });
+        });
 
         const applyVenuePanelContent = (card) => {
             if (!venuePanel || !card) {
@@ -176,6 +225,18 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             if (venuePanelDescription) {
                 venuePanelDescription.textContent = card.dataset.venueDescription ?? "";
+            }
+            if (meetingPlaceNameInput instanceof HTMLInputElement) {
+                meetingPlaceNameInput.value = card.dataset.venueName ?? "";
+            }
+            if (meetingPlaceAddressInput instanceof HTMLInputElement) {
+                meetingPlaceAddressInput.value = card.dataset.venueAddress ?? card.dataset.venueDescription ?? "";
+            }
+            if (meetingPlaceNameText) {
+                meetingPlaceNameText.textContent = card.dataset.venueName ?? "";
+            }
+            if (meetingPlaceAddressText) {
+                meetingPlaceAddressText.textContent = card.dataset.venueAddress ?? card.dataset.venueDescription ?? "";
             }
             if (venuePanelTelephone) {
                 venuePanelTelephone.textContent = card.dataset.venueTelephone || "전화번호 정보 없음";
@@ -208,15 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     venuePanelHighlights.append(chip);
                 });
             }
-            if (venuePanelTravelTimes) {
-                venuePanelTravelTimes.replaceChildren();
-                card.querySelectorAll("[data-venue-time]").forEach((node) => {
-                    const pill = document.createElement("span");
-                    pill.className = "participant-pill participant-pill--light";
-                    pill.textContent = `${node.dataset.name ?? ""} ${node.dataset.minutes ?? "0"}분`;
-                    venuePanelTravelTimes.append(pill);
-                });
-            }
+            renderPanelTravelTimes(card);
             venuePanel.classList.add("is-active");
         };
 
@@ -276,13 +329,29 @@ document.addEventListener("DOMContentLoaded", () => {
             const marker = markersById.get(pointId);
             const infoWindow = infoWindowsById.get(pointId);
             if (!marker || !infoWindow) {
-                return;
+                return false;
             }
             if (activeInfoWindow && activeInfoWindow !== infoWindow) {
                 activeInfoWindow.close();
             }
             infoWindow.open(map, marker);
             activeInfoWindow = infoWindow;
+            activeInfoWindowPointId = pointId;
+            return true;
+        };
+
+        const toggleInfoWindow = (pointId) => {
+            const infoWindow = infoWindowsById.get(pointId);
+            if (!infoWindow) {
+                return false;
+            }
+            if (activeInfoWindow === infoWindow && activeInfoWindowPointId === pointId) {
+                infoWindow.close();
+                activeInfoWindow = null;
+                activeInfoWindowPointId = null;
+                return false;
+            }
+            return openInfoWindow(pointId);
         };
 
         points.forEach((point) => {
@@ -302,9 +371,9 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             window.naver.maps.Event.addListener(marker, "click", () => {
-                openInfoWindow(point.id);
+                const infoWindowOpened = toggleInfoWindow(point.id);
                 const targetCard = venueCardsByPointId.get(point.id);
-                if (targetCard) {
+                if (infoWindowOpened && targetCard) {
                     focusVenueCard(targetCard);
                     fillVenuePanel(targetCard);
                 }
@@ -362,6 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (venueCards.length > 0) {
             focusVenueCard(venueCards[0]);
             fillVenuePanel(venueCards[0]);
+            openInfoWindow(venueCards[0].dataset.mapTarget);
         }
 
         venuePanelCallButton?.addEventListener("click", (event) => {

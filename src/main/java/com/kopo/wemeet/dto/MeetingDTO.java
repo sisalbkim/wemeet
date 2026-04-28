@@ -13,6 +13,8 @@ public final class MeetingDTO {
             String meetingDate,
             String meetingTime,
             String category,
+            String meetingPlaceName,
+            String meetingPlaceAddress,
             List<String> participantIds
     ) {
     }
@@ -24,6 +26,8 @@ public final class MeetingDTO {
             String meetingDate,
             String meetingTime,
             String category,
+            String meetingPlaceName,
+            String meetingPlaceAddress,
             UserDTO.UserResponse host,
             List<UserDTO.UserResponse> participants
     ) {
@@ -36,6 +40,19 @@ public final class MeetingDTO {
             String hostName,
             String status,
             String statusTone
+    ) {
+    }
+
+    public record CreatedMeeting(
+            String id,
+            String title,
+            String description,
+            String dateLabel,
+            String timeLabel,
+            String category,
+            String meetingPlaceName,
+            String meetingPlaceAddress,
+            int participantCount
     ) {
     }
 }

@@ -23,4 +23,14 @@ public interface MeetingRepository extends JpaRepository<Meeting, String> {
             order by m.meetingDate, m.meetingTime, m.createdAt
             """)
     List<Meeting> findAllParticipatingByUserId(String userId);
+
+    @EntityGraph(attributePaths = {"host", "participants", "participants.user"})
+    @Query("""
+            select distinct m
+            from Meeting m
+            left join m.participants p
+            where m.host.id = :userId
+            order by m.meetingDate desc, m.meetingTime desc, m.createdAt desc
+            """)
+    List<Meeting> findAllCreatedByUserId(String userId);
 }

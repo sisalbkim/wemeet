@@ -27,7 +27,7 @@
             </div>
             <div class="chip-grid chip-grid--three-up">
                 <a class="filter-chip filter-chip--link" th:each="category : ${categories}"
-                   th:href="@{/search/results(category=${category.label}, friendIds=${selectedFriendIds}, mode=${selectedMode}, anchorId=${selectedAnchorId}, guest=${guestMode}, guestAddress=${guestMode ? guestAddress : null})}"
+                   th:href="@{/search/results(category=${category.label}, friendIds=${selectedFriendIds}, mode=${selectedMode}, anchorId=${selectedAnchorId}, routeMode=${selectedRouteMode}, guest=${guestMode}, guestAddress=${guestMode ? guestAddress : null})}"
                    data-loading-overlay
                    th:classappend="${selectedCategory == category.label} ? ' is-active'"
                    th:text="${category.label}">
@@ -56,15 +56,21 @@
                     <span th:if="${#lists.size(recommendation.participants) > 1}">출발지, 기준 인물, 중심점, 추천 장소를 한 지도에서 확인할 수 있습니다</span>
                     <span th:if="${#lists.size(recommendation.participants) == 1}">출발지와 추천 장소를 한 지도에서 확인할 수 있습니다</span>
                 </div>
-                <button th:if="${naverMapEnabled}"
-                        type="button"
-                        id="recommendationRouteToggle"
-                        class="secondary-button secondary-button--compact map-route-toggle"
-                        aria-pressed="true">
-                    경로선 끄기
-                </button>
+                <div th:if="${naverMapEnabled}" class="route-controls">
+                    <div class="route-mode-tabs" role="tablist" aria-label="경로 보기 방식">
+                        <button type="button" class="route-mode-tabs__button" th:classappend="${selectedRouteMode == 'car'} ? ' is-active'" data-route-mode-button data-route-mode="car" th:attr="aria-pressed=${selectedRouteMode == 'car'}">자동차</button>
+                        <button type="button" class="route-mode-tabs__button" th:classappend="${selectedRouteMode == 'transit'} ? ' is-active'" data-route-mode-button data-route-mode="transit" th:attr="aria-pressed=${selectedRouteMode == 'transit'}">대중교통</button>
+                        <button type="button" class="route-mode-tabs__button" th:classappend="${selectedRouteMode == 'walk'} ? ' is-active'" data-route-mode-button data-route-mode="walk" th:attr="aria-pressed=${selectedRouteMode == 'walk'}">걷기</button>
+                    </div>
+                    <button type="button"
+                            id="recommendationRouteToggle"
+                            class="secondary-button secondary-button--compact map-route-toggle"
+                            aria-pressed="true">
+                        경로선 끄기
+                    </button>
+                </div>
             </div>
-            <div th:if="${naverMapEnabled}" id="recommendationMap" class="map-canvas"></div>
+            <div th:if="${naverMapEnabled}" id="recommendationMap" class="map-canvas" th:attr="data-initial-route-mode=${selectedRouteMode}"></div>
             <div th:if="${naverMapEnabled}" id="recommendationMapError" class="notice-banner notice-banner--error" hidden>
                 네이버 지도 SDK를 불러오지 못했습니다. NAVER Cloud Platform에서 JavaScript Client ID인지 확인하고, 서비스 환경에
                 <strong>http://localhost:8080</strong> 도메인이 등록되어 있는지 확인해 주세요.
@@ -120,6 +126,27 @@
                           th:text="${guestMode ? guestAddress + ' ' + time.minutes + '분' : time.participantName + ' ' + time.minutes + '분'}">김철수 18분</span>
                 </div>
             </article>
+            <div class="meeting-create-panel" th:if="${meetingCreationAvailable and !#lists.isEmpty(recommendation.venues)}">
+                <form class="meeting-create-form" method="post" th:action="@{/meetings}">
+                    <input type="hidden" name="meetingName" th:value="${meetingName}">
+                    <input type="hidden" name="meetingDescription" th:value="${meetingDescription}">
+                    <input type="hidden" name="meetingDate" th:value="${meetingDate}">
+                    <input type="hidden" name="meetingTime" th:value="${meetingTime}">
+                    <input type="hidden" name="category" th:value="${selectedCategory}">
+                    <input type="hidden" name="meetingPlaceName" th:value="${recommendation.venues[0].name}" data-meeting-place-name-input>
+                    <input type="hidden" name="meetingPlaceAddress" th:value="${recommendation.venues[0].description}" data-meeting-place-address-input>
+                    <input type="hidden" name="friendIds" th:each="friendId : ${selectedFriendIds}" th:value="${friendId}">
+                    <div class="meeting-create-summary">
+                        <span>모임 <strong th:text="${meetingName}">주말 맛집 탐방</strong></span>
+                        <span>만날 지점 <strong th:text="${recommendation.venues[0].name}" data-meeting-place-name>어니언 성수</strong></span>
+                        <span>날짜 <strong th:text="${meetingDate}">2026-04-20</strong></span>
+                        <span>시간 <strong th:text="${#strings.isEmpty(meetingTime) ? '미정' : meetingTime}">19:30</strong></span>
+                        <span>인원 <strong th:text="${#lists.size(selectedFriendIds)} + '명'">3명</strong></span>
+                    </div>
+                    <p class="meeting-create-address" th:text="${recommendation.venues[0].description}" data-meeting-place-address>서울 성동구 아차산로9길 8</p>
+                    <button class="primary-button" type="submit">이 인원으로 모임 생성</button>
+                </form>
+            </div>
             <div class="visually-hidden" id="recommendationMapData">
                 <span th:each="point : ${recommendation.mapPoints}"
                       data-map-point
@@ -141,6 +168,7 @@
                               data-venue-category=${venue.category},
                               data-venue-area=${venue.area},
                               data-venue-description=${venue.description},
+                              data-venue-address=${venue.description},
                               data-venue-telephone=${venue.telephone},
                               data-venue-search-query=${venue.name},
                               data-venue-reason=${venue.reason},
@@ -170,14 +198,19 @@
                 <div class="visually-hidden">
                     <span th:each="highlight : ${venue.highlights}" data-venue-highlight th:text="${highlight}">태그</span>
                     <span th:each="time : ${venue.travelTimes}" data-venue-time
-                          th:attr="data-name=${guestMode ? guestAddress : time.participantName}, data-minutes=${time.minutes}">18</span>
-                    <span th:each="time : ${venue.travelTimes}" data-venue-route
-                          th:attr="data-venue-id=${'venue-' + venueStat.index},
-                                   data-participant-id=${time.participantId},
-                                   data-participant-name=${guestMode ? guestAddress : time.participantName},
-                                   data-minutes=${time.minutes}">
-                        <span th:each="routePoint : ${time.routePath}" data-route-point
+                          th:attr="data-participant-id=${time.participantId}, data-name=${guestMode ? guestAddress : time.participantName}, data-minutes=${time.minutes}">18</span>
+                    <span th:each="time : ${venue.travelTimes}">
+                        <span th:each="routeMode : ${time.routeModes}" data-venue-route
+                              th:attr="data-venue-id=${'venue-' + venueStat.index},
+                                       data-participant-id=${time.participantId},
+                                       data-participant-name=${guestMode ? guestAddress : time.participantName},
+                                       data-route-mode=${routeMode.mode},
+                                       data-route-label=${routeMode.label},
+                                       data-route-available=${routeMode.available},
+                                       data-minutes=${routeMode.minutes}">
+                        <span th:each="routePoint : ${routeMode.routePath}" data-route-point
                               th:attr="data-lat=${routePoint.latitude}, data-lng=${routePoint.longitude}"></span>
+                        </span>
                     </span>
                 </div>
             </article>

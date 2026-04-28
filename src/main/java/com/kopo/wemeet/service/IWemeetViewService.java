@@ -24,6 +24,10 @@ public interface IWemeetViewService {
 
     List<MeetingDTO.UpcomingMeeting> getUpcomingMeetings();
 
+    List<MeetingDTO.CreatedMeeting> getCreatedMeetings(String userId);
+
+    List<MeetingDTO.CreatedMeeting> getParticipatingMeetings(String userId);
+
     UserDTO.UserResponse addFriendByCode(String userId, String friendCode);
 
     UserDTO.UserResponse respondFriendRequest(String userId, String requesterId, boolean approve);

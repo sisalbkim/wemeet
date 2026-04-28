@@ -61,6 +61,47 @@
             </div>
         </section>
 
+        <section class="panel">
+            <div class="section-heading">
+                <h2>내가 생성한 모임</h2>
+                <span th:text="${#lists.size(createdMeetings)} + '개'">0개</span>
+            </div>
+            <div class="card-stack" th:if="${!#lists.isEmpty(createdMeetings)}">
+                <details class="meeting-card meeting-card--profile meeting-card--details" th:each="meeting : ${createdMeetings}">
+                    <summary class="meeting-card__summary">
+                        <div class="meeting-card__header">
+                            <h3 th:text="${meeting.title}">주말 맛집 탐방</h3>
+                            <span class="status-pill" th:text="${meeting.category}">맛집</span>
+                        </div>
+                        <p class="meeting-card__place" th:text="${meeting.meetingPlaceName}">어니언 성수</p>
+                        <div class="meta-row">
+                            <span th:text="${meeting.dateLabel}">2026. 4. 20.</span>
+                            <span th:text="${meeting.timeLabel}">19:30</span>
+                            <span th:text="'참여자 ' + ${meeting.participantCount} + '명'">참여자 3명</span>
+                        </div>
+                    </summary>
+                    <div class="meeting-card__detail">
+                        <div class="info-list">
+                            <article class="info-item info-item--accent">
+                                <span class="info-item__label">만날 지점</span>
+                                <strong th:text="${meeting.meetingPlaceName}">어니언 성수</strong>
+                                <small th:text="${#strings.isEmpty(meeting.meetingPlaceAddress) ? '주소 정보 없음' : meeting.meetingPlaceAddress}">서울 성동구 아차산로9길 8</small>
+                            </article>
+                            <article class="info-item">
+                                <span class="info-item__label">모임 내용</span>
+                                <strong th:text="${#strings.isEmpty(meeting.description) ? '등록된 설명이 없습니다.' : meeting.description}">주말에 새로운 맛집 찾아가요!</strong>
+                            </article>
+                        </div>
+                        <form class="meeting-delete-form" method="post" th:action="@{/profile/meetings/delete}">
+                            <input type="hidden" name="meetingId" th:value="${meeting.id}">
+                            <button class="danger-button danger-button--compact" type="submit">모임 삭제</button>
+                        </form>
+                    </div>
+                </details>
+            </div>
+            <p class="empty-state" th:if="${#lists.isEmpty(createdMeetings)}">아직 생성한 모임이 없습니다.</p>
+        </section>
+
     </main>
 
     <nav th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>

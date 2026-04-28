@@ -2,6 +2,8 @@ package com.kopo.wemeet.controller;
 
 import com.kopo.wemeet.util.WemeetViewHelper;
 
+import com.kopo.wemeet.dto.MeetingDTO;
+import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IWemeetViewService;
@@ -13,6 +15,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.List;
+
 @Controller
 public class MyPageController {
 
@@ -21,23 +25,46 @@ public class MyPageController {
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;
     private final WemeetViewHelper viewHelper;
+    private final WemeetDataStore store;
 
     public MyPageController(
             IWemeetViewService viewService,
             IApiAuthService authService,
-            WemeetViewHelper viewHelper
+            WemeetViewHelper viewHelper,
+            WemeetDataStore store
     ) {
         this.viewService = viewService;
         this.authService = authService;
         this.viewHelper = viewHelper;
+        this.store = store;
     }
 
     @GetMapping("/profile")
     public String profile(Model model, HttpSession session) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
+        List<MeetingDTO.CreatedMeeting> createdMeetings = viewService.getCreatedMeetings(currentUser.getId());
+        List<MeetingDTO.CreatedMeeting> participatingMeetings = viewService.getParticipatingMeetings(currentUser.getId());
         viewHelper.populateCommon(model, "profile", false);
-        model.addAttribute("profile", viewHelper.toProfile(currentUser));
+        model.addAttribute("profile", viewHelper.toProfile(
+                currentUser,
+                createdMeetings.size(),
+                viewService.getFriends(currentUser.getId()).size(),
+                participatingMeetings.size()
+        ));
+        model.addAttribute("createdMeetings", createdMeetings);
         return "profile";
+    }
+
+    @PostMapping("/profile/meetings/delete")
+    public String deleteCreatedMeeting(
+            @RequestParam String meetingId,
+            HttpSession session,
+            RedirectAttributes redirectAttributes
+    ) {
+        AppUser currentUser = viewHelper.requireLoggedInUser(session);
+        store.deleteMeetingCreatedByUser(currentUser.getId(), meetingId);
+        redirectAttributes.addFlashAttribute("profileNotice", "모임이 삭제되었습니다.");
+        return "redirect:/profile";
     }
 
     @GetMapping("/profile/verify-password")

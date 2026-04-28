@@ -3,6 +3,7 @@ package com.kopo.wemeet.controller;
 import com.kopo.wemeet.dto.*;
 
 import com.kopo.wemeet.repository.AppUserRepository;
+import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.service.impl.NaverPlaceSearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +44,9 @@ class WemeetControllerTest {
 
     @Autowired
     private AppUserRepository userRepository;
+
+    @Autowired
+    private WemeetDataStore store;
 
     @MockitoBean
     private NaverPlaceSearchService naverPlaceSearchService;
@@ -137,6 +143,8 @@ class WemeetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("어디서 출발하시나요?")))
                 .andExpect(content().string(containsString("출발지 주소")))
+                .andExpect(content().string(containsString("이동수단")))
+                .andExpect(content().string(containsString("name=\"routeMode\"")))
                 .andExpect(content().string(containsString("네이버 기반 추천 보기")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("네이버로 검색"))));
     }
@@ -290,6 +298,34 @@ class WemeetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("서울특별시 강남구 테헤란로 123")))
                 .andExpect(content().string(containsString("기본 출발지 주소가 수정되었습니다.")));
+    }
+
+    @Test
+    void profilePageShowsMeetingsCreatedByCurrentUser() throws Exception {
+        MockHttpSession session = signupAndLogin("profilemeeting01", "profilemeeting01@wemeet.local");
+        String userId = userRepository.findByLoginId("profilemeeting01").orElseThrow().getId();
+
+        store.createMeeting(
+                userId,
+                "프로필에서 보이는 모임",
+                "내가 만든 모임 설명",
+                LocalDate.of(2026, 5, 10),
+                LocalTime.of(18, 30),
+                "카페",
+                "프로필 테스트 카페",
+                "서울특별시 중구 테스트로 10",
+                List.of()
+        );
+
+        mockMvc.perform(get("/profile").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("내가 생성한 모임")))
+                .andExpect(content().string(containsString("프로필에서 보이는 모임")))
+                .andExpect(content().string(containsString("내가 만든 모임 설명")))
+                .andExpect(content().string(containsString("프로필 테스트 카페")))
+                .andExpect(content().string(containsString("서울특별시 중구 테스트로 10")))
+                .andExpect(content().string(containsString("2026. 5. 10.")))
+                .andExpect(content().string(containsString("참여자 1명")));
     }
 
     @Test
@@ -514,6 +550,8 @@ class WemeetControllerTest {
                 .andExpect(content().string(not(containsString("친구 관리로 이동"))))
                 .andExpect(content().string(containsString("name=\"meetingHour\"")))
                 .andExpect(content().string(containsString("name=\"meetingMinute\"")))
+                .andExpect(content().string(containsString("이동수단")))
+                .andExpect(content().string(containsString("name=\"routeMode\"")))
                 .andExpect(content().string(containsString("박민수")))
                 .andExpect(content().string(containsString("이영희")))
                 .andExpect(content().string(containsString("서울특별시 마포구 공덕동")))
@@ -534,9 +572,66 @@ class WemeetControllerTest {
                         .param("meetingName", "저녁 모임")
                         .param("meetingDate", "2026-04-20")
                         .param("meetingHour", "19")
-                        .param("meetingMinute", "30"))
+                        .param("meetingMinute", "30")
+                        .param("routeMode", "transit"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("중구 로컬 카페")));
+                .andExpect(content().string(containsString("중구 로컬 카페")))
+                .andExpect(content().string(containsString("이 인원으로 모임 생성")))
+                .andExpect(content().string(containsString("data-route-mode=\"car\"")))
+                .andExpect(content().string(containsString("data-route-mode=\"transit\"")))
+                .andExpect(content().string(containsString("data-route-mode=\"walk\"")));
+    }
+
+    @Test
+    void meetingCreateAddsMeetingToSelectedParticipants() throws Exception {
+        MockHttpSession session = signupAndLogin("meetingcreate01", "meetingcreate01@wemeet.local");
+        addFriend(session, "meetingcreate01", "FRIEND456");
+        String friendId = userRepository.findByLoginId("user456").orElseThrow().getId();
+
+        mockMvc.perform(post("/meetings")
+                        .session(session)
+                        .param("meetingName", "참여자에게 추가되는 모임")
+                        .param("meetingDescription", "선택 인원과 함께 저장됩니다")
+                        .param("meetingDate", "2026-05-12")
+                        .param("meetingTime", "18:30")
+                        .param("meetingPlaceName", "명륜진사갈비 서울후암점")
+                        .param("meetingPlaceAddress", "서울특별시 용산구 후암로 35-1 1층")
+                        .param("category", "맛집")
+                        .param("friendIds", friendId))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/profile"));
+
+        assertTrue(store.listMeetingsForUser(friendId).stream()
+                .anyMatch(meeting -> "참여자에게 추가되는 모임".equals(meeting.title())
+                        && "명륜진사갈비 서울후암점".equals(meeting.meetingPlaceName())));
+    }
+
+    @Test
+    void profileCanDeleteCreatedMeeting() throws Exception {
+        MockHttpSession session = signupAndLogin("meetingdelete01", "meetingdelete01@wemeet.local");
+        String userId = userRepository.findByLoginId("meetingdelete01").orElseThrow().getId();
+        String meetingId = store.createMeeting(
+                userId,
+                "삭제될 모임",
+                "삭제 테스트",
+                LocalDate.of(2026, 6, 1),
+                LocalTime.of(20, 0),
+                "문화",
+                "삭제 테스트 장소",
+                "서울특별시 중구 삭제로 1",
+                List.of()
+        ).id();
+
+        mockMvc.perform(post("/profile/meetings/delete")
+                        .session(session)
+                        .param("meetingId", meetingId))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/profile"));
+
+        mockMvc.perform(get("/profile").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("모임이 삭제되었습니다.")))
+                .andExpect(content().string(not(containsString("삭제될 모임"))));
     }
 
     private MockHttpSession verifiedSignupSession(String email) {

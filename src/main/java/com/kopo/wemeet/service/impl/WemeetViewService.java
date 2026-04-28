@@ -121,6 +121,20 @@ public class WemeetViewService implements IWemeetViewService {
     }
 
     @Override
+    public List<MeetingDTO.CreatedMeeting> getCreatedMeetings(String userId) {
+        return store.listMeetingsCreatedByUser(userId).stream()
+                .map(this::toCreatedMeeting)
+                .toList();
+    }
+
+    @Override
+    public List<MeetingDTO.CreatedMeeting> getParticipatingMeetings(String userId) {
+        return store.listMeetingsForUser(userId).stream()
+                .map(this::toCreatedMeeting)
+                .toList();
+    }
+
+    @Override
     public UserDTO.UserResponse addFriendByCode(String userId, String friendCode) {
         // 친구 코드를 입력하면 즉시 친구가 되지 않고 상대에게 승인 요청을 보낸다.
         return authService.toUserResponse(store.addFriendByCode(userId, friendCode));
@@ -209,7 +223,8 @@ public class WemeetViewService implements IWemeetViewService {
                                         time.participantId(),
                                         time.participantName(),
                                         time.minutes(),
-                                        time.routePath()
+                                        time.routePath(),
+                                        time.routeModes()
                                 ))
                                 .toList()
                 ))
@@ -305,7 +320,8 @@ public class WemeetViewService implements IWemeetViewService {
                                                 time.participantId(),
                                                 time.participantName(),
                                                 time.minutes(),
-                                                time.routePath()
+                                                time.routePath(),
+                                                time.routeModes()
                                         ))
                                         .toList()
                         ))
@@ -340,6 +356,20 @@ public class WemeetViewService implements IWemeetViewService {
                 "@" + request.loginId(),
                 request.baseAddress(),
                 request.requestedOn().format(historyFormatter)
+        );
+    }
+
+    private MeetingDTO.CreatedMeeting toCreatedMeeting(WemeetDataStore.MeetingRecord meeting) {
+        return new MeetingDTO.CreatedMeeting(
+                meeting.id(),
+                meeting.title(),
+                meeting.description(),
+                meeting.meetingDate().format(historyFormatter),
+                meeting.meetingTime() == null ? "시간 미정" : meeting.meetingTime().toString(),
+                meeting.category(),
+                meeting.meetingPlaceName() == null || meeting.meetingPlaceName().isBlank() ? "만날 지점 미정" : meeting.meetingPlaceName(),
+                meeting.meetingPlaceAddress() == null ? "" : meeting.meetingPlaceAddress(),
+                meeting.participantIds().size()
         );
     }
 }

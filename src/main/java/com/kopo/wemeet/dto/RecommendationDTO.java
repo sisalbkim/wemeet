@@ -42,11 +42,27 @@ public final class RecommendationDTO {
             String participantId,
             String participantName,
             int minutes,
-            List<RoutePointResponse> routePath
+            List<RoutePointResponse> routePath,
+            List<RouteModeResponse> routeModes
     ) {
         public TravelTimeResponse(String participantId, String participantName, int minutes) {
             this(participantId, participantName, minutes, List.of());
         }
+
+        public TravelTimeResponse(String participantId, String participantName, int minutes, List<RoutePointResponse> routePath) {
+            this(participantId, participantName, minutes, routePath, List.of(
+                    new RouteModeResponse("car", "자동차", minutes, routePath, true)
+            ));
+        }
+    }
+
+    public record RouteModeResponse(
+            String mode,
+            String label,
+            int minutes,
+            List<RoutePointResponse> routePath,
+            boolean available
+    ) {
     }
 
     public record RoutePointResponse(
@@ -116,10 +132,17 @@ public final class RecommendationDTO {
             String participantId,
             String participantName,
             int minutes,
-            List<RoutePointResponse> routePath
+            List<RoutePointResponse> routePath,
+            List<RouteModeResponse> routeModes
     ) {
         public TravelTime(String participantName, int minutes) {
             this("", participantName, minutes, List.of());
+        }
+
+        public TravelTime(String participantId, String participantName, int minutes, List<RoutePointResponse> routePath) {
+            this(participantId, participantName, minutes, routePath, List.of(
+                    new RouteModeResponse("car", "자동차", minutes, routePath, true)
+            ));
         }
     }
 

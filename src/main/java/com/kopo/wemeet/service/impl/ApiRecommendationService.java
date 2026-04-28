@@ -29,6 +29,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     private final OpenApiRoutingService openApiRoutingService;
     private final NaverPlaceSearchService naverPlaceSearchService;
     private final RecommendationCacheService recommendationCacheService;
+    private final TmapTransitRoutingService tmapTransitRoutingService;
 
     // 내부 화면/API에서 공통으로 쓰는 추천 카테고리 목록이다.
     private final List<String> categories = List.of("맛집", "카페", "놀이", "문화", "운동", "기타");
@@ -50,12 +51,14 @@ public class ApiRecommendationService implements IApiRecommendationService {
             WemeetDataStore store,
             OpenApiRoutingService openApiRoutingService,
             NaverPlaceSearchService naverPlaceSearchService,
-            RecommendationCacheService recommendationCacheService
+            RecommendationCacheService recommendationCacheService,
+            TmapTransitRoutingService tmapTransitRoutingService
     ) {
         this.store = store;
         this.openApiRoutingService = openApiRoutingService;
         this.naverPlaceSearchService = naverPlaceSearchService;
         this.recommendationCacheService = recommendationCacheService;
+        this.tmapTransitRoutingService = tmapTransitRoutingService;
     }
 
     @Override
@@ -337,7 +340,10 @@ public class ApiRecommendationService implements IApiRecommendationService {
                                 .minutes(),
                         travelResolution.travelByUserId()
                                 .getOrDefault(participant.id(), new ParticipantRouteEstimate(place.durationMinutes(), List.of()))
-                                .routePath()
+                                .routePath(),
+                        travelResolution.travelByUserId()
+                                .getOrDefault(participant.id(), new ParticipantRouteEstimate(place.durationMinutes(), List.of()))
+                                .routeModes()
                 ))
                 .toList();
 
@@ -387,9 +393,11 @@ public class ApiRecommendationService implements IApiRecommendationService {
         GeoPoint destination = new GeoPoint(place.latitude(), place.longitude());
         if (participants.size() == 1) {
             return new TravelResolution(
-                    Map.of(participants.get(0).id(), new ParticipantRouteEstimate(
+                    Map.of(participants.get(0).id(), buildRouteEstimate(
                             place.durationMinutes(),
-                            toRecommendationRoutePath(place.routePath(), participantPoints.get(0), destination)
+                            toRecommendationRoutePath(place.routePath(), participantPoints.get(0), destination),
+                            participantPoints.get(0),
+                            destination
                     )),
                     false
             );
@@ -409,18 +417,23 @@ public class ApiRecommendationService implements IApiRecommendationService {
             if (travelRoute.isEmpty()) {
                 return new TravelResolution(buildHeuristicTravelEstimates(place, participants, participantPoints), true);
             }
-            routedTravel.put(participant.id(), new ParticipantRouteEstimate(
+            routedTravel.put(participant.id(), buildRouteEstimate(
                     travelRoute.get().durationMinutes(),
-                    toRecommendationRoutePath(travelRoute.get().routePath(), origin, destination)
+                    toRecommendationRoutePath(travelRoute.get().routePath(), origin, destination),
+                    origin,
+                    destination
             ));
         }
 
         for (ParticipantProfile participant : participants) {
             if (normalizeAddressForCache(participant.baseAddress()).equals(normalizeAddressForCache(placeSearch.origin().address()))
                     || normalizeAddressForCache(participant.baseAddress()).equals(normalizeAddressForCache(placeSearch.origin().query()))) {
-                routedTravel.put(participant.id(), new ParticipantRouteEstimate(
+                GeoPoint origin = participantPoints.get(participants.indexOf(participant));
+                routedTravel.put(participant.id(), buildRouteEstimate(
                         place.durationMinutes(),
-                        toRecommendationRoutePath(place.routePath(), participantPoints.get(participants.indexOf(participant)), destination)
+                        toRecommendationRoutePath(place.routePath(), origin, destination),
+                        origin,
+                        destination
                 ));
             }
         }
@@ -439,13 +452,44 @@ public class ApiRecommendationService implements IApiRecommendationService {
             GeoPoint origin = participantPoints.get(index);
             heuristicTravel.put(
                     participants.get(index).id(),
-                    new ParticipantRouteEstimate(
+                    buildRouteEstimate(
                             estimateTravelMinutesHeuristically(origin, destination),
-                            straightRoutePath(origin, destination)
+                            straightRoutePath(origin, destination),
+                            origin,
+                            destination
                     )
             );
         }
         return heuristicTravel;
+    }
+
+    private ParticipantRouteEstimate buildRouteEstimate(
+            int carMinutes,
+            List<RecommendationDTO.RoutePointResponse> carRoutePath,
+            GeoPoint origin,
+            GeoPoint destination
+    ) {
+        List<RecommendationDTO.RoutePointResponse> straightPath = straightRoutePath(origin, destination);
+        Optional<TmapTransitRoutingService.TransitRouteEstimate> transitRoute = tmapTransitRoutingService.estimateTransitRoute(
+                origin.latitude(),
+                origin.longitude(),
+                destination.latitude(),
+                destination.longitude()
+        );
+        int walkingMinutes = estimateWalkingMinutes(origin, destination);
+
+        List<RecommendationDTO.RouteModeResponse> routeModes = new ArrayList<>();
+        routeModes.add(new RecommendationDTO.RouteModeResponse("car", "자동차", carMinutes, carRoutePath, true));
+        routeModes.add(new RecommendationDTO.RouteModeResponse(
+                "transit",
+                "대중교통",
+                transitRoute.map(TmapTransitRoutingService.TransitRouteEstimate::minutes).orElse(0),
+                transitRoute.map(TmapTransitRoutingService.TransitRouteEstimate::routePath).orElse(List.of()),
+                transitRoute.isPresent()
+        ));
+        routeModes.add(new RecommendationDTO.RouteModeResponse("walk", "걷기", walkingMinutes, straightPath, true));
+
+        return new ParticipantRouteEstimate(carMinutes, carRoutePath, routeModes);
     }
 
     private List<RecommendationDTO.RoutePointResponse> toRecommendationRoutePath(
@@ -469,10 +513,19 @@ public class ApiRecommendationService implements IApiRecommendationService {
     }
 
     private int estimateTravelMinutesHeuristically(GeoPoint origin, GeoPoint destination) {
+        double distanceKm = distanceKilometers(origin, destination);
+        return Math.max(3, (int) Math.round(distanceKm * 4.8d + 2d));
+    }
+
+    private int estimateWalkingMinutes(GeoPoint origin, GeoPoint destination) {
+        double distanceKm = distanceKilometers(origin, destination);
+        return Math.max(1, (int) Math.round((distanceKm / 4.5d) * 60d));
+    }
+
+    private double distanceKilometers(GeoPoint origin, GeoPoint destination) {
         double latKm = Math.abs(origin.latitude() - destination.latitude()) * 111d;
         double lonKm = Math.abs(origin.longitude() - destination.longitude()) * 88d;
-        double distanceKm = Math.sqrt((latKm * latKm) + (lonKm * lonKm));
-        return Math.max(3, (int) Math.round(distanceKm * 4.8d + 2d));
+        return Math.sqrt((latKm * latKm) + (lonKm * lonKm));
     }
 
     private SearchAnchor resolveSearchAnchor(
@@ -933,9 +986,15 @@ public class ApiRecommendationService implements IApiRecommendationService {
 
     private record ParticipantRouteEstimate(
             int minutes,
-            List<RecommendationDTO.RoutePointResponse> routePath
+            List<RecommendationDTO.RoutePointResponse> routePath,
+            List<RecommendationDTO.RouteModeResponse> routeModes
     ) {
         // 지도 렌더링에 필요한 참가자별 이동시간과 경로 좌표다.
+        private ParticipantRouteEstimate(int minutes, List<RecommendationDTO.RoutePointResponse> routePath) {
+            this(minutes, routePath, List.of(
+                    new RecommendationDTO.RouteModeResponse("car", "자동차", minutes, routePath, true)
+            ));
+        }
     }
 
     private record SearchAnchor(

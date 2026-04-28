@@ -400,6 +400,38 @@ textarea {
     color: var(--primary);
 }
 
+.route-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.route-mode-tabs {
+    display: inline-flex;
+    overflow: hidden;
+    border: 1px solid rgba(91, 112, 152, 0.16);
+    border-radius: 999px;
+    background: rgba(24, 32, 51, 0.04);
+}
+
+.route-mode-tabs__button {
+    min-height: 38px;
+    padding: 0 12px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.route-mode-tabs__button.is-active {
+    background: var(--primary);
+    color: #ffffff;
+}
+
 .section-heading h2,
 .page-heading h1,
 .venue-card h2,
@@ -508,11 +540,79 @@ textarea {
     gap: 6px;
 }
 
+.meeting-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.meeting-card__header .status-pill {
+    flex-shrink: 0;
+}
+
 .meeting-card p,
 .history-card strong,
 .friend-card strong,
 .venue-card__reason {
     margin: 0;
+}
+
+.meeting-card--profile p {
+    color: var(--muted);
+}
+
+.meeting-card--details {
+    display: block;
+}
+
+.meeting-card__summary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.meeting-card__summary::-webkit-details-marker {
+    display: none;
+}
+
+.meeting-card__summary::after {
+    content: "상세 보기";
+    align-self: flex-start;
+    color: var(--primary);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.meeting-card--details[open] .meeting-card__summary::after {
+    content: "접기";
+}
+
+.meeting-card__place {
+    font-weight: 700;
+}
+
+.meeting-card__detail {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(91, 112, 152, 0.12);
+}
+
+.meeting-delete-form {
+    margin-top: 12px;
+}
+
+.danger-button--compact {
+    min-height: 42px;
+    width: auto;
+    padding: 0 16px;
+}
+
+.info-item small {
+    color: var(--muted);
+    line-height: 1.45;
 }
 
 .meta-row {
@@ -1120,6 +1220,47 @@ textarea {
 
 .result-stats {
     margin-top: 18px;
+}
+
+.meeting-create-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.meeting-create-panel {
+    margin-top: 14px;
+    padding: 16px;
+    border: 1px solid rgba(47, 107, 255, 0.18);
+    border-radius: var(--radius-md);
+    background: rgba(47, 107, 255, 0.06);
+}
+
+.meeting-create-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    color: var(--muted);
+}
+
+.meeting-create-summary span {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(24, 32, 51, 0.06);
+}
+
+.meeting-create-summary strong {
+    color: var(--text);
+}
+
+.meeting-create-address {
+    margin: -4px 0 0;
+    color: var(--muted);
+    line-height: 1.5;
 }
 
 .map-placeholder {

@@ -42,6 +42,12 @@ public class Meeting {
     @Column(length = 30, nullable = false)
     private String category;
 
+    @Column(length = 160)
+    private String meetingPlaceName;
+
+    @Column(length = 500)
+    private String meetingPlaceAddress;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "host_user_id", nullable = false)
     private AppUser host;
@@ -56,12 +62,28 @@ public class Meeting {
     }
 
     public Meeting(String id, String title, String description, LocalDate meetingDate, LocalTime meetingTime, String category, AppUser host) {
+        this(id, title, description, meetingDate, meetingTime, category, "", "", host);
+    }
+
+    public Meeting(
+            String id,
+            String title,
+            String description,
+            LocalDate meetingDate,
+            LocalTime meetingTime,
+            String category,
+            String meetingPlaceName,
+            String meetingPlaceAddress,
+            AppUser host
+    ) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.meetingDate = meetingDate;
         this.meetingTime = meetingTime;
         this.category = category;
+        this.meetingPlaceName = meetingPlaceName;
+        this.meetingPlaceAddress = meetingPlaceAddress;
         this.host = host;
     }
 
@@ -98,6 +120,14 @@ public class Meeting {
 
     public String getCategory() {
         return category;
+    }
+
+    public String getMeetingPlaceName() {
+        return meetingPlaceName;
+    }
+
+    public String getMeetingPlaceAddress() {
+        return meetingPlaceAddress;
     }
 
     public AppUser getHost() {

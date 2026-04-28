@@ -13,6 +13,7 @@ public class OpenApiProperties {
     private String routeProfile = "driving";
     private NaverSearch naverSearch = new NaverSearch();
     private NaverMaps naverMaps = new NaverMaps();
+    private Tmap tmap = new Tmap();
 
     public boolean isEnabled() {
         return enabled;
@@ -70,6 +71,14 @@ public class OpenApiProperties {
         this.naverMaps = naverMaps;
     }
 
+    public Tmap getTmap() {
+        return tmap;
+    }
+
+    public void setTmap(Tmap tmap) {
+        this.tmap = tmap;
+    }
+
     public boolean isNaverSearchConfigured() {
         return naverSearch != null
                 && naverSearch.getClientId() != null
@@ -84,6 +93,13 @@ public class OpenApiProperties {
                 && !naverMaps.getApiKeyId().isBlank()
                 && naverMaps.getApiKey() != null
                 && !naverMaps.getApiKey().isBlank();
+    }
+
+    public boolean isTmapConfigured() {
+        return tmap != null
+                && tmap.isEnabled()
+                && tmap.getAppKey() != null
+                && !tmap.getAppKey().isBlank();
     }
 
     public static class NaverSearch {
@@ -181,6 +197,54 @@ public class OpenApiProperties {
 
         public void setRouteOption(String routeOption) {
             this.routeOption = routeOption;
+        }
+    }
+
+    public static class Tmap {
+        private boolean enabled = true;
+        private String baseUrl = "https://apis.openapi.sk.com";
+        private String appKey = "";
+        private String transitPath = "/transit/routes";
+        private String transitSummaryPath = "/transit/routes/sub";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public String getAppKey() {
+            return appKey;
+        }
+
+        public void setAppKey(String appKey) {
+            this.appKey = appKey;
+        }
+
+        public String getTransitPath() {
+            return transitPath;
+        }
+
+        public void setTransitPath(String transitPath) {
+            this.transitPath = transitPath;
+        }
+
+        public String getTransitSummaryPath() {
+            return transitSummaryPath;
+        }
+
+        public void setTransitSummaryPath(String transitSummaryPath) {
+            this.transitSummaryPath = transitSummaryPath;
         }
     }
 }

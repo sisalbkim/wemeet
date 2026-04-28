@@ -172,6 +172,21 @@ public class WemeetDataStore {
             String category,
             List<String> participantIds
     ) {
+        return createMeeting(hostUserId, title, description, meetingDate, meetingTime, category, "", "", participantIds);
+    }
+
+    @Transactional
+    public MeetingRecord createMeeting(
+            String hostUserId,
+            String title,
+            String description,
+            LocalDate meetingDate,
+            LocalTime meetingTime,
+            String category,
+            String meetingPlaceName,
+            String meetingPlaceAddress,
+            List<String> participantIds
+    ) {
         // 모임 생성 시 host는 항상 참가자 목록에 포함되도록 강제한다.
         if (title == null || title.isBlank() || meetingDate == null || category == null || category.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "title, meetingDate, and category are required");
@@ -195,6 +210,8 @@ public class WemeetDataStore {
                 meetingDate,
                 meetingTime,
                 category.trim(),
+                meetingPlaceName == null ? "" : meetingPlaceName.trim(),
+                meetingPlaceAddress == null ? "" : meetingPlaceAddress.trim(),
                 host
         );
         for (AppUser participant : participants) {
@@ -211,6 +228,26 @@ public class WemeetDataStore {
         return meetingRepository.findAllParticipatingByUserId(userId).stream()
                 .map(this::toMeetingRecord)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<MeetingRecord> listMeetingsCreatedByUser(String userId) {
+        return meetingRepository.findAllCreatedByUserId(userId).stream()
+                .map(this::toMeetingRecord)
+                .toList();
+    }
+
+    @Transactional
+    public void deleteMeetingCreatedByUser(String userId, String meetingId) {
+        if (meetingId == null || meetingId.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "meetingId is required");
+        }
+        Meeting meeting = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Meeting not found"));
+        if (!meeting.getHost().getId().equals(userId)) {
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Only the host can delete this meeting");
+        }
+        meetingRepository.delete(meeting);
     }
 
     @Transactional
@@ -293,6 +330,8 @@ public class WemeetDataStore {
                 meeting.getMeetingDate(),
                 meeting.getMeetingTime(),
                 meeting.getCategory(),
+                meeting.getMeetingPlaceName(),
+                meeting.getMeetingPlaceAddress(),
                 meeting.getHost().getId(),
                 participantIds,
                 meeting.getCreatedAt()
@@ -319,6 +358,8 @@ public class WemeetDataStore {
             LocalDate meetingDate,
             LocalTime meetingTime,
             String category,
+            String meetingPlaceName,
+            String meetingPlaceAddress,
             String hostUserId,
             List<String> participantIds,
             LocalDateTime createdAt

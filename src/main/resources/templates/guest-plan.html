@@ -38,6 +38,27 @@
                 <p class="muted-note">선택한 카테고리를 기준으로 `한식`, `디저트`, `미술관` 같은 검색어로 자동 보정해 네이버에서 찾습니다.</p>
             </section>
 
+            <section class="panel">
+                <div class="section-heading">
+                    <h2>이동수단</h2>
+                    <span>처음 추천 결과에서 볼 경로 기준을 고릅니다</span>
+                </div>
+                <div class="radio-grid radio-grid--three-up">
+                    <label class="choice-chip" th:classappend="${selectedRouteMode == 'car'} ? ' is-selected'">
+                        <input type="radio" name="routeMode" value="car" th:checked="${selectedRouteMode == 'car'}">
+                        <span>자동차</span>
+                    </label>
+                    <label class="choice-chip" th:classappend="${selectedRouteMode == 'transit'} ? ' is-selected'">
+                        <input type="radio" name="routeMode" value="transit" th:checked="${selectedRouteMode == 'transit'}">
+                        <span>대중교통</span>
+                    </label>
+                    <label class="choice-chip" th:classappend="${selectedRouteMode == 'walk'} ? ' is-selected'">
+                        <input type="radio" name="routeMode" value="walk" th:checked="${selectedRouteMode == 'walk'}">
+                        <span>걷기</span>
+                    </label>
+                </div>
+            </section>
+
             <input type="hidden" name="mode" value="CENTER">
 
             <div class="submit-row">
