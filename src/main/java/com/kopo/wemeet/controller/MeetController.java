@@ -168,7 +168,8 @@ public class MeetController {
                 request.category(),
                 List.of(),
                 request.mode(),
-                request.anchorParticipantId()
+                request.anchorParticipantId(),
+                request.routeMode()
         );
         return recommendationService.recommendForGuest(guestUser, recommendationRequest);
     }
@@ -259,7 +260,10 @@ public class MeetController {
     }
 
     private String normalizeRouteMode(String routeMode) {
-        if ("transit".equalsIgnoreCase(routeMode) || "walk".equalsIgnoreCase(routeMode)) {
+        if ("transit".equalsIgnoreCase(routeMode) && viewHelper.isTransitEnabled()) {
+            return "transit";
+        }
+        if ("walk".equalsIgnoreCase(routeMode)) {
             return routeMode.toLowerCase(java.util.Locale.ROOT);
         }
         return "car";

@@ -137,7 +137,7 @@
                         <input type="radio" name="routeMode" value="car" th:checked="${selectedRouteMode == 'car'}">
                         <span>자동차</span>
                     </label>
-                    <label class="choice-chip" th:classappend="${selectedRouteMode == 'transit'} ? ' is-selected'">
+                    <label class="choice-chip" th:if="${tmapTransitEnabled}" th:classappend="${selectedRouteMode == 'transit'} ? ' is-selected'">
                         <input type="radio" name="routeMode" value="transit" th:checked="${selectedRouteMode == 'transit'}">
                         <span>대중교통</span>
                     </label>

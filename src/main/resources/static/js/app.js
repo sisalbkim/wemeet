@@ -121,6 +121,33 @@ document.addEventListener("DOMContentLoaded", () => {
             activeRouteLines = [];
         };
 
+        const hasRenderableRouteForMode = (card, mode) => {
+            if (!card) {
+                return false;
+            }
+            return Array.from(card.querySelectorAll(`[data-venue-route][data-route-mode="${mode}"]`))
+                .some((routeNode) => {
+                    if (routeNode.dataset.routeAvailable === "false") {
+                        return false;
+                    }
+                    const path = readRoutePath(routeNode);
+                    if (path.length >= 2) {
+                        return true;
+                    }
+                    return mode !== "transit" && buildFallbackRoutePath(routeNode, card).length >= 2;
+                });
+        };
+
+        const resolvePreferredVenueCard = (mode) => {
+            const activeCard = activeVenueCard ?? venueCards[0] ?? null;
+            if (hasRenderableRouteForMode(activeCard, mode)) {
+                return activeCard;
+            }
+
+            const fallbackCard = venueCards.find((card) => hasRenderableRouteForMode(card, mode));
+            return fallbackCard ?? activeCard;
+        };
+
         const syncRouteToggleButton = () => {
             if (!(routeToggleButton instanceof HTMLButtonElement)) {
                 return;
@@ -137,8 +164,11 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             Array.from(card.querySelectorAll(`[data-venue-route][data-route-mode="${activeRouteMode}"]`))
-                .filter((routeNode) => routeNode.dataset.routeAvailable !== "false")
                 .forEach((routeNode, index) => {
+                if (activeRouteMode !== "transit" && routeNode.dataset.routeAvailable === "false") {
+                    return;
+                }
+
                 let path = readRoutePath(routeNode);
                 if (path.length < 2 && activeRouteMode !== "transit") {
                     path = buildFallbackRoutePath(routeNode, card);
@@ -194,7 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
         routeToggleButton?.addEventListener("click", () => {
             routesVisible = !routesVisible;
             syncRouteToggleButton();
-            drawRoutesForCard(activeVenueCard ?? venueCards[0] ?? null);
+            drawRoutesForCard(resolvePreferredVenueCard(activeRouteMode));
         });
 
         syncRouteToggleButton();
@@ -204,8 +234,15 @@ document.addEventListener("DOMContentLoaded", () => {
             button.addEventListener("click", () => {
                 activeRouteMode = button.dataset.routeMode || "car";
                 syncRouteModeButtons();
-                drawRoutesForCard(activeVenueCard ?? venueCards[0] ?? null);
-                renderPanelTravelTimes(activeVenueCard ?? venueCards[0] ?? null);
+                const preferredCard = resolvePreferredVenueCard(activeRouteMode);
+                if (preferredCard && preferredCard !== activeVenueCard) {
+                    focusVenueCard(preferredCard);
+                    fillVenuePanel(preferredCard);
+                    openInfoWindow(preferredCard.dataset.mapTarget);
+                } else {
+                    drawRoutesForCard(preferredCard);
+                    renderPanelTravelTimes(preferredCard);
+                }
             });
         });
 
@@ -429,9 +466,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         if (venueCards.length > 0) {
-            focusVenueCard(venueCards[0]);
-            fillVenuePanel(venueCards[0]);
-            openInfoWindow(venueCards[0].dataset.mapTarget);
+            const preferredCard = resolvePreferredVenueCard(activeRouteMode);
+            focusVenueCard(preferredCard);
+            fillVenuePanel(preferredCard);
+            openInfoWindow(preferredCard.dataset.mapTarget);
         }
 
         venuePanelCallButton?.addEventListener("click", (event) => {

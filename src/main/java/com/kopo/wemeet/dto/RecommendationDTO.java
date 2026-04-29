@@ -11,7 +11,8 @@ public final class RecommendationDTO {
             String category,
             List<String> participantIds,
             String mode,
-            String anchorParticipantId
+            String anchorParticipantId,
+            String routeMode
     ) {
     }
 
@@ -19,7 +20,8 @@ public final class RecommendationDTO {
             String baseAddress,
             String category,
             String mode,
-            String anchorParticipantId
+            String anchorParticipantId,
+            String routeMode
     ) {
     }
 

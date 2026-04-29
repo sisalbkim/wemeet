@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Locale;
 
 @Controller
 public class MyPageController {
@@ -53,6 +54,45 @@ public class MyPageController {
         ));
         model.addAttribute("createdMeetings", createdMeetings);
         return "profile";
+    }
+
+    @GetMapping("/profile/meetings/results")
+    public String createdMeetingResults(
+            @RequestParam String meetingId,
+            @RequestParam(defaultValue = "car") String routeMode,
+            Model model,
+            HttpSession session
+    ) {
+        AppUser currentUser = viewHelper.requireLoggedInUser(session);
+        WemeetDataStore.MeetingRecord meeting = store.findMeetingCreatedByUser(currentUser.getId(), meetingId)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND,
+                        "Meeting not found"
+                ));
+        List<String> selectedFriendIds = meeting.participantIds().stream()
+                .filter(participantId -> !participantId.equals(currentUser.getId()))
+                .toList();
+
+        viewHelper.populateCommon(model, "profile", false);
+        model.addAttribute("profile", viewHelper.toProfile(currentUser));
+        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("guestAddress", "");
+        model.addAttribute("selectedCategory", meeting.category());
+        model.addAttribute("selectedMode", "CENTER");
+        model.addAttribute("selectedAnchorId", currentUser.getId());
+        model.addAttribute("selectedFriendIds", selectedFriendIds);
+        model.addAttribute("meetingCreationAvailable", false);
+        String normalizedRouteMode = normalizeRouteMode(routeMode);
+        model.addAttribute("selectedRouteMode", normalizedRouteMode);
+        model.addAttribute("recommendation", viewService.buildRecommendation(
+                currentUser.getId(),
+                meeting.category(),
+                selectedFriendIds,
+                "CENTER",
+                currentUser.getId(),
+                normalizedRouteMode
+        ));
+        return "search-results";
     }
 
     @PostMapping("/profile/meetings/delete")
@@ -192,5 +232,15 @@ public class MyPageController {
         redirectAttributes.addFlashAttribute("profilePasswordNotice", "비밀번호가 변경되었습니다.");
         redirectAttributes.addAttribute("editTab", "password");
         return "redirect:/profile/edit";
+    }
+
+    private String normalizeRouteMode(String routeMode) {
+        if ("transit".equalsIgnoreCase(routeMode) && viewHelper.isTransitEnabled()) {
+            return "transit";
+        }
+        if ("walk".equalsIgnoreCase(routeMode)) {
+            return routeMode.toLowerCase(Locale.ROOT);
+        }
+        return "car";
     }
 }

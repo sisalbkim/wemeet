@@ -145,6 +145,7 @@ class WemeetControllerTest {
                 .andExpect(content().string(containsString("출발지 주소")))
                 .andExpect(content().string(containsString("이동수단")))
                 .andExpect(content().string(containsString("name=\"routeMode\"")))
+                .andExpect(content().string(not(containsString("value=\"transit\""))))
                 .andExpect(content().string(containsString("네이버 기반 추천 보기")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("네이버로 검색"))));
     }
@@ -552,6 +553,7 @@ class WemeetControllerTest {
                 .andExpect(content().string(containsString("name=\"meetingMinute\"")))
                 .andExpect(content().string(containsString("이동수단")))
                 .andExpect(content().string(containsString("name=\"routeMode\"")))
+                .andExpect(content().string(not(containsString("value=\"transit\""))))
                 .andExpect(content().string(containsString("박민수")))
                 .andExpect(content().string(containsString("이영희")))
                 .andExpect(content().string(containsString("서울특별시 마포구 공덕동")))
@@ -576,10 +578,23 @@ class WemeetControllerTest {
                         .param("routeMode", "transit"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("중구 로컬 카페")))
-                .andExpect(content().string(containsString("이 인원으로 모임 생성")))
+                .andExpect(content().string(containsString("모임 저장")))
                 .andExpect(content().string(containsString("data-route-mode=\"car\"")))
-                .andExpect(content().string(containsString("data-route-mode=\"transit\"")))
+                .andExpect(content().string(not(containsString("data-route-mode=\"transit\""))))
                 .andExpect(content().string(containsString("data-route-mode=\"walk\"")));
+    }
+
+    @Test
+    void loggedInRecommendationPageDoesNotShowMeetingSavePanelWithoutPreview() throws Exception {
+        MockHttpSession session = signupAndLogin("resultsave01", "resultsave01@wemeet.local");
+        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
+
+        mockMvc.perform(get("/search/results")
+                        .session(session)
+                        .param("category", "카페"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("중구 로컬 카페")))
+                .andExpect(content().string(not(containsString("모임 저장"))));
     }
 
     @Test
@@ -632,6 +647,39 @@ class WemeetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("모임이 삭제되었습니다.")))
                 .andExpect(content().string(not(containsString("삭제될 모임"))));
+    }
+
+    @Test
+    void profileMeetingDetailCanOpenRecommendationResults() throws Exception {
+        MockHttpSession session = signupAndLogin("meetingresults01", "meetingresults01@wemeet.local");
+        addFriend(session, "meetingresults01", "FRIEND456");
+        String userId = userRepository.findByLoginId("meetingresults01").orElseThrow().getId();
+        String friendId = userRepository.findByLoginId("user456").orElseThrow().getId();
+        String meetingId = store.createMeeting(
+                userId,
+                "결과 다시 보기 모임",
+                "추천 결과로 다시 이동",
+                LocalDate.of(2026, 6, 8),
+                LocalTime.of(19, 0),
+                "카페",
+                "결과 테스트 카페",
+                "서울특별시 중구 결과로 1",
+                List.of(friendId)
+        ).id();
+
+        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
+
+        mockMvc.perform(get("/profile/meetings/results")
+                        .session(session)
+                        .param("meetingId", meetingId)
+                        .param("routeMode", "walk"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("중구 로컬 카페")))
+                .andExpect(content().string(containsString("카테고리 바꾸기")))
+                .andExpect(content().string(containsString("data-route-mode=\"car\"")))
+                .andExpect(content().string(not(containsString("data-route-mode=\"transit\""))))
+                .andExpect(content().string(containsString("data-route-mode=\"walk\"")))
+                .andExpect(content().string(containsString("이영희")));
     }
 
     private MockHttpSession verifiedSignupSession(String email) {

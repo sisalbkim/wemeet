@@ -59,7 +59,7 @@
                 <div th:if="${naverMapEnabled}" class="route-controls">
                     <div class="route-mode-tabs" role="tablist" aria-label="경로 보기 방식">
                         <button type="button" class="route-mode-tabs__button" th:classappend="${selectedRouteMode == 'car'} ? ' is-active'" data-route-mode-button data-route-mode="car" th:attr="aria-pressed=${selectedRouteMode == 'car'}">자동차</button>
-                        <button type="button" class="route-mode-tabs__button" th:classappend="${selectedRouteMode == 'transit'} ? ' is-active'" data-route-mode-button data-route-mode="transit" th:attr="aria-pressed=${selectedRouteMode == 'transit'}">대중교통</button>
+                        <button type="button" class="route-mode-tabs__button" th:if="${tmapTransitEnabled}" th:classappend="${selectedRouteMode == 'transit'} ? ' is-active'" data-route-mode-button data-route-mode="transit" th:attr="aria-pressed=${selectedRouteMode == 'transit'}">대중교통</button>
                         <button type="button" class="route-mode-tabs__button" th:classappend="${selectedRouteMode == 'walk'} ? ' is-active'" data-route-mode-button data-route-mode="walk" th:attr="aria-pressed=${selectedRouteMode == 'walk'}">걷기</button>
                     </div>
                     <button type="button"
@@ -141,10 +141,10 @@
                         <span>만날 지점 <strong th:text="${recommendation.venues[0].name}" data-meeting-place-name>어니언 성수</strong></span>
                         <span>날짜 <strong th:text="${meetingDate}">2026-04-20</strong></span>
                         <span>시간 <strong th:text="${#strings.isEmpty(meetingTime) ? '미정' : meetingTime}">19:30</strong></span>
-                        <span>인원 <strong th:text="${#lists.size(selectedFriendIds)} + '명'">3명</strong></span>
+                        <span>인원 <strong th:text="${#lists.size(selectedFriendIds) + 1} + '명'">3명</strong></span>
                     </div>
                     <p class="meeting-create-address" th:text="${recommendation.venues[0].description}" data-meeting-place-address>서울 성동구 아차산로9길 8</p>
-                    <button class="primary-button" type="submit">이 인원으로 모임 생성</button>
+                    <button class="primary-button" type="submit" data-loading-overlay-submit>모임 저장</button>
                 </form>
             </div>
             <div class="visually-hidden" id="recommendationMapData">
@@ -200,7 +200,7 @@
                     <span th:each="time : ${venue.travelTimes}" data-venue-time
                           th:attr="data-participant-id=${time.participantId}, data-name=${guestMode ? guestAddress : time.participantName}, data-minutes=${time.minutes}">18</span>
                     <span th:each="time : ${venue.travelTimes}">
-                        <span th:each="routeMode : ${time.routeModes}" data-venue-route
+                        <span th:each="routeMode : ${time.routeModes}" th:if="${tmapTransitEnabled or routeMode.mode != 'transit'}" data-venue-route
                               th:attr="data-venue-id=${'venue-' + venueStat.index},
                                        data-participant-id=${time.participantId},
                                        data-participant-name=${guestMode ? guestAddress : time.participantName},

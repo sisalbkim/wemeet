@@ -1,5 +1,6 @@
 package com.kopo.wemeet.util;
 
+import com.kopo.wemeet.config.OpenApiProperties;
 import com.kopo.wemeet.config.NaverMapProperties;
 import com.kopo.wemeet.dto.UserDTO;
 import com.kopo.wemeet.repository.entity.AppUser;
@@ -14,10 +15,16 @@ public class WemeetViewHelper {
 
     private final IApiAuthService authService;
     private final NaverMapProperties naverMapProperties;
+    private final OpenApiProperties openApiProperties;
 
-    public WemeetViewHelper(IApiAuthService authService, NaverMapProperties naverMapProperties) {
+    public WemeetViewHelper(
+            IApiAuthService authService,
+            NaverMapProperties naverMapProperties,
+            OpenApiProperties openApiProperties
+    ) {
         this.authService = authService;
         this.naverMapProperties = naverMapProperties;
+        this.openApiProperties = openApiProperties;
     }
 
     public void populateCommon(Model model, String activeTab, boolean guestMode) {
@@ -26,6 +33,11 @@ public class WemeetViewHelper {
         model.addAttribute("guestMode", guestMode);
         model.addAttribute("naverMapEnabled", naverMapProperties.isEnabled());
         model.addAttribute("naverMapKeyId", naverMapProperties.getKeyId());
+        model.addAttribute("tmapTransitEnabled", isTransitEnabled());
+    }
+
+    public boolean isTransitEnabled() {
+        return openApiProperties.isEnabled() && openApiProperties.isOdsayConfigured();
     }
 
     public AppUser findLoggedInUser(HttpSession session) {

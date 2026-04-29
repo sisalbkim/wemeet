@@ -604,6 +604,11 @@ textarea {
     margin-top: 12px;
 }
 
+.profile-meeting-actions {
+    display: flex;
+    margin-top: 12px;
+}
+
 .danger-button--compact {
     min-height: 42px;
     width: auto;

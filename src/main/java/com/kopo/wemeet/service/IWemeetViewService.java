@@ -45,13 +45,15 @@ public interface IWemeetViewService {
             String category,
             List<String> selectedFriendIds,
             String mode,
-            String anchorId
+            String anchorId,
+            String routeMode
     );
 
     RecommendationDTO.RecommendationBundle buildGuestRecommendation(
             String baseAddress,
             String category,
             String mode,
-            String anchorId
+            String anchorId,
+            String routeMode
     );
 }

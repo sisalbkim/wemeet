@@ -237,6 +237,17 @@ public class WemeetDataStore {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public Optional<MeetingRecord> findMeetingCreatedByUser(String userId, String meetingId) {
+        if (meetingId == null || meetingId.isBlank()) {
+            return Optional.empty();
+        }
+
+        return meetingRepository.findById(meetingId)
+                .filter(meeting -> meeting.getHost().getId().equals(userId))
+                .map(this::toMeetingRecord);
+    }
+
     @Transactional
     public void deleteMeetingCreatedByUser(String userId, String meetingId) {
         if (meetingId == null || meetingId.isBlank()) {

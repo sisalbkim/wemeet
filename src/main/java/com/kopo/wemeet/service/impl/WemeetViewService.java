@@ -184,12 +184,13 @@ public class WemeetViewService implements IWemeetViewService {
             String category,
             List<String> selectedFriendIds,
             String mode,
-            String anchorId
+            String anchorId,
+            String routeMode
     ) {
         // 추천 서비스 응답을 Thymeleaf 템플릿에서 쓰는 화면 전용 모델로 다시 묶는다.
         RecommendationDTO.RecommendationResponse response = recommendationService.recommend(
                 requesterId,
-                new RecommendationDTO.RecommendationRequest(normalizeCategory(category), selectedFriendIds, mode, anchorId),
+                new RecommendationDTO.RecommendationRequest(normalizeCategory(category), selectedFriendIds, mode, anchorId, routeMode),
                 authService
         );
 
@@ -263,7 +264,8 @@ public class WemeetViewService implements IWemeetViewService {
             String baseAddress,
             String category,
             String mode,
-            String anchorId
+            String anchorId,
+            String routeMode
     ) {
         UserDTO.UserProfile guestProfile = getGuestUser(baseAddress);
         UserDTO.UserResponse guestUser = new UserDTO.UserResponse(
@@ -277,7 +279,7 @@ public class WemeetViewService implements IWemeetViewService {
 
         RecommendationDTO.RecommendationResponse response = recommendationService.recommendForGuest(
                 guestUser,
-                new RecommendationDTO.RecommendationRequest(normalizeCategory(category), List.of(), mode, anchorId)
+                new RecommendationDTO.RecommendationRequest(normalizeCategory(category), List.of(), mode, anchorId, routeMode)
         );
 
         return new RecommendationDTO.RecommendationBundle(

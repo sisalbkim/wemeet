@@ -104,8 +104,9 @@ public class MeetingController {
         if (!guest) {
             currentUser = viewHelper.requireLoggedInUser(session);
         }
-        populateRecommendationModel(model, guest ? "nearby" : "home", currentUser, category, friendIds, mode, anchorId, guest, guestAddress);
-        model.addAttribute("selectedRouteMode", normalizeRouteMode(routeMode));
+        String normalizedRouteMode = normalizeRouteMode(routeMode);
+        populateRecommendationModel(model, guest ? "nearby" : "home", currentUser, category, friendIds, mode, anchorId, guest, guestAddress, normalizedRouteMode);
+        model.addAttribute("selectedRouteMode", normalizedRouteMode);
         return "search-results";
     }
 
@@ -125,13 +126,14 @@ public class MeetingController {
             HttpSession session
     ) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
-        populateRecommendationModel(model, "create", currentUser, category, friendIds, mode, anchorId, false, null);
+        String normalizedRouteMode = normalizeRouteMode(routeMode);
+        populateRecommendationModel(model, "create", currentUser, category, friendIds, mode, anchorId, false, null, normalizedRouteMode);
         model.addAttribute("meetingName", meetingName);
         model.addAttribute("meetingDescription", meetingDescription);
         model.addAttribute("meetingDate", meetingDate);
         model.addAttribute("meetingTime", composeMeetingTime(meetingHour, meetingMinute));
         model.addAttribute("meetingCreationAvailable", true);
-        model.addAttribute("selectedRouteMode", normalizeRouteMode(routeMode));
+        model.addAttribute("selectedRouteMode", normalizedRouteMode);
         return "search-results";
     }
 
@@ -235,7 +237,8 @@ public class MeetingController {
             String mode,
             String anchorId,
             boolean guestMode,
-            String guestAddress
+            String guestAddress,
+            String routeMode
     ) {
         viewHelper.populateCommon(model, activeTab, guestMode);
         UserDTO.UserProfile guestProfile = guestMode ? viewService.getGuestUser(guestAddress) : null;
@@ -249,15 +252,16 @@ public class MeetingController {
                 : anchorId);
         model.addAttribute("selectedFriendIds", guestMode ? List.of() : friendIds == null ? List.of() : friendIds);
         model.addAttribute("meetingCreationAvailable", false);
-        model.addAttribute("selectedRouteMode", "car");
+        model.addAttribute("selectedRouteMode", routeMode);
         model.addAttribute("recommendation", guestMode
-                ? viewService.buildGuestRecommendation(guestProfile.baseAddress(), category, mode, anchorId)
+                ? viewService.buildGuestRecommendation(guestProfile.baseAddress(), category, mode, anchorId, routeMode)
                 : viewService.buildRecommendation(
                         currentUser.getId(),
                         category,
                         friendIds,
                         mode,
-                        anchorId
+                        anchorId,
+                        routeMode
                 ));
     }
 
@@ -318,7 +322,10 @@ public class MeetingController {
     }
 
     private String normalizeRouteMode(String routeMode) {
-        if ("transit".equalsIgnoreCase(routeMode) || "walk".equalsIgnoreCase(routeMode)) {
+        if ("transit".equalsIgnoreCase(routeMode) && viewHelper.isTransitEnabled()) {
+            return "transit";
+        }
+        if ("walk".equalsIgnoreCase(routeMode)) {
             return routeMode.toLowerCase(java.util.Locale.ROOT);
         }
         return "car";

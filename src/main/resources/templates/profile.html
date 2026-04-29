@@ -92,6 +92,11 @@
                                 <strong th:text="${#strings.isEmpty(meeting.description) ? '등록된 설명이 없습니다.' : meeting.description}">주말에 새로운 맛집 찾아가요!</strong>
                             </article>
                         </div>
+                        <div class="profile-meeting-actions">
+                            <a class="secondary-button secondary-button--compact"
+                               th:href="@{/profile/meetings/results(meetingId=${meeting.id})}"
+                               data-loading-overlay>모임 결과 보기</a>
+                        </div>
                         <form class="meeting-delete-form" method="post" th:action="@{/profile/meetings/delete}">
                             <input type="hidden" name="meetingId" th:value="${meeting.id}">
                             <button class="danger-button danger-button--compact" type="submit">모임 삭제</button>

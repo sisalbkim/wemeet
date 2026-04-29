@@ -13,7 +13,7 @@ public class OpenApiProperties {
     private String routeProfile = "driving";
     private NaverSearch naverSearch = new NaverSearch();
     private NaverMaps naverMaps = new NaverMaps();
-    private Tmap tmap = new Tmap();
+    private Odsay odsay = new Odsay();
 
     public boolean isEnabled() {
         return enabled;
@@ -71,12 +71,12 @@ public class OpenApiProperties {
         this.naverMaps = naverMaps;
     }
 
-    public Tmap getTmap() {
-        return tmap;
+    public Odsay getOdsay() {
+        return odsay;
     }
 
-    public void setTmap(Tmap tmap) {
-        this.tmap = tmap;
+    public void setOdsay(Odsay odsay) {
+        this.odsay = odsay;
     }
 
     public boolean isNaverSearchConfigured() {
@@ -95,11 +95,11 @@ public class OpenApiProperties {
                 && !naverMaps.getApiKey().isBlank();
     }
 
-    public boolean isTmapConfigured() {
-        return tmap != null
-                && tmap.isEnabled()
-                && tmap.getAppKey() != null
-                && !tmap.getAppKey().isBlank();
+    public boolean isOdsayConfigured() {
+        return odsay != null
+                && odsay.isEnabled()
+                && odsay.getApiKey() != null
+                && !odsay.getApiKey().isBlank();
     }
 
     public static class NaverSearch {
@@ -200,12 +200,12 @@ public class OpenApiProperties {
         }
     }
 
-    public static class Tmap {
+    public static class Odsay {
         private boolean enabled = true;
-        private String baseUrl = "https://apis.openapi.sk.com";
-        private String appKey = "";
-        private String transitPath = "/transit/routes";
-        private String transitSummaryPath = "/transit/routes/sub";
+        private String baseUrl = "https://api.odsay.com";
+        private String apiKey = "";
+        private String transitPath = "/v1/api/searchPubTransPathT";
+        private String loadLanePath = "/v1/api/loadLane";
 
         public boolean isEnabled() {
             return enabled;
@@ -223,12 +223,12 @@ public class OpenApiProperties {
             this.baseUrl = baseUrl;
         }
 
-        public String getAppKey() {
-            return appKey;
+        public String getApiKey() {
+            return apiKey;
         }
 
-        public void setAppKey(String appKey) {
-            this.appKey = appKey;
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
         }
 
         public String getTransitPath() {
@@ -239,12 +239,12 @@ public class OpenApiProperties {
             this.transitPath = transitPath;
         }
 
-        public String getTransitSummaryPath() {
-            return transitSummaryPath;
+        public String getLoadLanePath() {
+            return loadLanePath;
         }
 
-        public void setTransitSummaryPath(String transitSummaryPath) {
-            this.transitSummaryPath = transitSummaryPath;
+        public void setLoadLanePath(String loadLanePath) {
+            this.loadLanePath = loadLanePath;
         }
     }
 }

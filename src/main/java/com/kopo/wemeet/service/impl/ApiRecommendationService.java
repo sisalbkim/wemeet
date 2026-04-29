@@ -24,12 +24,13 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public class ApiRecommendationService implements IApiRecommendationService {
     // 참가자 목록과 추천 모드를 바탕으로 실제 장소 후보를 계산하는 핵심 서비스다.
     private static final int DEFAULT_SEARCH_DISPLAY = 5;
+    private static final String RECOMMENDATION_CACHE_SCHEMA_VERSION = "odsay-route-v2";
 
     private final WemeetDataStore store;
     private final OpenApiRoutingService openApiRoutingService;
     private final NaverPlaceSearchService naverPlaceSearchService;
     private final RecommendationCacheService recommendationCacheService;
-    private final TmapTransitRoutingService tmapTransitRoutingService;
+    private final OdsayTransitRoutingService odsayTransitRoutingService;
 
     // 내부 화면/API에서 공통으로 쓰는 추천 카테고리 목록이다.
     private final List<String> categories = List.of("맛집", "카페", "놀이", "문화", "운동", "기타");
@@ -52,13 +53,13 @@ public class ApiRecommendationService implements IApiRecommendationService {
             OpenApiRoutingService openApiRoutingService,
             NaverPlaceSearchService naverPlaceSearchService,
             RecommendationCacheService recommendationCacheService,
-            TmapTransitRoutingService tmapTransitRoutingService
+            OdsayTransitRoutingService odsayTransitRoutingService
     ) {
         this.store = store;
         this.openApiRoutingService = openApiRoutingService;
         this.naverPlaceSearchService = naverPlaceSearchService;
         this.recommendationCacheService = recommendationCacheService;
-        this.tmapTransitRoutingService = tmapTransitRoutingService;
+        this.odsayTransitRoutingService = odsayTransitRoutingService;
     }
 
     @Override
@@ -113,12 +114,13 @@ public class ApiRecommendationService implements IApiRecommendationService {
         // 추천 흐름의 중심 메서드다: 입력 정규화 -> 좌표 계산 -> 캐시 확인 -> 실제 장소 검색 순서로 진행한다.
         String category = normalizeCategory(request.category());
         RecommendationMode mode = RecommendationMode.from(request.mode());
+        RoutePreference routePreference = RoutePreference.from(request.routeMode());
         List<GeoPoint> participantPoints = participants.stream()
                 .map(this::resolveParticipantPoint)
                 .toList();
         GeoPoint midpointPoint = calculateMidpoint(participantPoints);
         String anchorParticipantId = resolveAnchorParticipantId(mode, requesterId, request.anchorParticipantId(), participants);
-        String cacheKey = buildCacheKey(requesterId, category, participants) + ":" + mode.name() + ":" + anchorParticipantId;
+        String cacheKey = buildCacheKey(requesterId, category, participants) + ":" + mode.name() + ":" + anchorParticipantId + ":" + routePreference.name();
 
         if (mode != RecommendationMode.RANDOM) {
             Optional<RecommendationDTO.RecommendationResponse> cached = recommendationCacheService.get(cacheKey);
@@ -139,6 +141,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 participantPoints,
                 midpointPoint,
                 anchorParticipantId,
+                routePreference,
                 persistHistory
         );
 
@@ -157,6 +160,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             List<GeoPoint> participantPoints,
             GeoPoint midpointPoint,
             String anchorParticipantId,
+            RoutePreference routePreference,
             boolean persistHistory
     ) {
         // 네이버 실제 장소 후보를 가져와 평가 점수를 매기고 최종 장소 1~3개를 선정한다.
@@ -209,7 +213,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             );
         }
 
-        List<VenueEvaluation> selectedEvaluations = selectEvaluationsByMode(evaluatedPlaces, mode);
+        List<VenueEvaluation> selectedEvaluations = selectEvaluationsByMode(evaluatedPlaces, mode, routePreference);
         List<RecommendationDTO.VenueResponse> venues = selectedEvaluations.stream()
                 .map(VenueEvaluation::response)
                 .toList();
@@ -470,7 +474,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             GeoPoint destination
     ) {
         List<RecommendationDTO.RoutePointResponse> straightPath = straightRoutePath(origin, destination);
-        Optional<TmapTransitRoutingService.TransitRouteEstimate> transitRoute = tmapTransitRoutingService.estimateTransitRoute(
+        Optional<OdsayTransitRoutingService.TransitRouteEstimate> transitRoute = odsayTransitRoutingService.estimateTransitRoute(
                 origin.latitude(),
                 origin.longitude(),
                 destination.latitude(),
@@ -483,8 +487,8 @@ public class ApiRecommendationService implements IApiRecommendationService {
         routeModes.add(new RecommendationDTO.RouteModeResponse(
                 "transit",
                 "대중교통",
-                transitRoute.map(TmapTransitRoutingService.TransitRouteEstimate::minutes).orElse(0),
-                transitRoute.map(TmapTransitRoutingService.TransitRouteEstimate::routePath).orElse(List.of()),
+                transitRoute.map(OdsayTransitRoutingService.TransitRouteEstimate::minutes).orElse(0),
+                transitRoute.map(OdsayTransitRoutingService.TransitRouteEstimate::routePath).orElse(List.of()),
                 transitRoute.isPresent()
         ));
         routeModes.add(new RecommendationDTO.RouteModeResponse("walk", "걷기", walkingMinutes, straightPath, true));
@@ -701,7 +705,8 @@ public class ApiRecommendationService implements IApiRecommendationService {
 
     private List<VenueEvaluation> selectEvaluationsByMode(
             List<VenueEvaluation> candidateEvaluations,
-            RecommendationMode mode
+            RecommendationMode mode,
+            RoutePreference routePreference
     ) {
         // CENTER/ANCHOR는 점수순, RANDOM은 상위 후보군 안에서 섞어서 3개까지 고른다.
         if (candidateEvaluations.isEmpty()) {
@@ -710,7 +715,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
 
         if (mode == RecommendationMode.RANDOM) {
             List<VenueEvaluation> pool = candidateEvaluations.stream()
-                    .sorted(Comparator.comparingDouble(VenueEvaluation::strategyScore))
+                    .sorted(buildEvaluationComparator(routePreference))
                     .limit(Math.min(5, candidateEvaluations.size()))
                     .collect(Collectors.toCollection(ArrayList::new));
             Collections.shuffle(pool);
@@ -718,11 +723,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
         }
 
         List<VenueEvaluation> sortedEvaluations = candidateEvaluations.stream()
-                .sorted(Comparator
-                        .comparingDouble(VenueEvaluation::strategyScore)
-                        .thenComparingInt(evaluation -> evaluation.response().fairnessGap())
-                        .thenComparingInt(evaluation -> evaluation.response().averageMinutes())
-                        .thenComparing(evaluation -> evaluation.response().name()))
+                .sorted(buildEvaluationComparator(routePreference))
                 .toList();
 
         List<VenueEvaluation> selectedEvaluations = new ArrayList<>();
@@ -748,6 +749,75 @@ public class ApiRecommendationService implements IApiRecommendationService {
         }
 
         return selectedEvaluations;
+    }
+
+    private Comparator<VenueEvaluation> buildEvaluationComparator(RoutePreference routePreference) {
+        return Comparator
+                .comparingInt((VenueEvaluation evaluation) -> preferredRouteMissingPenalty(evaluation, routePreference))
+                .thenComparingInt(evaluation -> preferredRouteAverageMinutes(evaluation, routePreference))
+                .thenComparingDouble(VenueEvaluation::strategyScore)
+                .thenComparingInt(evaluation -> evaluation.response().fairnessGap())
+                .thenComparingInt(evaluation -> evaluation.response().averageMinutes())
+                .thenComparing(evaluation -> evaluation.response().name());
+    }
+
+    private int preferredRouteMissingPenalty(VenueEvaluation evaluation, RoutePreference routePreference) {
+        if (routePreference == RoutePreference.CAR) {
+            return 0;
+        }
+
+        long availableCount = evaluation.response().travelTimes().stream()
+                .filter(time -> routeModeAvailable(time.routeModes(), routePreference))
+                .count();
+        int participantCount = evaluation.response().travelTimes().size();
+        if (availableCount == participantCount) {
+            return 0;
+        }
+        if (availableCount > 0) {
+            return 1;
+        }
+        return 2;
+    }
+
+    private int preferredRouteAverageMinutes(VenueEvaluation evaluation, RoutePreference routePreference) {
+        if (routePreference == RoutePreference.CAR) {
+            return evaluation.response().averageMinutes();
+        }
+
+        List<Integer> minutes = evaluation.response().travelTimes().stream()
+                .map(time -> findRouteMode(time.routeModes(), routePreference))
+                .flatMap(Optional::stream)
+                .filter(RecommendationDTO.RouteModeResponse::available)
+                .map(RecommendationDTO.RouteModeResponse::minutes)
+                .toList();
+
+        if (minutes.isEmpty()) {
+            return Integer.MAX_VALUE;
+        }
+
+        return (int) Math.round(minutes.stream().mapToInt(Integer::intValue).average().orElse(Integer.MAX_VALUE));
+    }
+
+    private boolean routeModeAvailable(
+            List<RecommendationDTO.RouteModeResponse> routeModes,
+            RoutePreference routePreference
+    ) {
+        return findRouteMode(routeModes, routePreference)
+                .map(RecommendationDTO.RouteModeResponse::available)
+                .orElse(false);
+    }
+
+    private Optional<RecommendationDTO.RouteModeResponse> findRouteMode(
+            List<RecommendationDTO.RouteModeResponse> routeModes,
+            RoutePreference routePreference
+    ) {
+        if (routeModes == null || routeModes.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return routeModes.stream()
+                .filter(routeMode -> routeMode != null && routePreference.mode().equalsIgnoreCase(routeMode.mode()))
+                .findFirst();
     }
 
     private double calculateStrategyScore(
@@ -953,7 +1023,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 .map(participant -> participant.id() + ":" + normalizeAddressForCache(participant.baseAddress()))
                 .sorted()
                 .collect(Collectors.joining(","));
-        return requesterId + ":" + category + ":" + participantKey;
+        return RECOMMENDATION_CACHE_SCHEMA_VERSION + ":" + requesterId + ":" + category + ":" + participantKey;
     }
 
     private String normalizeAddressForCache(String address) {
@@ -1017,5 +1087,31 @@ public class ApiRecommendationService implements IApiRecommendationService {
             String baseAddress
     ) {
         // 추천 계산에 꼭 필요한 참가자 최소 정보만 담은 내부 모델이다.
+    }
+
+    private enum RoutePreference {
+        CAR("car"),
+        TRANSIT("transit"),
+        WALK("walk");
+
+        private final String mode;
+
+        RoutePreference(String mode) {
+            this.mode = mode;
+        }
+
+        public String mode() {
+            return mode;
+        }
+
+        static RoutePreference from(String value) {
+            if ("transit".equalsIgnoreCase(value)) {
+                return TRANSIT;
+            }
+            if ("walk".equalsIgnoreCase(value)) {
+                return WALK;
+            }
+            return CAR;
+        }
     }
 }
