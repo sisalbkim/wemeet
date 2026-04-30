@@ -14,6 +14,7 @@ import java.util.Locale;
 
 @Component
 public class WemeetViewHelper {
+    // 화면 컨트롤러에서 공통으로 쓰는 로그인 체크와 모델 조립 보조 로직 모음이다.
 
     private final IApiAuthService authService;
     private final NaverMapProperties naverMapProperties;

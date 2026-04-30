@@ -24,6 +24,8 @@ public interface IApiAuthService {
 
     String findUserIdByLoginIdAndEmail(String loginId, String email);
 
+    boolean isLoginIdAvailable(String loginId);
+
     boolean isEmailAvailable(String email);
 
     String createSignupEmailVerificationCode(String email);

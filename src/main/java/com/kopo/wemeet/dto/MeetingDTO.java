@@ -3,6 +3,7 @@ package com.kopo.wemeet.dto;
 import java.util.List;
 
 public final class MeetingDTO {
+    // 모임 생성, 목록, 상세 응답에 공통으로 쓰는 DTO 모음이다.
 
     private MeetingDTO() {
     }

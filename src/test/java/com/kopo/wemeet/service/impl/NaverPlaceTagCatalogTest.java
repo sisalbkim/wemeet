@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 
 class NaverPlaceTagCatalogTest {
+    // 네이버 장소 태그 분류 규칙이 의도대로 동작하는지 확인하는 테스트다.
 
     private final NaverPlaceTagCatalog catalog = new NaverPlaceTagCatalog();
 

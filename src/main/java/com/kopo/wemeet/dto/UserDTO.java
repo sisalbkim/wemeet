@@ -1,6 +1,7 @@
 package com.kopo.wemeet.dto;
 
 public final class UserDTO {
+    // 사용자 프로필과 API 응답에 쓰는 DTO 모음이다.
 
     private UserDTO() {
     }

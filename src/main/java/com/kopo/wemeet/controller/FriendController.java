@@ -24,6 +24,7 @@ import java.util.stream.IntStream;
 
 @Controller
 public class FriendController {
+    // 친구 목록, 친구 요청, 친구 추가와 승인 흐름을 담당하는 컨트롤러.
 
     private static final int FRIEND_PAGE_SIZE = 10;
 

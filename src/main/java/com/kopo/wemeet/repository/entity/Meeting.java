@@ -48,6 +48,18 @@ public class Meeting {
     @Column(length = 500)
     private String meetingPlaceAddress;
 
+    @Column(length = 20)
+    private String recommendationMode;
+
+    @Column(length = 40)
+    private String anchorParticipantId;
+
+    @jakarta.persistence.Lob
+    private String recommendationSnapshotJson;
+
+    @Column
+    private LocalDateTime recommendationSnapshotExpiresAt;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "host_user_id", nullable = false)
     private AppUser host;
@@ -62,7 +74,7 @@ public class Meeting {
     }
 
     public Meeting(String id, String title, String description, LocalDate meetingDate, LocalTime meetingTime, String category, AppUser host) {
-        this(id, title, description, meetingDate, meetingTime, category, "", "", host);
+        this(id, title, description, meetingDate, meetingTime, category, "", "", host, "CENTER", host == null ? null : host.getId(), null, null);
     }
 
     public Meeting(
@@ -74,7 +86,11 @@ public class Meeting {
             String category,
             String meetingPlaceName,
             String meetingPlaceAddress,
-            AppUser host
+            AppUser host,
+            String recommendationMode,
+            String anchorParticipantId,
+            String recommendationSnapshotJson,
+            LocalDateTime recommendationSnapshotExpiresAt
     ) {
         this.id = id;
         this.title = title;
@@ -85,6 +101,10 @@ public class Meeting {
         this.meetingPlaceName = meetingPlaceName;
         this.meetingPlaceAddress = meetingPlaceAddress;
         this.host = host;
+        this.recommendationMode = recommendationMode;
+        this.anchorParticipantId = anchorParticipantId;
+        this.recommendationSnapshotJson = recommendationSnapshotJson;
+        this.recommendationSnapshotExpiresAt = recommendationSnapshotExpiresAt;
     }
 
     @PrePersist
@@ -128,6 +148,22 @@ public class Meeting {
 
     public String getMeetingPlaceAddress() {
         return meetingPlaceAddress;
+    }
+
+    public String getRecommendationMode() {
+        return recommendationMode;
+    }
+
+    public String getAnchorParticipantId() {
+        return anchorParticipantId;
+    }
+
+    public String getRecommendationSnapshotJson() {
+        return recommendationSnapshotJson;
+    }
+
+    public LocalDateTime getRecommendationSnapshotExpiresAt() {
+        return recommendationSnapshotExpiresAt;
     }
 
     public AppUser getHost() {

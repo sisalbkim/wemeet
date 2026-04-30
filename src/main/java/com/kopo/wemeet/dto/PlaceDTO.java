@@ -3,6 +3,7 @@ package com.kopo.wemeet.dto;
 import java.util.List;
 
 public final class PlaceDTO {
+    // 장소 검색 결과와 경로 표시 데이터에 쓰는 DTO 모음이다.
 
     private PlaceDTO() {
     }

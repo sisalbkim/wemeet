@@ -1,6 +1,7 @@
 package com.kopo.wemeet.util;
 
 public final class CmmUtil {
+    // 문자열 null 처리와 공백 기본값 보정을 위한 공용 유틸이다.
 
     private CmmUtil() {
     }

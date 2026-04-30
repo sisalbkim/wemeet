@@ -28,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 class ApiRestControllerTest {
+    // REST API 인증, 친구, 모임 흐름을 검증하는 통합 테스트다.
 
     @Autowired
     private MockMvc mockMvc;

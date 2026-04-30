@@ -191,6 +191,14 @@ public class ApiAuthService implements IApiAuthService {
         return user.getId();
     }
 
+    @Override
+    public boolean isLoginIdAvailable(String loginId) {
+        if (loginId == null || loginId.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "loginId is required");
+        }
+        return !userRepository.existsByLoginId(loginId.trim());
+    }
+
     @Transactional
     @Override
     public void resetPasswordForUser(String userId, String newPassword) {

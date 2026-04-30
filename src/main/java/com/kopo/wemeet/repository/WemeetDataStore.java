@@ -173,7 +173,7 @@ public class WemeetDataStore {
             String category,
             List<String> participantIds
     ) {
-        return createMeeting(hostUserId, title, description, meetingDate, meetingTime, category, "", "", participantIds);
+        return createMeeting(hostUserId, title, description, meetingDate, meetingTime, category, "", "", "CENTER", hostUserId, null, null, participantIds);
     }
 
     @Transactional
@@ -186,6 +186,39 @@ public class WemeetDataStore {
             String category,
             String meetingPlaceName,
             String meetingPlaceAddress,
+            List<String> participantIds
+    ) {
+        return createMeeting(
+                hostUserId,
+                title,
+                description,
+                meetingDate,
+                meetingTime,
+                category,
+                meetingPlaceName,
+                meetingPlaceAddress,
+                "CENTER",
+                hostUserId,
+                null,
+                null,
+                participantIds
+        );
+    }
+
+    @Transactional
+    public MeetingRecord createMeeting(
+            String hostUserId,
+            String title,
+            String description,
+            LocalDate meetingDate,
+            LocalTime meetingTime,
+            String category,
+            String meetingPlaceName,
+            String meetingPlaceAddress,
+            String recommendationMode,
+            String anchorParticipantId,
+            String recommendationSnapshotJson,
+            LocalDateTime recommendationSnapshotExpiresAt,
             List<String> participantIds
     ) {
         // 모임 생성 시 host는 항상 참가자 목록에 포함되도록 강제한다.
@@ -213,7 +246,11 @@ public class WemeetDataStore {
                 category.trim(),
                 meetingPlaceName == null ? "" : meetingPlaceName.trim(),
                 meetingPlaceAddress == null ? "" : meetingPlaceAddress.trim(),
-                host
+                host,
+                recommendationMode == null || recommendationMode.isBlank() ? "CENTER" : recommendationMode.trim(),
+                anchorParticipantId == null || anchorParticipantId.isBlank() ? hostUserId : anchorParticipantId.trim(),
+                recommendationSnapshotJson == null || recommendationSnapshotJson.isBlank() ? null : recommendationSnapshotJson,
+                recommendationSnapshotExpiresAt
         );
         for (AppUser participant : participants) {
             String role = participant.getId().equals(host.getId()) ? "HOST" : "PARTICIPANT";
@@ -356,6 +393,10 @@ public class WemeetDataStore {
                 meeting.getCategory(),
                 meeting.getMeetingPlaceName(),
                 meeting.getMeetingPlaceAddress(),
+                meeting.getRecommendationMode(),
+                meeting.getAnchorParticipantId(),
+                meeting.getRecommendationSnapshotJson(),
+                meeting.getRecommendationSnapshotExpiresAt(),
                 meeting.getHost().getId(),
                 participantIds,
                 meeting.getCreatedAt()
@@ -384,6 +425,10 @@ public class WemeetDataStore {
             String category,
             String meetingPlaceName,
             String meetingPlaceAddress,
+            String recommendationMode,
+            String anchorParticipantId,
+            String recommendationSnapshotJson,
+            LocalDateTime recommendationSnapshotExpiresAt,
             String hostUserId,
             List<String> participantIds,
             LocalDateTime createdAt

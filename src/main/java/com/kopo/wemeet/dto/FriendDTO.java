@@ -1,6 +1,7 @@
 package com.kopo.wemeet.dto;
 
 public final class FriendDTO {
+    // 친구 목록, 친구 요청, 친구 추가 응답에 쓰는 DTO 모음이다.
 
     private FriendDTO() {
     }

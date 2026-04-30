@@ -1,6 +1,7 @@
 package com.kopo.wemeet.dto;
 
 public final class AuthDTO {
+    // 인증 관련 요청과 응답 record를 한곳에 모아둔 DTO 모음이다.
 
     private AuthDTO() {
     }
@@ -44,6 +45,12 @@ public final class AuthDTO {
     }
 
     public record EmailAvailabilityResponse(
+            boolean available,
+            String message
+    ) {
+    }
+
+    public record LoginIdAvailabilityResponse(
             boolean available,
             String message
     ) {

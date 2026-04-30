@@ -26,6 +26,7 @@ import java.util.Optional;
 
 @Controller
 public class MeetController {
+    // 홈, 게스트 추천, 장소 검색 같은 메인 화면 진입점을 연결하는 컨트롤러.
 
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;

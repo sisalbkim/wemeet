@@ -20,9 +20,13 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -35,6 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 class WemeetControllerTest {
+    // 서버 렌더링 화면과 폼 제출 흐름을 검증하는 통합 테스트다.
 
     @Autowired
     private MockMvc mockMvc;
@@ -65,7 +70,7 @@ class WemeetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("로그인")))
                 .andExpect(content().string(containsString("아이디")))
-                .andExpect(content().string(containsString("/find-password")));
+                .andExpect(content().string(containsString("/user/findPassword")));
     }
 
     @Test
@@ -97,14 +102,14 @@ class WemeetControllerTest {
                         .param("loginId", "passwordflow01")
                         .param("email", "wrong@wemeet.local"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/find-password"));
+                .andExpect(redirectedUrl("/user/findPassword"));
 
         MvcResult verifyResult = mockMvc.perform(post("/find-password/verify")
                         .session(new MockHttpSession())
                         .param("loginId", "passwordflow01")
                         .param("email", "passwordflow01@wemeet.local"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/find-password/reset"))
+                .andExpect(redirectedUrl("/user/findPassword/reset"))
                 .andReturn();
 
         MockHttpSession resetSession = (MockHttpSession) verifyResult.getRequest().getSession(false);
@@ -123,7 +128,7 @@ class WemeetControllerTest {
                         .param("newPassword", "resetPass123!")
                         .param("confirmPassword", "resetPass123!"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login"))
+                .andExpect(redirectedUrl("/user/login"))
                 .andReturn();
 
         mockMvc.perform(get("/login").flashAttrs(confirmResult.getFlashMap()))
@@ -239,7 +244,7 @@ class WemeetControllerTest {
                         .param("confirmPassword", "pass1234")
                         .param("baseAddress", "서울특별시 강남구"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login?registered=true"));
+                .andExpect(redirectedUrl("/user/login?registered=true"));
     }
 
     @Test
@@ -324,6 +329,8 @@ class WemeetControllerTest {
                 .andExpect(content().string(containsString("프로필에서 보이는 모임")))
                 .andExpect(content().string(containsString("내가 만든 모임 설명")))
                 .andExpect(content().string(containsString("프로필 테스트 카페")))
+                .andExpect(content().string(containsString("네이버 지도에서 보기")))
+                .andExpect(content().string(containsString("https://map.naver.com/p/search/%ED%94%84%EB%A1%9C%ED%95%84%20%ED%85%8C%EC%8A%A4%ED%8A%B8%20%EC%B9%B4%ED%8E%98")))
                 .andExpect(content().string(containsString("서울특별시 중구 테스트로 10")))
                 .andExpect(content().string(containsString("2026. 5. 10.")))
                 .andExpect(content().string(containsString("참여자 1명")));
@@ -353,6 +360,8 @@ class WemeetControllerTest {
                 .andExpect(content().string(containsString("친구가 만든 참여 모임")))
                 .andExpect(content().string(containsString("내가 참여자로 들어간 모임 설명")))
                 .andExpect(content().string(containsString("참여 모임 테스트 식당")))
+                .andExpect(content().string(containsString("네이버 지도에서 보기")))
+                .andExpect(content().string(containsString("https://map.naver.com/p/search/%EC%B0%B8%EC%97%AC%20%EB%AA%A8%EC%9E%84%20%ED%85%8C%EC%8A%A4%ED%8A%B8%20%EC%8B%9D%EB%8B%B9")))
                 .andExpect(content().string(containsString("서울특별시 종로구 참여로 11")))
                 .andExpect(content().string(containsString("2026. 5. 11.")));
     }
@@ -385,7 +394,7 @@ class WemeetControllerTest {
 
         mockMvc.perform(get("/profile").session(session))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login"));
+                .andExpect(redirectedUrl("/user/login"));
     }
 
     @Test
@@ -607,6 +616,7 @@ class WemeetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("중구 로컬 카페")))
                 .andExpect(content().string(containsString("모임 저장")))
+                .andExpect(content().string(containsString("name=\"meetingPreviewKey\"")))
                 .andExpect(content().string(containsString("data-route-mode=\"car\"")))
                 .andExpect(content().string(not(containsString("data-route-mode=\"transit\""))))
                 .andExpect(content().string(containsString("data-route-mode=\"walk\"")));
@@ -647,6 +657,54 @@ class WemeetControllerTest {
         assertTrue(store.listMeetingsForUser(friendId).stream()
                 .anyMatch(meeting -> "참여자에게 추가되는 모임".equals(meeting.title())
                         && "명륜진사갈비 서울후암점".equals(meeting.meetingPlaceName())));
+    }
+
+    @Test
+    void meetingCreateStoresRecommendationSnapshotUntilSevenDaysAfterMeeting() throws Exception {
+        MockHttpSession session = signupAndLogin("meetingsnapshot01", "meetingsnapshot01@wemeet.local");
+        String userId = userRepository.findByLoginId("meetingsnapshot01").orElseThrow().getId();
+
+        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "저장된 추천 카페"));
+
+        String previewHtml = mockMvc.perform(post("/meetings/preview")
+                        .session(session)
+                        .param("category", "카페")
+                        .param("mode", "CENTER")
+                        .param("meetingName", "스냅샷 저장 모임")
+                        .param("meetingDate", "2026-05-12")
+                        .param("meetingHour", "18")
+                        .param("meetingMinute", "30")
+                        .param("routeMode", "car"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String previewKey = extractHiddenInputValue(previewHtml, "meetingPreviewKey");
+        assertFalse(previewKey.isBlank());
+
+        mockMvc.perform(post("/meetings")
+                        .session(session)
+                        .param("meetingName", "스냅샷 저장 모임")
+                        .param("meetingDescription", "추천 결과를 같이 저장합니다")
+                        .param("meetingDate", "2026-05-12")
+                        .param("meetingTime", "18:30")
+                        .param("meetingPlaceName", "저장된 추천 카페")
+                        .param("meetingPlaceAddress", "서울특별시 중구 저장로 12")
+                        .param("category", "카페")
+                        .param("recommendationMode", "CENTER")
+                        .param("anchorId", userId)
+                        .param("meetingPreviewKey", previewKey))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/profile"));
+
+        WemeetDataStore.MeetingRecord savedMeeting = store.listMeetingsCreatedByUser(userId).stream()
+                .filter(meeting -> "스냅샷 저장 모임".equals(meeting.title()))
+                .findFirst()
+                .orElseThrow();
+
+        assertFalse(savedMeeting.recommendationSnapshotJson().isBlank());
+        assertEquals(LocalDate.of(2026, 5, 19), savedMeeting.recommendationSnapshotExpiresAt().toLocalDate());
     }
 
     @Test
@@ -708,6 +766,62 @@ class WemeetControllerTest {
                 .andExpect(content().string(not(containsString("data-route-mode=\"transit\""))))
                 .andExpect(content().string(containsString("data-route-mode=\"walk\"")))
                 .andExpect(content().string(containsString("이영희")));
+    }
+
+    @Test
+    void profileMeetingDetailUsesSavedRecommendationSnapshotWhenAvailable() throws Exception {
+        MockHttpSession session = signupAndLogin("savedresult01", "savedresult01@wemeet.local");
+        String userId = userRepository.findByLoginId("savedresult01").orElseThrow().getId();
+
+        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "저장된 결과 카페"));
+
+        String previewHtml = mockMvc.perform(post("/meetings/preview")
+                        .session(session)
+                        .param("category", "카페")
+                        .param("mode", "CENTER")
+                        .param("meetingName", "저장 결과 확인 모임")
+                        .param("meetingDate", "2026-06-12")
+                        .param("meetingHour", "19")
+                        .param("meetingMinute", "00")
+                        .param("routeMode", "walk"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String previewKey = extractHiddenInputValue(previewHtml, "meetingPreviewKey");
+
+        mockMvc.perform(post("/meetings")
+                        .session(session)
+                        .param("meetingName", "저장 결과 확인 모임")
+                        .param("meetingDescription", "저장본을 다시 본다")
+                        .param("meetingDate", "2026-06-12")
+                        .param("meetingTime", "19:00")
+                        .param("meetingPlaceName", "저장된 결과 카페")
+                        .param("meetingPlaceAddress", "서울특별시 중구 저장결과로 12")
+                        .param("category", "카페")
+                        .param("recommendationMode", "CENTER")
+                        .param("anchorId", userId)
+                        .param("meetingPreviewKey", previewKey))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/profile"));
+
+        String meetingId = store.listMeetingsCreatedByUser(userId).stream()
+                .filter(meeting -> "저장 결과 확인 모임".equals(meeting.title()))
+                .findFirst()
+                .orElseThrow()
+                .id();
+
+        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "바뀐 최신 카페"));
+
+        mockMvc.perform(get("/profile/meetings/results")
+                        .session(session)
+                        .param("meetingId", meetingId)
+                        .param("routeMode", "walk"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("저장된 결과 카페")))
+                .andExpect(content().string(containsString("저장된 추천 결과를 보여주고 있습니다.")))
+                .andExpect(content().string(not(containsString("바뀐 최신 카페"))));
     }
 
     @Test
@@ -808,6 +922,13 @@ class WemeetControllerTest {
 
     private String passwordForFriendCode(String friendCode) {
         return "AAAAAA".equals(friendCode) ? "Passw0rd!" : "pass1234";
+    }
+
+    private String extractHiddenInputValue(String html, String inputName) {
+        Pattern pattern = Pattern.compile("name=\"" + Pattern.quote(inputName) + "\"[^>]*value=\"([^\"]*)\"");
+        Matcher matcher = pattern.matcher(html);
+        assertTrue(matcher.find(), "Expected hidden input for " + inputName);
+        return matcher.group(1);
     }
 
     private PlaceDTO.PlaceSearchResponse samplePlaceSearch(String originQuery, String address, String placeName) {

@@ -17,32 +17,43 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Controller
 public class MeetingController {
+    // 모임 생성 폼, 추천 결과 미리보기, 모임 저장 API를 처리하는 컨트롤러.
+
+    private static final String MEETING_PREVIEW_SNAPSHOTS = "MEETING_PREVIEW_SNAPSHOTS";
 
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;
     private final WemeetDataStore store;
     private final WemeetViewHelper viewHelper;
+    private final ObjectMapper objectMapper;
 
     public MeetingController(
             IWemeetViewService viewService,
             IApiAuthService authService,
             WemeetDataStore store,
-            WemeetViewHelper viewHelper
+            WemeetViewHelper viewHelper,
+            ObjectMapper objectMapper
     ) {
         this.viewService = viewService;
         this.authService = authService;
         this.store = store;
         this.viewHelper = viewHelper;
+        this.objectMapper = objectMapper;
     }
 
     @GetMapping("/meetings/new")
@@ -92,12 +103,24 @@ public class MeetingController {
     ) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
         String normalizedRouteMode = viewHelper.normalizeRouteMode(routeMode);
-        populateRecommendationModel(model, "create", currentUser, category, friendIds, mode, anchorId, false, null, normalizedRouteMode);
+        RecommendationDTO.RecommendationBundle recommendation = populateRecommendationModel(
+                model,
+                "create",
+                currentUser,
+                category,
+                friendIds,
+                mode,
+                anchorId,
+                false,
+                null,
+                normalizedRouteMode
+        );
         model.addAttribute("meetingName", meetingName);
         model.addAttribute("meetingDescription", meetingDescription);
         model.addAttribute("meetingDate", meetingDate);
         model.addAttribute("meetingTime", composeMeetingTime(meetingHour, meetingMinute));
         model.addAttribute("meetingCreationAvailable", true);
+        model.addAttribute("meetingPreviewKey", rememberMeetingPreview(session, recommendation));
         model.addAttribute("selectedRouteMode", normalizedRouteMode);
         return "meeting/results";
     }
@@ -111,6 +134,9 @@ public class MeetingController {
             @RequestParam(defaultValue = "") String meetingPlaceName,
             @RequestParam(defaultValue = "") String meetingPlaceAddress,
             @RequestParam(defaultValue = "맛집") String category,
+            @RequestParam(defaultValue = "CENTER") String recommendationMode,
+            @RequestParam(defaultValue = "") String anchorId,
+            @RequestParam(defaultValue = "") String meetingPreviewKey,
             @RequestParam(required = false) List<String> friendIds,
             HttpSession session,
             RedirectAttributes redirectAttributes
@@ -121,15 +147,25 @@ public class MeetingController {
             return "redirect:/meetings/new";
         }
 
+        LocalDate parsedMeetingDate = parseMeetingDate(meetingDate);
+        String snapshotJson = consumeMeetingPreview(session, meetingPreviewKey);
+        LocalDateTime snapshotExpiresAt = snapshotJson == null
+                ? null
+                : calculateSnapshotExpiry(parsedMeetingDate);
+
         store.createMeeting(
                 currentUser.getId(),
                 meetingName,
                 meetingDescription,
-                parseMeetingDate(meetingDate),
+                parsedMeetingDate,
                 parseMeetingTime(meetingTime),
                 category,
                 meetingPlaceName,
                 meetingPlaceAddress,
+                recommendationMode,
+                anchorId,
+                snapshotJson,
+                snapshotExpiresAt,
                 friendIds == null ? List.of() : friendIds
         );
         redirectAttributes.addFlashAttribute("profileNotice", "모임이 생성되었습니다.");
@@ -189,7 +225,7 @@ public class MeetingController {
         model.addAttribute("selectedRouteMode", "car");
     }
 
-    private void populateRecommendationModel(
+    private RecommendationDTO.RecommendationBundle populateRecommendationModel(
             Model model,
             String activeTab,
             AppUser currentUser,
@@ -203,6 +239,16 @@ public class MeetingController {
     ) {
         viewHelper.populateCommon(model, activeTab, guestMode);
         UserDTO.UserProfile guestProfile = guestMode ? viewService.getGuestUser(guestAddress) : null;
+        RecommendationDTO.RecommendationBundle recommendation = guestMode
+                ? viewService.buildGuestRecommendation(guestProfile.baseAddress(), category, mode, anchorId, routeMode)
+                : viewService.buildRecommendation(
+                        currentUser.getId(),
+                        category,
+                        friendIds,
+                        mode,
+                        anchorId,
+                        routeMode
+                );
         model.addAttribute("profile", guestMode ? guestProfile : viewHelper.toProfile(currentUser));
         model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("guestAddress", guestMode ? guestProfile.baseAddress() : "");
@@ -214,16 +260,54 @@ public class MeetingController {
         model.addAttribute("selectedFriendIds", guestMode ? List.of() : friendIds == null ? List.of() : friendIds);
         model.addAttribute("meetingCreationAvailable", false);
         model.addAttribute("selectedRouteMode", routeMode);
-        model.addAttribute("recommendation", guestMode
-                ? viewService.buildGuestRecommendation(guestProfile.baseAddress(), category, mode, anchorId, routeMode)
-                : viewService.buildRecommendation(
-                        currentUser.getId(),
-                        category,
-                        friendIds,
-                        mode,
-                        anchorId,
-                        routeMode
-                ));
+        model.addAttribute("recommendation", recommendation);
+        return recommendation;
+    }
+
+    private String rememberMeetingPreview(HttpSession session, RecommendationDTO.RecommendationBundle recommendation) {
+        if (session == null) {
+            return "";
+        }
+
+        try {
+            String previewKey = UUID.randomUUID().toString();
+            Map<String, String> previews = meetingPreviewStore(session);
+            previews.put(previewKey, objectMapper.writeValueAsString(recommendation));
+            while (previews.size() > 5) {
+                String oldestKey = previews.keySet().iterator().next();
+                previews.remove(oldestKey);
+            }
+            session.setAttribute(MEETING_PREVIEW_SNAPSHOTS, previews);
+            return previewKey;
+        } catch (Exception exception) {
+            return "";
+        }
+    }
+
+    private String consumeMeetingPreview(HttpSession session, String previewKey) {
+        if (session == null || previewKey == null || previewKey.isBlank()) {
+            return null;
+        }
+
+        Map<String, String> previews = meetingPreviewStore(session);
+        String snapshotJson = previews.remove(previewKey);
+        session.setAttribute(MEETING_PREVIEW_SNAPSHOTS, previews);
+        return snapshotJson == null || snapshotJson.isBlank() ? null : snapshotJson;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, String> meetingPreviewStore(HttpSession session) {
+        Object cached = session.getAttribute(MEETING_PREVIEW_SNAPSHOTS);
+        if (cached instanceof Map<?, ?> cachedMap) {
+            Map<String, String> previews = new LinkedHashMap<>();
+            cachedMap.forEach((key, value) -> {
+                if (key instanceof String stringKey && value instanceof String stringValue) {
+                    previews.put(stringKey, stringValue);
+                }
+            });
+            return previews;
+        }
+        return new LinkedHashMap<>();
     }
 
     private MeetingDTO.MeetingResponse toMeetingResponse(WemeetDataStore.MeetingRecord meeting) {
@@ -280,6 +364,11 @@ public class MeetingController {
         } catch (DateTimeParseException exception) {
             throw new org.springframework.web.server.ResponseStatusException(BAD_REQUEST, "meetingTime must be ISO-8601 format (HH:mm)");
         }
+    }
+
+    private LocalDateTime calculateSnapshotExpiry(LocalDate meetingDate) {
+        // LocalTime.MAX는 DB 저장 시 다음 날 00:00:00으로 반올림될 수 있어 초 단위로 고정한다.
+        return meetingDate.plusDays(7).atTime(23, 59, 59);
     }
 
 }

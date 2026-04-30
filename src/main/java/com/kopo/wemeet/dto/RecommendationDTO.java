@@ -3,6 +3,7 @@ package com.kopo.wemeet.dto;
 import java.util.List;
 
 public final class RecommendationDTO {
+    // 추천 결과 화면과 지도 렌더링에 필요한 DTO 모음이다.
 
     private RecommendationDTO() {
     }

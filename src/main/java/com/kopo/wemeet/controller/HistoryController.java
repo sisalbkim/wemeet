@@ -21,6 +21,7 @@ import java.util.List;
 
 @Controller
 public class HistoryController {
+    // 사용자 검색 기록 조회와 삭제 화면 흐름을 처리하는 컨트롤러.
 
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;

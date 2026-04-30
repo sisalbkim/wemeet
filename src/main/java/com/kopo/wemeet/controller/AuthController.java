@@ -21,9 +21,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class AuthController {
+    // 로그인, 회원가입, 비밀번호 찾기 같은 인증 화면 흐름을 처리하는 컨트롤러.
 
     private static final String PASSWORD_RESET_USER_ID = "PASSWORD_RESET_USER_ID";
-    private static final String PASSWORD_RESET_LOGIN_ID = "PASSWORD_RESET_LOGIN_ID";
+    private static final String PASSWORD_RESET_USER_ID_INPUT = "PASSWORD_RESET_USER_ID_INPUT";
     private static final String PASSWORD_RESET_EMAIL = "PASSWORD_RESET_EMAIL";
 
     private final IWemeetViewService viewService;
@@ -40,7 +41,7 @@ public class AuthController {
         this.viewHelper = viewHelper;
     }
 
-    @GetMapping("/login")
+    @GetMapping({"/login", "/user/login"})
     public String login(
             @RequestParam(defaultValue = "false") boolean registered,
             @RequestParam(defaultValue = "false") boolean error,
@@ -50,42 +51,43 @@ public class AuthController {
         model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("registered", registered);
         model.addAttribute("error", error);
-        return "auth/login";
+        return "user/login";
     }
 
-    @GetMapping("/signup")
+    @GetMapping({"/signup", "/user/userRegForm"})
     public String signup(Model model, HttpSession session) {
         populateSignupModel(model, session);
-        return "auth/signup";
+        return "user/userRegForm";
     }
 
-    @GetMapping("/find-id")
+    @GetMapping({"/find-id", "/user/findId"})
     public String findId(Model model) {
         populateFindIdModel(model);
-        return "auth/find-id";
+        return "user/find-id";
     }
 
-    @GetMapping("/find-password")
+    @GetMapping({"/find-password", "/user/findPassword"})
     public String findPassword(Model model) {
         populateFindPasswordModel(model);
-        return "auth/find-password";
+        return "user/find-password";
     }
 
-    @GetMapping("/find-password/reset")
+    @GetMapping({"/find-password/reset", "/user/findPassword/reset"})
     public String resetPasswordPage(Model model, HttpSession session) {
         if (session == null || session.getAttribute(PASSWORD_RESET_USER_ID) == null) {
-            return "redirect:/find-password";
+            return "redirect:/user/findPassword";
         }
         viewHelper.populateCommon(model, "login", true);
-        model.addAttribute("passwordResetLoginId", session.getAttribute(PASSWORD_RESET_LOGIN_ID));
+        model.addAttribute("passwordResetUserId", session.getAttribute(PASSWORD_RESET_USER_ID_INPUT));
         model.addAttribute("passwordResetEmail", session.getAttribute(PASSWORD_RESET_EMAIL));
-        return "auth/reset-password";
+        return "user/reset-password";
     }
 
-    @PostMapping("/signup")
+    @PostMapping({"/signup", "/user/insertUserInfo"})
     public String signupSubmit(
             @RequestParam(defaultValue = "") String nickname,
-            @RequestParam(defaultValue = "") String loginId,
+            @RequestParam(name = "userId", defaultValue = "") String userId,
+            @RequestParam(name = "loginId", defaultValue = "") String legacyLoginId,
             @RequestParam(defaultValue = "") String email,
             @RequestParam(defaultValue = "") String password,
             @RequestParam(defaultValue = "") String confirmPassword,
@@ -93,33 +95,34 @@ public class AuthController {
             HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
-        String trimmedEmail = CmmUtil.nvl(email);
+        String normalizedUserId = resolveUserIdInput(userId, legacyLoginId);
+        String normalizedEmail = CmmUtil.nvl(email);
 
         if (!password.equals(confirmPassword)) {
             redirectAttributes.addFlashAttribute("signupError", "비밀번호 확인이 일치하지 않습니다.");
             redirectAttributes.addFlashAttribute("signupNickname", nickname);
-            redirectAttributes.addFlashAttribute("signupLoginId", loginId);
-            redirectAttributes.addFlashAttribute("signupEmail", trimmedEmail);
+            redirectAttributes.addFlashAttribute("signupUserId", normalizedUserId);
+            redirectAttributes.addFlashAttribute("signupEmail", normalizedEmail);
             redirectAttributes.addFlashAttribute("signupBaseAddress", baseAddress);
-            return "redirect:/signup";
+            return "redirect:/user/userRegForm";
         }
 
         String verifiedEmail = (String) session.getAttribute("SIGNUP_VERIFIED_EMAIL");
-        if (verifiedEmail == null || !verifiedEmail.equalsIgnoreCase(trimmedEmail)) {
+        if (verifiedEmail == null || !verifiedEmail.equalsIgnoreCase(normalizedEmail)) {
             redirectAttributes.addFlashAttribute("signupError", "이메일 중복확인과 이메일 인증을 먼저 완료해주세요.");
             redirectAttributes.addFlashAttribute("signupNickname", nickname);
-            redirectAttributes.addFlashAttribute("signupLoginId", loginId);
-            redirectAttributes.addFlashAttribute("signupEmail", trimmedEmail);
+            redirectAttributes.addFlashAttribute("signupUserId", normalizedUserId);
+            redirectAttributes.addFlashAttribute("signupEmail", normalizedEmail);
             redirectAttributes.addFlashAttribute("signupBaseAddress", baseAddress);
-            return "redirect:/signup";
+            return "redirect:/user/userRegForm";
         }
 
         try {
             authService.signUp(new AuthDTO.SignUpRequest(
                     nickname,
-                    loginId,
+                    normalizedUserId,
                     password,
-                    trimmedEmail,
+                    normalizedEmail,
                     baseAddress
             ));
         } catch (ResponseStatusException exception) {
@@ -130,10 +133,10 @@ public class AuthController {
                 default -> exception.getReason();
             });
             redirectAttributes.addFlashAttribute("signupNickname", nickname);
-            redirectAttributes.addFlashAttribute("signupLoginId", loginId);
-            redirectAttributes.addFlashAttribute("signupEmail", trimmedEmail);
+            redirectAttributes.addFlashAttribute("signupUserId", normalizedUserId);
+            redirectAttributes.addFlashAttribute("signupEmail", normalizedEmail);
             redirectAttributes.addFlashAttribute("signupBaseAddress", baseAddress);
-            return "redirect:/signup";
+            return "redirect:/user/userRegForm";
         }
 
         session.removeAttribute("SIGNUP_VERIFICATION_EMAIL");
@@ -141,24 +144,26 @@ public class AuthController {
         session.removeAttribute("SIGNUP_VERIFIED_EMAIL");
 
         redirectAttributes.addAttribute("registered", true);
-        redirectAttributes.addFlashAttribute("registeredNickname", nickname.isBlank() ? loginId : nickname);
-        return "redirect:/login";
+        redirectAttributes.addFlashAttribute("registeredNickname", nickname.isBlank() ? normalizedUserId : nickname);
+        return "redirect:/user/login";
     }
 
-    @PostMapping("/login")
+    @PostMapping({"/login", "/user/loginProc"})
     public String loginSubmit(
-            @RequestParam(defaultValue = "") String loginId,
+            @RequestParam(name = "userId", defaultValue = "") String userId,
+            @RequestParam(name = "loginId", defaultValue = "") String legacyLoginId,
             @RequestParam(defaultValue = "") String password,
             HttpSession session
     ) {
-        AuthDTO.AuthResponse authResponse = authService.login(new AuthDTO.LoginRequest(loginId, password));
-        session.setAttribute("AUTH_TOKEN", authResponse.token());
-        session.setAttribute("USER_ID", authResponse.user().id());
-        session.setAttribute("USER_NICKNAME", authResponse.user().nickname());
+        String normalizedUserId = resolveUserIdInput(userId, legacyLoginId);
+        AuthDTO.AuthResponse loginResult = authService.login(new AuthDTO.LoginRequest(normalizedUserId, password));
+        session.setAttribute("AUTH_TOKEN", loginResult.token());
+        session.setAttribute("USER_ID", loginResult.user().id());
+        session.setAttribute("USER_NICKNAME", loginResult.user().nickname());
         return "redirect:/";
     }
 
-    @PostMapping("/find-id")
+    @PostMapping({"/find-id", "/user/findIdProc"})
     public String findIdSubmit(
             @RequestParam(defaultValue = "") String name,
             @RequestParam(defaultValue = "") String email,
@@ -167,8 +172,8 @@ public class AuthController {
         String normalizedName = CmmUtil.nvl(name);
         String normalizedEmail = CmmUtil.nvl(email);
         try {
-            String loginId = authService.findLoginIdByNameAndEmail(normalizedName, normalizedEmail);
-            redirectAttributes.addFlashAttribute("foundLoginId", loginId);
+            String foundUserId = authService.findLoginIdByNameAndEmail(normalizedName, normalizedEmail);
+            redirectAttributes.addFlashAttribute("foundUserId", foundUserId);
             redirectAttributes.addFlashAttribute("foundName", normalizedName);
             redirectAttributes.addFlashAttribute("foundEmail", normalizedEmail);
         } catch (ResponseStatusException exception) {
@@ -180,78 +185,79 @@ public class AuthController {
             redirectAttributes.addFlashAttribute("foundName", normalizedName);
             redirectAttributes.addFlashAttribute("foundEmail", normalizedEmail);
         }
-        return "redirect:/find-id";
+        return "redirect:/user/findId";
     }
 
-    @PostMapping("/find-password/verify")
+    @PostMapping({"/find-password/verify", "/user/findPassword/verify"})
     public String findPasswordVerify(
-            @RequestParam(defaultValue = "") String loginId,
+            @RequestParam(name = "userId", defaultValue = "") String userId,
+            @RequestParam(name = "loginId", defaultValue = "") String legacyLoginId,
             @RequestParam(defaultValue = "") String email,
             HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
-        String normalizedLoginId = CmmUtil.nvl(loginId);
+        String normalizedUserId = resolveUserIdInput(userId, legacyLoginId);
         String normalizedEmail = CmmUtil.nvl(email);
         try {
-            String resetUserId = authService.findUserIdByLoginIdAndEmail(normalizedLoginId, normalizedEmail);
-            session.setAttribute(PASSWORD_RESET_USER_ID, resetUserId);
-            session.setAttribute(PASSWORD_RESET_LOGIN_ID, normalizedLoginId);
+            String accountId = authService.findUserIdByLoginIdAndEmail(normalizedUserId, normalizedEmail);
+            session.setAttribute(PASSWORD_RESET_USER_ID, accountId);
+            session.setAttribute(PASSWORD_RESET_USER_ID_INPUT, normalizedUserId);
             session.setAttribute(PASSWORD_RESET_EMAIL, normalizedEmail);
-            redirectAttributes.addFlashAttribute("passwordResetLoginId", normalizedLoginId);
+            redirectAttributes.addFlashAttribute("passwordResetUserId", normalizedUserId);
             redirectAttributes.addFlashAttribute("passwordResetEmail", normalizedEmail);
             redirectAttributes.addFlashAttribute("passwordResetLookupSuccess", "계정이 확인되었습니다. 새 비밀번호를 입력해주세요.");
-            return "redirect:/find-password/reset";
+            return "redirect:/user/findPassword/reset";
         } catch (ResponseStatusException exception) {
             session.removeAttribute(PASSWORD_RESET_USER_ID);
-            session.removeAttribute(PASSWORD_RESET_LOGIN_ID);
+            session.removeAttribute(PASSWORD_RESET_USER_ID_INPUT);
             session.removeAttribute(PASSWORD_RESET_EMAIL);
             redirectAttributes.addFlashAttribute("passwordResetLookupError", switch (exception.getStatusCode().value()) {
                 case 400 -> "아이디와 올바른 이메일을 입력해주세요.";
                 case 404 -> "아이디와 이메일이 일치하는 계정을 찾지 못했습니다.";
                 default -> "비밀번호 변경 대상 계정을 확인하지 못했습니다.";
             });
-            redirectAttributes.addFlashAttribute("passwordResetLoginId", normalizedLoginId);
+            redirectAttributes.addFlashAttribute("passwordResetUserId", normalizedUserId);
             redirectAttributes.addFlashAttribute("passwordResetEmail", normalizedEmail);
-            return "redirect:/find-password";
+            return "redirect:/user/findPassword";
         }
     }
 
-    @PostMapping("/find-password/reset")
+    @PostMapping({"/find-password/reset", "/user/findPassword/reset"})
     public String resetPassword(
             @RequestParam(defaultValue = "") String newPassword,
             @RequestParam(defaultValue = "") String confirmPassword,
             HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
-        String resetUserId = session == null ? null : (String) session.getAttribute(PASSWORD_RESET_USER_ID);
+        String accountId = session == null ? null : (String) session.getAttribute(PASSWORD_RESET_USER_ID);
 
-        if (resetUserId == null || resetUserId.isBlank()) {
-            return "redirect:/find-password";
+        if (accountId == null || accountId.isBlank()) {
+            return "redirect:/user/findPassword";
         }
 
         if (!newPassword.equals(confirmPassword)) {
             redirectAttributes.addFlashAttribute("passwordResetConfirmError", "비밀번호 확인이 일치하지 않습니다.");
-            return "redirect:/find-password/reset";
+            return "redirect:/user/findPassword/reset";
         }
 
         try {
-            authService.resetPasswordForUser(resetUserId, newPassword);
+            authService.resetPasswordForUser(accountId, newPassword);
             session.removeAttribute(PASSWORD_RESET_USER_ID);
-            session.removeAttribute(PASSWORD_RESET_LOGIN_ID);
+            session.removeAttribute(PASSWORD_RESET_USER_ID_INPUT);
             session.removeAttribute(PASSWORD_RESET_EMAIL);
             redirectAttributes.addFlashAttribute("passwordResetSuccess", "비밀번호가 변경되었습니다.");
-            return "redirect:/login";
+            return "redirect:/user/login";
         } catch (ResponseStatusException exception) {
             redirectAttributes.addFlashAttribute("passwordResetConfirmError", switch (exception.getStatusCode().value()) {
                 case 400 -> "새 비밀번호를 입력해주세요.";
                 case 404 -> "비밀번호를 변경할 계정을 찾지 못했습니다.";
                 default -> "비밀번호를 변경하지 못했습니다.";
             });
-            return "redirect:/find-password/reset";
+            return "redirect:/user/findPassword/reset";
         }
     }
 
-    @GetMapping("/logout")
+    @GetMapping({"/logout", "/user/logout"})
     public String logout(HttpSession session) {
         session.invalidate();
         return "redirect:/";
@@ -288,6 +294,19 @@ public class AuthController {
         return new AuthDTO.EmailAvailabilityResponse(
                 available,
                 available ? "사용 가능한 이메일입니다." : "이미 사용 중인 이메일입니다."
+        );
+    }
+
+    @ResponseBody
+    @GetMapping("/user/getUserIdExists")
+    public AuthDTO.LoginIdAvailabilityResponse userLoginIdAvailable(
+            @RequestParam(name = "userId", defaultValue = "") String userId,
+            @RequestParam(name = "loginId", defaultValue = "") String legacyLoginId
+    ) {
+        boolean available = authService.isLoginIdAvailable(resolveUserIdInput(userId, legacyLoginId));
+        return new AuthDTO.LoginIdAvailabilityResponse(
+                available,
+                available ? "사용 가능한 아이디입니다." : "이미 사용 중인 아이디입니다."
         );
     }
 
@@ -353,6 +372,7 @@ public class AuthController {
     private void populateSignupModel(Model model, HttpSession session) {
         viewHelper.populateCommon(model, "login", true);
         model.addAttribute("signupVerifiedEmail", session.getAttribute("SIGNUP_VERIFIED_EMAIL"));
+        model.addAttribute("signupVerifiedUserId", session.getAttribute("SIGNUP_VERIFIED_USER_ID"));
     }
 
     private void populateFindPasswordModel(Model model) {
@@ -361,5 +381,10 @@ public class AuthController {
 
     private void populateFindIdModel(Model model) {
         viewHelper.populateCommon(model, "login", true);
+    }
+
+    private String resolveUserIdInput(String userId, String legacyLoginId) {
+        String normalizedUserId = CmmUtil.nvl(userId);
+        return normalizedUserId.isBlank() ? CmmUtil.nvl(legacyLoginId) : normalizedUserId;
     }
 }
