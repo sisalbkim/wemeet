@@ -91,6 +91,33 @@ public class OpenApiRoutingService {
         }
     }
 
+    public Optional<RouteResult> route(
+            double originLatitude,
+            double originLongitude,
+            double destinationLatitude,
+            double destinationLongitude,
+            String profile
+    ) {
+        if (!properties.isEnabled()) {
+            return Optional.empty();
+        }
+
+        try {
+            return routeDetails(
+                    new Coordinate(originLatitude, originLongitude),
+                    new Coordinate(destinationLatitude, destinationLongitude),
+                    profile
+            );
+        } catch (RuntimeException exception) {
+            log.warn("External routing geometry API call failed. Falling back to heuristic path.", exception);
+            return Optional.empty();
+        }
+    }
+
+    public String walkingProfile() {
+        return properties.getWalkingRouteProfile();
+    }
+
     private Optional<Coordinate> geocodeInternal(String query) {
         if (query == null || query.isBlank()) {
             return Optional.empty();
@@ -184,6 +211,38 @@ public class OpenApiRoutingService {
         return Optional.of((int) Math.max(1, Math.round(seconds / 60.0)));
     }
 
+    private Optional<RouteResult> routeDetails(Coordinate origin, Coordinate destination, String profile) {
+        String resolvedProfile = profile == null || profile.isBlank() ? properties.getRouteProfile() : profile.trim();
+        OsrmRouteResponse response = osrmClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/route/v1/{profile}/{fromLon},{fromLat};{toLon},{toLat}")
+                        .queryParam("overview", "full")
+                        .queryParam("geometries", "geojson")
+                        .build(
+                                resolvedProfile,
+                                origin.longitude(),
+                                origin.latitude(),
+                                destination.longitude(),
+                                destination.latitude()
+                        ))
+                .retrieve()
+                .body(OsrmRouteResponse.class);
+
+        if (response == null || response.routes() == null || response.routes().isEmpty()) {
+            return Optional.empty();
+        }
+
+        OsrmRoute route = response.routes().get(0);
+        List<MapCoordinate> path = route.geometry() == null || route.geometry().coordinates() == null
+                ? List.of()
+                : route.geometry().coordinates().stream()
+                .filter(point -> point.size() >= 2)
+                .map(point -> new MapCoordinate(point.get(1), point.get(0)))
+                .toList();
+        int minutes = (int) Math.max(1, Math.round(route.duration() / 60.0));
+        return Optional.of(new RouteResult(minutes, path));
+    }
+
     private record Coordinate(double latitude, double longitude) {
         // 외부 API 내부 계산에만 쓰는 순수 좌표 record다.
     }
@@ -192,12 +251,18 @@ public class OpenApiRoutingService {
         // 화면 지도 표시처럼 외부에 넘길 수 있는 좌표 record다.
     }
 
+    public record RouteResult(int minutes, List<MapCoordinate> path) {
+    }
+
     private record NominatimSearchResponse(String lat, String lon) {
     }
 
     private record OsrmRouteResponse(List<OsrmRoute> routes) {
     }
 
-    private record OsrmRoute(double duration) {
+    private record OsrmRoute(double duration, OsrmGeometry geometry) {
+    }
+
+    private record OsrmGeometry(String type, List<List<Double>> coordinates) {
     }
 }

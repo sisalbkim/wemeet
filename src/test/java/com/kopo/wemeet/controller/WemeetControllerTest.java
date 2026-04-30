@@ -330,6 +330,34 @@ class WemeetControllerTest {
     }
 
     @Test
+    void profilePageShowsMeetingsCurrentUserJoined() throws Exception {
+        MockHttpSession session = signupAndLogin("profilejoined01", "profilejoined01@wemeet.local");
+        String userId = userRepository.findByLoginId("profilejoined01").orElseThrow().getId();
+        String hostId = userRepository.findByLoginId("user456").orElseThrow().getId();
+
+        store.createMeeting(
+                hostId,
+                "친구가 만든 참여 모임",
+                "내가 참여자로 들어간 모임 설명",
+                LocalDate.of(2026, 5, 11),
+                LocalTime.of(19, 15),
+                "맛집",
+                "참여 모임 테스트 식당",
+                "서울특별시 종로구 참여로 11",
+                List.of(userId)
+        );
+
+        mockMvc.perform(get("/profile").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("참여한 모임")))
+                .andExpect(content().string(containsString("친구가 만든 참여 모임")))
+                .andExpect(content().string(containsString("내가 참여자로 들어간 모임 설명")))
+                .andExpect(content().string(containsString("참여 모임 테스트 식당")))
+                .andExpect(content().string(containsString("서울특별시 종로구 참여로 11")))
+                .andExpect(content().string(containsString("2026. 5. 11.")));
+    }
+
+    @Test
     void logoutInvalidatesSessionAndRedirectsToLanding() throws Exception {
         mockMvc.perform(post("/signup")
                         .session(verifiedSignupSession("logoutuser01@wemeet.local"))
@@ -680,6 +708,35 @@ class WemeetControllerTest {
                 .andExpect(content().string(not(containsString("data-route-mode=\"transit\""))))
                 .andExpect(content().string(containsString("data-route-mode=\"walk\"")))
                 .andExpect(content().string(containsString("이영희")));
+    }
+
+    @Test
+    void participantCanOpenRecommendationResultsFromProfile() throws Exception {
+        MockHttpSession session = signupAndLogin("participantresults01", "participantresults01@wemeet.local");
+        String participantUserId = userRepository.findByLoginId("participantresults01").orElseThrow().getId();
+        String hostUserId = userRepository.findByLoginId("user456").orElseThrow().getId();
+        String meetingId = store.createMeeting(
+                hostUserId,
+                "참여자 결과 보기 모임",
+                "참여자도 결과를 열 수 있어야 함",
+                LocalDate.of(2026, 6, 9),
+                LocalTime.of(18, 45),
+                "카페",
+                "참여 결과 카페",
+                "서울특별시 중구 참여결과로 9",
+                List.of(participantUserId)
+        ).id();
+
+        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
+
+        mockMvc.perform(get("/profile/meetings/results")
+                        .session(session)
+                        .param("meetingId", meetingId)
+                        .param("routeMode", "car"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("중구 로컬 카페")))
+                .andExpect(content().string(containsString("카테고리 바꾸기")))
+                .andExpect(content().string(containsString("data-route-mode=\"car\"")));
     }
 
     private MockHttpSession verifiedSignupSession(String email) {

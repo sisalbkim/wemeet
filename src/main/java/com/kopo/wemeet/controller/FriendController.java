@@ -53,26 +53,8 @@ public class FriendController {
     ) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
         List<FriendDTO.FriendSummary> friends = viewService.getFriends(currentUser.getId(), keyword);
-        populateFriendsModel(model, currentUser.getId(), viewHelper.toProfile(currentUser), friends, keyword, page, null, false);
-        return "friends";
-    }
-
-    @GetMapping("/friends4")
-    public String friendsMock4(Model model) {
-        UserDTO.UserProfile profile = viewService.getGuestUser();
-        List<FriendDTO.FriendSummary> sampleFriends = List.of(
-                new FriendDTO.FriendSummary("friend-101", "이영희", "@user456", "성수동 출발", "2026. 3. 1.", true),
-                new FriendDTO.FriendSummary("friend-102", "박민수", "@user789", "잠실동 출발", "2026. 3. 3.", false)
-        );
-        populateFriendsModel(model, profile.id(), profile, sampleFriends, "", 1, null, true);
-        return "friends";
-    }
-
-    @GetMapping("/friends1")
-    public String friendsMock1(Model model) {
-        UserDTO.UserProfile profile = viewService.getGuestUser();
-        populateFriendsModel(model, profile.id(), profile, List.of(), "", 1, 1, true);
-        return "friends";
+        populateFriendsModel(model, currentUser.getId(), viewHelper.toProfile(currentUser), friends, keyword, page);
+        return "friends/index";
     }
 
     @PostMapping("/friends/add")
@@ -163,9 +145,7 @@ public class FriendController {
             UserDTO.UserProfile profile,
             List<FriendDTO.FriendSummary> friends,
             String keyword,
-            int page,
-            Integer redPlaceholderIndex,
-            boolean hideShellNavigation
+            int page
     ) {
         int totalCount = friends.size();
         int totalPages = Math.max(1, (int) Math.ceil((double) totalCount / FRIEND_PAGE_SIZE));
@@ -190,7 +170,5 @@ public class FriendController {
         model.addAttribute("friendHasNext", currentPage < totalPages);
         model.addAttribute("friendPages", IntStream.rangeClosed(1, totalPages).boxed().toList());
         model.addAttribute("friendKeyword", keyword == null ? "" : keyword);
-        model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
-        model.addAttribute("hideShellNavigation", hideShellNavigation);
     }
 }

@@ -474,13 +474,25 @@ public class ApiRecommendationService implements IApiRecommendationService {
             GeoPoint destination
     ) {
         List<RecommendationDTO.RoutePointResponse> straightPath = straightRoutePath(origin, destination);
+        Optional<OpenApiRoutingService.RouteResult> walkingRoute = openApiRoutingService.route(
+                origin.latitude(),
+                origin.longitude(),
+                destination.latitude(),
+                destination.longitude(),
+                openApiRoutingServiceWalkingProfile()
+        );
         Optional<OdsayTransitRoutingService.TransitRouteEstimate> transitRoute = odsayTransitRoutingService.estimateTransitRoute(
                 origin.latitude(),
                 origin.longitude(),
                 destination.latitude(),
                 destination.longitude()
         );
-        int walkingMinutes = estimateWalkingMinutes(origin, destination);
+        int walkingMinutes = walkingRoute.map(OpenApiRoutingService.RouteResult::minutes)
+                .orElseGet(() -> estimateWalkingMinutes(origin, destination));
+        List<RecommendationDTO.RoutePointResponse> walkingPath = walkingRoute
+                .map(OpenApiRoutingService.RouteResult::path)
+                .map(path -> toRecommendationRoutePathFromCoordinates(path, origin, destination))
+                .orElse(straightPath);
 
         List<RecommendationDTO.RouteModeResponse> routeModes = new ArrayList<>();
         routeModes.add(new RecommendationDTO.RouteModeResponse("car", "자동차", carMinutes, carRoutePath, true));
@@ -491,13 +503,26 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 transitRoute.map(OdsayTransitRoutingService.TransitRouteEstimate::routePath).orElse(List.of()),
                 transitRoute.isPresent()
         ));
-        routeModes.add(new RecommendationDTO.RouteModeResponse("walk", "걷기", walkingMinutes, straightPath, true));
+        routeModes.add(new RecommendationDTO.RouteModeResponse("walk", "걷기", walkingMinutes, walkingPath, true));
 
         return new ParticipantRouteEstimate(carMinutes, carRoutePath, routeModes);
     }
 
     private List<RecommendationDTO.RoutePointResponse> toRecommendationRoutePath(
             List<PlaceDTO.PlaceRoutePointResponse> routePath,
+            GeoPoint origin,
+            GeoPoint destination
+    ) {
+        if (routePath == null || routePath.size() < 2) {
+            return straightRoutePath(origin, destination);
+        }
+        return routePath.stream()
+                .map(point -> new RecommendationDTO.RoutePointResponse(point.latitude(), point.longitude()))
+                .toList();
+    }
+
+    private List<RecommendationDTO.RoutePointResponse> toRecommendationRoutePathFromCoordinates(
+            List<OpenApiRoutingService.MapCoordinate> routePath,
             GeoPoint origin,
             GeoPoint destination
     ) {
@@ -1087,6 +1112,10 @@ public class ApiRecommendationService implements IApiRecommendationService {
             String baseAddress
     ) {
         // 추천 계산에 꼭 필요한 참가자 최소 정보만 담은 내부 모델이다.
+    }
+
+    private String openApiRoutingServiceWalkingProfile() {
+        return openApiRoutingService == null ? "foot" : openApiRoutingService.walkingProfile();
     }
 
     private enum RoutePreference {

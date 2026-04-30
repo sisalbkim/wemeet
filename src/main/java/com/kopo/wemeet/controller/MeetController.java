@@ -55,12 +55,12 @@ public class MeetController {
         AppUser currentUser = viewHelper.findLoggedInUser(session);
         if (currentUser != null) {
             populateHomeModel(model, currentUser);
-            return "home";
+            return "home/index";
         }
 
         viewHelper.populateCommon(model, "guest-home", true);
-        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
-        return "landing";
+        model.addAttribute("categories", viewService.getSelectableCategories());
+        return "landing/index";
     }
 
     @GetMapping("/home")
@@ -76,19 +76,8 @@ public class MeetController {
             @RequestParam(defaultValue = "car") String routeMode,
             Model model
     ) {
-        populateGuestPlanModel(model, guestAddress, category, routeMode, null);
-        return "guest-plan";
-    }
-
-    @GetMapping("/guest/plan1")
-    public String guestPlanMock1(
-            @RequestParam(defaultValue = "") String guestAddress,
-            @RequestParam(defaultValue = "맛집") String category,
-            @RequestParam(defaultValue = "car") String routeMode,
-            Model model
-    ) {
-        populateGuestPlanModel(model, guestAddress, category, routeMode, 1);
-        return "guest-plan";
+        populateGuestPlanModel(model, guestAddress, category, routeMode);
+        return "guest/plan";
     }
 
     @GetMapping("/guest/places")
@@ -103,7 +92,7 @@ public class MeetController {
         String effectiveOriginQuery = originQuery == null || originQuery.isBlank() ? guestAddress : originQuery;
         String effectiveTag = tag == null || tag.isBlank() ? category : tag;
         populateGuestPlaceSearchModel(model, effectiveOriginQuery, effectiveTag, display);
-        return "place-search";
+        return "guest/places";
     }
 
     @PostMapping("/guest/preview")
@@ -118,7 +107,7 @@ public class MeetController {
         redirectAttributes.addAttribute("guestAddress", guestAddress);
         redirectAttributes.addAttribute("category", category);
         redirectAttributes.addAttribute("mode", mode);
-        redirectAttributes.addAttribute("routeMode", normalizeRouteMode(routeMode));
+        redirectAttributes.addAttribute("routeMode", viewHelper.normalizeRouteMode(routeMode));
         return "redirect:/search/results";
     }
 
@@ -174,14 +163,12 @@ public class MeetController {
         return recommendationService.recommendForGuest(guestUser, recommendationRequest);
     }
 
-    private void populateGuestPlanModel(Model model, String guestAddress, String category, String routeMode, Integer redPlaceholderIndex) {
+    private void populateGuestPlanModel(Model model, String guestAddress, String category, String routeMode) {
         viewHelper.populateCommon(model, "nearby", true);
-        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("guestAddress", guestAddress);
         model.addAttribute("selectedCategory", category);
-        model.addAttribute("selectedRouteMode", normalizeRouteMode(routeMode));
-        model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
-        model.addAttribute("hideShellNavigation", redPlaceholderIndex != null);
+        model.addAttribute("selectedRouteMode", viewHelper.normalizeRouteMode(routeMode));
     }
 
     private void populateGuestPlaceSearchModel(
@@ -194,7 +181,7 @@ public class MeetController {
         model.addAttribute("originQuery", originQuery);
         model.addAttribute("tag", tag);
         model.addAttribute("display", display == null ? 5 : display);
-        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("categories", viewService.getSelectableCategories());
 
         if (originQuery == null || originQuery.isBlank() || tag == null || tag.isBlank()) {
             return;
@@ -241,7 +228,7 @@ public class MeetController {
     private void populateHomeModel(Model model, AppUser currentUser) {
         viewHelper.populateCommon(model, "home", false);
         model.addAttribute("profile", viewHelper.toProfile(currentUser));
-        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("upcomingMeetings", viewService.getUpcomingMeetings());
     }
 
@@ -259,13 +246,4 @@ public class MeetController {
         );
     }
 
-    private String normalizeRouteMode(String routeMode) {
-        if ("transit".equalsIgnoreCase(routeMode) && viewHelper.isTransitEnabled()) {
-            return "transit";
-        }
-        if ("walk".equalsIgnoreCase(routeMode)) {
-            return routeMode.toLowerCase(java.util.Locale.ROOT);
-        }
-        return "car";
-    }
 }

@@ -11,6 +11,7 @@ public class OpenApiProperties {
     private String nominatimBaseUrl = "https://nominatim.openstreetmap.org";
     private String osrmBaseUrl = "https://router.project-osrm.org";
     private String routeProfile = "driving";
+    private String walkingRouteProfile = "foot";
     private NaverSearch naverSearch = new NaverSearch();
     private NaverMaps naverMaps = new NaverMaps();
     private Odsay odsay = new Odsay();
@@ -53,6 +54,14 @@ public class OpenApiProperties {
 
     public void setRouteProfile(String routeProfile) {
         this.routeProfile = routeProfile;
+    }
+
+    public String getWalkingRouteProfile() {
+        return walkingRouteProfile;
+    }
+
+    public void setWalkingRouteProfile(String walkingRouteProfile) {
+        this.walkingRouteProfile = walkingRouteProfile;
     }
 
     public NaverSearch getNaverSearch() {

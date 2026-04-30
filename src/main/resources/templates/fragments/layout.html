@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${pageTitle + ' | WeMeet'}">WeMeet</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-    <script defer th:src="@{/js/app.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components.css}">
+    <link rel="stylesheet" th:href="@{/css/pages.css}">
+    <script defer th:src="@{/js/common-ui.js}"></script>
+    <script defer th:src="@{/js/recommendation-map.js}"></script>
+    <script defer th:src="@{/js/signup.js}"></script>
 </head>
 <body>
 <div th:fragment="brandLockup" class="brand-lockup">

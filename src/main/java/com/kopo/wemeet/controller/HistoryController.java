@@ -52,23 +52,7 @@ public class HistoryController {
         model.addAttribute("keyword", keyword);
         model.addAttribute("categories", viewService.getCategories());
         model.addAttribute("searchHistory", viewService.getSearchHistory(currentUser.getId(), filter, keyword));
-        return "history";
-    }
-
-    @GetMapping("/history1")
-    public String historyMock1(Model model) {
-        viewHelper.populateCommon(model, "history", false);
-        model.addAttribute("selectedFilter", "전체");
-        model.addAttribute("keyword", "");
-        model.addAttribute("categories", viewService.getCategories());
-        model.addAttribute("searchHistory", List.of(
-                new HistoryDTO.SearchHistoryItem(1L, "강남 맛집", "맛집", "2026. 3. 10."),
-                new HistoryDTO.SearchHistoryItem(2L, "성수 카페", "카페", "2026. 3. 9."),
-                new HistoryDTO.SearchHistoryItem(3L, "잠실 놀거리", "놀이", "2026. 3. 8.")
-        ));
-        model.addAttribute("redPlaceholderIndex", 1);
-        model.addAttribute("hideShellNavigation", true);
-        return "history";
+        return "history/index";
     }
 
     @PostMapping("/history/clear")

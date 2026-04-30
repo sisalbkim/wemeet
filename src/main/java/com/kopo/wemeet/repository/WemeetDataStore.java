@@ -92,8 +92,9 @@ public class WemeetDataStore {
             throw new ResponseStatusException(BAD_REQUEST, "friendCode is required");
         }
 
+        String normalizedFriendCode = friendCode.trim().replaceFirst("^@", "");
         AppUser user = requireUser(userId);
-        AppUser friend = userRepository.findByFriendCode(friendCode.trim())
+        AppUser friend = userRepository.findByFriendCode(normalizedFriendCode)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Friend code not found"));
 
         if (user.getId().equals(friend.getId())) {
@@ -248,6 +249,18 @@ public class WemeetDataStore {
                 .map(this::toMeetingRecord);
     }
 
+    @Transactional(readOnly = true)
+    public Optional<MeetingRecord> findMeetingForUser(String userId, String meetingId) {
+        if (meetingId == null || meetingId.isBlank()) {
+            return Optional.empty();
+        }
+
+        return meetingRepository.findById(meetingId)
+                .filter(meeting -> meeting.getParticipants().stream()
+                        .anyMatch(participant -> participant.getUser().getId().equals(userId)))
+                .map(this::toMeetingRecord);
+    }
+
     @Transactional
     public void deleteMeetingCreatedByUser(String userId, String meetingId) {
         if (meetingId == null || meetingId.isBlank()) {
@@ -319,7 +332,7 @@ public class WemeetDataStore {
         return new FriendRequestEntry(
                 user.getId(),
                 user.getNickname(),
-                user.getLoginId(),
+                user.getFriendCode(),
                 user.getBaseAddress(),
                 requestedOn
         );
@@ -390,7 +403,7 @@ public class WemeetDataStore {
     public record FriendRequestEntry(
             String id,
             String nickname,
-            String loginId,
+            String friendCode,
             String baseAddress,
             LocalDate requestedOn
     ) {

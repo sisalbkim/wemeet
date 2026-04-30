@@ -49,43 +49,8 @@ public class MeetingController {
     public String meetingForm(Model model, HttpSession session) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
         List<FriendDTO.FriendSummary> friends = viewService.getFriends(currentUser.getId());
-        populateMeetingFormModel(model, viewHelper.toProfile(currentUser), friends, extractFavoriteFriendIds(friends), null, false);
-        return "meeting-form";
-    }
-
-    @GetMapping("/meetings/new1")
-    public String meetingFormMock1(Model model) {
-        UserDTO.UserProfile profile = viewService.getGuestUser();
-        List<FriendDTO.FriendSummary> friends = viewService.getFriends(profile.id());
-        populateMeetingFormModel(model, profile, friends, extractFavoriteFriendIds(friends), 1, true);
-        return "meeting-form";
-    }
-
-    @GetMapping("/meetings/new2")
-    public String meetingFormMock2(Model model) {
-        UserDTO.UserProfile profile = viewService.getGuestUser();
-        List<FriendDTO.FriendSummary> friends = viewService.getFriends(profile.id());
-        populateMeetingFormModel(model, profile, friends, extractFavoriteFriendIds(friends), 2, true);
-        return "meeting-form";
-    }
-
-    @GetMapping("/meetings/new3")
-    public String meetingFormMock3(Model model) {
-        UserDTO.UserProfile profile = viewService.getGuestUser();
-        List<FriendDTO.FriendSummary> friends = viewService.getFriends(profile.id());
-        populateMeetingFormModel(model, profile, friends, extractFavoriteFriendIds(friends), 3, true);
-        return "meeting-form";
-    }
-
-    @GetMapping("/meetings/new4")
-    public String meetingFormMock4(Model model) {
-        UserDTO.UserProfile profile = viewService.getGuestUser();
-        List<FriendDTO.FriendSummary> sampleFriends = List.of(
-                new FriendDTO.FriendSummary("friend-201", "이영희", "@user456", "성수동 출발", "2026. 3. 1.", true),
-                new FriendDTO.FriendSummary("friend-202", "박민수", "@user789", "잠실동 출발", "2026. 3. 3.", false)
-        );
-        populateMeetingFormModel(model, profile, sampleFriends, extractFavoriteFriendIds(sampleFriends), null, true);
-        return "meeting-form";
+        populateMeetingFormModel(model, viewHelper.toProfile(currentUser), friends, extractFavoriteFriendIds(friends));
+        return "meeting/form";
     }
 
     @GetMapping("/search/results")
@@ -104,10 +69,10 @@ public class MeetingController {
         if (!guest) {
             currentUser = viewHelper.requireLoggedInUser(session);
         }
-        String normalizedRouteMode = normalizeRouteMode(routeMode);
+        String normalizedRouteMode = viewHelper.normalizeRouteMode(routeMode);
         populateRecommendationModel(model, guest ? "nearby" : "home", currentUser, category, friendIds, mode, anchorId, guest, guestAddress, normalizedRouteMode);
         model.addAttribute("selectedRouteMode", normalizedRouteMode);
-        return "search-results";
+        return "meeting/results";
     }
 
     @PostMapping("/meetings/preview")
@@ -126,7 +91,7 @@ public class MeetingController {
             HttpSession session
     ) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
-        String normalizedRouteMode = normalizeRouteMode(routeMode);
+        String normalizedRouteMode = viewHelper.normalizeRouteMode(routeMode);
         populateRecommendationModel(model, "create", currentUser, category, friendIds, mode, anchorId, false, null, normalizedRouteMode);
         model.addAttribute("meetingName", meetingName);
         model.addAttribute("meetingDescription", meetingDescription);
@@ -134,7 +99,7 @@ public class MeetingController {
         model.addAttribute("meetingTime", composeMeetingTime(meetingHour, meetingMinute));
         model.addAttribute("meetingCreationAvailable", true);
         model.addAttribute("selectedRouteMode", normalizedRouteMode);
-        return "search-results";
+        return "meeting/results";
     }
 
     @PostMapping("/meetings")
@@ -207,16 +172,14 @@ public class MeetingController {
             Model model,
             UserDTO.UserProfile profile,
             List<FriendDTO.FriendSummary> friends,
-            List<String> preselectedFriendIds,
-            Integer redPlaceholderIndex,
-            boolean hideShellNavigation
+            List<String> preselectedFriendIds
     ) {
         viewHelper.populateCommon(model, "create", false);
         List<FriendDTO.FriendSummary> favoriteFriends = friends.stream()
                 .filter(FriendDTO.FriendSummary::favorite)
                 .toList();
         model.addAttribute("profile", profile);
-        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("friends", friends);
         model.addAttribute("favoriteFriends", favoriteFriends);
         model.addAttribute("preselectedFriendIds", preselectedFriendIds);
@@ -224,8 +187,6 @@ public class MeetingController {
         model.addAttribute("selectedMode", RecommendationMode.CENTER.name());
         model.addAttribute("selectedAnchorId", profile.id());
         model.addAttribute("selectedRouteMode", "car");
-        model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
-        model.addAttribute("hideShellNavigation", hideShellNavigation);
     }
 
     private void populateRecommendationModel(
@@ -243,7 +204,7 @@ public class MeetingController {
         viewHelper.populateCommon(model, activeTab, guestMode);
         UserDTO.UserProfile guestProfile = guestMode ? viewService.getGuestUser(guestAddress) : null;
         model.addAttribute("profile", guestMode ? guestProfile : viewHelper.toProfile(currentUser));
-        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("guestAddress", guestMode ? guestProfile.baseAddress() : "");
         model.addAttribute("selectedCategory", category);
         model.addAttribute("selectedMode", RecommendationMode.from(mode).name());
@@ -321,13 +282,4 @@ public class MeetingController {
         }
     }
 
-    private String normalizeRouteMode(String routeMode) {
-        if ("transit".equalsIgnoreCase(routeMode) && viewHelper.isTransitEnabled()) {
-            return "transit";
-        }
-        if ("walk".equalsIgnoreCase(routeMode)) {
-            return routeMode.toLowerCase(java.util.Locale.ROOT);
-        }
-        return "car";
-    }
 }

@@ -47,151 +47,28 @@ public class AuthController {
             Model model
     ) {
         viewHelper.populateCommon(model, "login", true);
-        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("registered", registered);
         model.addAttribute("error", error);
-        return "login";
-    }
-
-    @GetMapping("/login1")
-    public String loginMock(
-            @RequestParam(defaultValue = "false") boolean registered,
-            @RequestParam(defaultValue = "false") boolean error,
-            Model model
-    ) {
-        viewHelper.populateCommon(model, "login", true);
-        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
-        model.addAttribute("registered", registered);
-        model.addAttribute("error", error);
-        return "login1";
-    }
-
-    @GetMapping("/login2")
-    public String loginMockImage(Model model) {
-        viewHelper.populateCommon(model, "login", true);
-        return "login2";
-    }
-
-    @GetMapping("/email0")
-    public String emailMockPage(Model model) {
-        viewHelper.populateCommon(model, "login", true);
-        return "email0";
-    }
-
-    @GetMapping("/email1")
-    public String emailMockTextPage(Model model) {
-        viewHelper.populateCommon(model, "login", true);
-        return "email1";
+        return "auth/login";
     }
 
     @GetMapping("/signup")
     public String signup(Model model, HttpSession session) {
-        populateSignupModel(model, session, null);
-        return "signup";
-    }
-
-    @GetMapping("/signup1")
-    public String signupMock1(Model model, HttpSession session) {
-        populateSignupModel(model, session, 1);
-        return "signup";
-    }
-
-    @GetMapping("/signup2")
-    public String signupMock2(Model model, HttpSession session) {
-        populateSignupModel(model, session, 2);
-        return "signup";
-    }
-
-    @GetMapping("/signup3")
-    public String signupMock3(Model model, HttpSession session) {
-        populateSignupModel(model, session, 3);
-        return "signup";
-    }
-
-    @GetMapping("/signup4")
-    public String signupMock4(Model model, HttpSession session) {
-        populateSignupModel(model, session, 4);
-        return "signup";
-    }
-
-    @GetMapping("/signup5")
-    public String signupMock5(Model model, HttpSession session) {
-        populateSignupModel(model, session, 5);
-        return "signup";
-    }
-
-    @GetMapping("/signup6")
-    public String signupMock6(Model model, HttpSession session) {
-        populateSignupModel(model, session, 6);
-        return "signup";
-    }
-
-    @GetMapping("/signup7")
-    public String signupMock7(Model model, HttpSession session) {
-        populateSignupModel(model, session, 7);
-        return "signup";
-    }
-
-    @GetMapping("/signup8")
-    public String signupMock8(Model model, HttpSession session) {
-        populateSignupModel(model, session, null);
-        model.addAttribute("signupMockVerifyFeedback", "인증코드를 전송했습니다");
-        model.addAttribute("signupMockVerifyFeedbackTone", "is-success");
-        model.addAttribute("hideShellNavigation", true);
-        return "signup";
+        populateSignupModel(model, session);
+        return "auth/signup";
     }
 
     @GetMapping("/find-id")
     public String findId(Model model) {
-        populateFindIdModel(model, null);
-        return "find-id";
-    }
-
-    @GetMapping("/find-id1")
-    public String findIdMock1(Model model) {
-        populateFindIdModel(model, 1);
-        return "find-id";
-    }
-
-    @GetMapping("/find-id2")
-    public String findIdMock2(Model model) {
-        populateFindIdModel(model, 2);
-        return "find-id";
+        populateFindIdModel(model);
+        return "auth/find-id";
     }
 
     @GetMapping("/find-password")
     public String findPassword(Model model) {
-        populateFindPasswordModel(model, null);
-        return "find-password";
-    }
-
-    @GetMapping("/find-password0")
-    public String findPasswordMock0(Model model) {
-        populateFindPasswordModel(model, 0);
-        model.addAttribute("passwordResetName", "홍길동");
-        model.addAttribute("passwordResetEmail", "hong@example.com");
-        model.addAttribute("passwordResetLoginId", "wemeet_user");
-        model.addAttribute("passwordResetTemporaryPassword", "WM123456!");
-        model.addAttribute("passwordResetLookupSuccess", "일치하는 계정을 확인했습니다. 아래 임시 비밀번호로 로그인해 주세요.");
-        return "find-password";
-    }
-
-    @GetMapping("/find-password1")
-    public String findPasswordMock1(Model model) {
-        populateFindPasswordModel(model, 1);
-        return "find-password";
-    }
-
-    @GetMapping("/find-password2")
-    public String findPasswordMock2(Model model) {
-        populateFindPasswordModel(model, 2);
-        return "find-password";
-    }
-
-    @GetMapping("/find-password3")
-    public String findPasswordMock3(Model model) {
-        populateFindPasswordModel(model, 3);
-        return "find-password";
+        populateFindPasswordModel(model);
+        return "auth/find-password";
     }
 
     @GetMapping("/find-password/reset")
@@ -202,7 +79,7 @@ public class AuthController {
         viewHelper.populateCommon(model, "login", true);
         model.addAttribute("passwordResetLoginId", session.getAttribute(PASSWORD_RESET_LOGIN_ID));
         model.addAttribute("passwordResetEmail", session.getAttribute(PASSWORD_RESET_EMAIL));
-        return "reset-password";
+        return "auth/reset-password";
     }
 
     @PostMapping("/signup")
@@ -473,22 +350,16 @@ public class AuthController {
         return authService.updateBaseAddress(requester, request.baseAddress());
     }
 
-    private void populateSignupModel(Model model, HttpSession session, Integer redPlaceholderIndex) {
+    private void populateSignupModel(Model model, HttpSession session) {
         viewHelper.populateCommon(model, "login", true);
         model.addAttribute("signupVerifiedEmail", session.getAttribute("SIGNUP_VERIFIED_EMAIL"));
-        model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
-        model.addAttribute("hideShellNavigation", redPlaceholderIndex != null);
     }
 
-    private void populateFindPasswordModel(Model model, Integer redPlaceholderIndex) {
+    private void populateFindPasswordModel(Model model) {
         viewHelper.populateCommon(model, "login", true);
-        model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
-        model.addAttribute("hideShellNavigation", redPlaceholderIndex != null);
     }
 
-    private void populateFindIdModel(Model model, Integer redPlaceholderIndex) {
+    private void populateFindIdModel(Model model) {
         viewHelper.populateCommon(model, "login", true);
-        model.addAttribute("redPlaceholderIndex", redPlaceholderIndex);
-        model.addAttribute("hideShellNavigation", redPlaceholderIndex != null);
     }
 }

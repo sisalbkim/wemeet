@@ -53,7 +53,8 @@ public class MyPageController {
                 participatingMeetings.size()
         ));
         model.addAttribute("createdMeetings", createdMeetings);
-        return "profile";
+        model.addAttribute("participatingMeetings", participatingMeetings);
+        return "profile/index";
     }
 
     @GetMapping("/profile/meetings/results")
@@ -64,7 +65,7 @@ public class MyPageController {
             HttpSession session
     ) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
-        WemeetDataStore.MeetingRecord meeting = store.findMeetingCreatedByUser(currentUser.getId(), meetingId)
+        WemeetDataStore.MeetingRecord meeting = store.findMeetingForUser(currentUser.getId(), meetingId)
                 .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
                         org.springframework.http.HttpStatus.NOT_FOUND,
                         "Meeting not found"
@@ -75,14 +76,14 @@ public class MyPageController {
 
         viewHelper.populateCommon(model, "profile", false);
         model.addAttribute("profile", viewHelper.toProfile(currentUser));
-        model.addAttribute("categories", viewService.getCategories().stream().filter(chip -> !"전체".equals(chip.label())).toList());
+        model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("guestAddress", "");
         model.addAttribute("selectedCategory", meeting.category());
         model.addAttribute("selectedMode", "CENTER");
         model.addAttribute("selectedAnchorId", currentUser.getId());
         model.addAttribute("selectedFriendIds", selectedFriendIds);
         model.addAttribute("meetingCreationAvailable", false);
-        String normalizedRouteMode = normalizeRouteMode(routeMode);
+        String normalizedRouteMode = viewHelper.normalizeRouteMode(routeMode);
         model.addAttribute("selectedRouteMode", normalizedRouteMode);
         model.addAttribute("recommendation", viewService.buildRecommendation(
                 currentUser.getId(),
@@ -92,7 +93,7 @@ public class MyPageController {
                 currentUser.getId(),
                 normalizedRouteMode
         ));
-        return "search-results";
+        return "meeting/results";
     }
 
     @PostMapping("/profile/meetings/delete")
@@ -111,15 +112,7 @@ public class MyPageController {
     public String profilePasswordCheck(Model model, HttpSession session) {
         viewHelper.requireLoggedInUser(session);
         viewHelper.populateCommon(model, "profile", false);
-        return "profile-password-check";
-    }
-
-    @GetMapping("/profile/verify-password1")
-    public String profilePasswordCheckMock1(Model model) {
-        viewHelper.populateCommon(model, "profile", false);
-        model.addAttribute("redPlaceholderIndex", 1);
-        model.addAttribute("hideShellNavigation", true);
-        return "profile-password-check";
+        return "profile/password-check";
     }
 
     @PostMapping("/profile/verify-password")
@@ -152,47 +145,7 @@ public class MyPageController {
         viewHelper.populateCommon(model, "profile", false);
         model.addAttribute("profile", viewHelper.toProfile(currentUser));
         model.addAttribute("selectedProfileEditTab", "address".equalsIgnoreCase(editTab) ? "address" : "password");
-        return "profile-edit";
-    }
-
-    @GetMapping("/profile/edit1")
-    public String profileEditMock1(Model model) {
-        viewHelper.populateCommon(model, "profile", false);
-        model.addAttribute("profile", viewService.getGuestUser());
-        model.addAttribute("selectedProfileEditTab", "address");
-        model.addAttribute("redPlaceholderIndex", 1);
-        model.addAttribute("hideShellNavigation", true);
-        return "profile-edit";
-    }
-
-    @GetMapping("/ex")
-    public String profileEditExample(Model model) {
-        viewHelper.populateCommon(model, "profile", false);
-        model.addAttribute("profile", viewService.getGuestUser());
-        model.addAttribute("selectedProfileEditTab", "address");
-        model.addAttribute("redPlaceholderIndex", 1);
-        model.addAttribute("hideShellNavigation", true);
-        return "profile-edit";
-    }
-
-    @GetMapping("/ex1")
-    public String profileEditPasswordExample1(Model model) {
-        viewHelper.populateCommon(model, "profile", false);
-        model.addAttribute("profile", viewService.getGuestUser());
-        model.addAttribute("selectedProfileEditTab", "password");
-        model.addAttribute("redPlaceholderIndex", 1);
-        model.addAttribute("hideShellNavigation", true);
-        return "profile-edit";
-    }
-
-    @GetMapping("/ex2")
-    public String profileEditPasswordExample2(Model model) {
-        viewHelper.populateCommon(model, "profile", false);
-        model.addAttribute("profile", viewService.getGuestUser());
-        model.addAttribute("selectedProfileEditTab", "password");
-        model.addAttribute("redPlaceholderIndex", 2);
-        model.addAttribute("hideShellNavigation", true);
-        return "profile-edit";
+        return "profile/edit";
     }
 
     @PostMapping("/profile/address")
@@ -232,15 +185,5 @@ public class MyPageController {
         redirectAttributes.addFlashAttribute("profilePasswordNotice", "비밀번호가 변경되었습니다.");
         redirectAttributes.addAttribute("editTab", "password");
         return "redirect:/profile/edit";
-    }
-
-    private String normalizeRouteMode(String routeMode) {
-        if ("transit".equalsIgnoreCase(routeMode) && viewHelper.isTransitEnabled()) {
-            return "transit";
-        }
-        if ("walk".equalsIgnoreCase(routeMode)) {
-            return routeMode.toLowerCase(Locale.ROOT);
-        }
-        return "car";
     }
 }

@@ -61,7 +61,7 @@ public class WemeetViewService implements IWemeetViewService {
         return new UserDTO.UserProfile(
                 "user-123",
                 "김철수",
-                "@user123",
+                "@FRIEND123",
                 "FRIEND123",
                 normalizedBaseAddress,
                 "••••••••",
@@ -77,6 +77,13 @@ public class WemeetViewService implements IWemeetViewService {
     }
 
     @Override
+    public List<RecommendationDTO.CategoryChip> getSelectableCategories() {
+        return categories.stream()
+                .filter(chip -> !"전체".equals(chip.label()))
+                .toList();
+    }
+
+    @Override
     public List<FriendDTO.FriendSummary> getFriends(String userId) {
         return getFriends(userId, "");
     }
@@ -89,7 +96,7 @@ public class WemeetViewService implements IWemeetViewService {
                 .map(friend -> new FriendDTO.FriendSummary(
                         friend.id(),
                         friend.nickname(),
-                        "@" + friend.loginId(),
+                        "@" + friend.friendCode(),
                         friend.baseAddress(),
                         friend.joinedOn().format(historyFormatter),
                         friend.favorite()
@@ -130,6 +137,7 @@ public class WemeetViewService implements IWemeetViewService {
     @Override
     public List<MeetingDTO.CreatedMeeting> getParticipatingMeetings(String userId) {
         return store.listMeetingsForUser(userId).stream()
+                .filter(meeting -> !userId.equals(meeting.hostUserId()))
                 .map(this::toCreatedMeeting)
                 .toList();
     }
@@ -198,7 +206,7 @@ public class WemeetViewService implements IWemeetViewService {
                 .map(participant -> new FriendDTO.FriendSummary(
                         participant.id(),
                         participant.nickname(),
-                        "@" + participant.loginId(),
+                        "@" + participant.friendCode(),
                         participant.baseAddress(),
                         "활성 사용자",
                         false
@@ -271,7 +279,7 @@ public class WemeetViewService implements IWemeetViewService {
         UserDTO.UserResponse guestUser = new UserDTO.UserResponse(
                 guestProfile.id(),
                 guestProfile.name(),
-                guestProfile.handle().replaceFirst("^@", ""),
+                "guest",
                 "",
                 guestProfile.friendCode(),
                 guestProfile.baseAddress()
@@ -288,7 +296,7 @@ public class WemeetViewService implements IWemeetViewService {
                         .map(participant -> new FriendDTO.FriendSummary(
                                 participant.id(),
                                 participant.nickname(),
-                                "@" + participant.loginId(),
+                                "@" + participant.friendCode(),
                                 participant.baseAddress(),
                                 "게스트",
                                 false
@@ -355,7 +363,7 @@ public class WemeetViewService implements IWemeetViewService {
         return new FriendDTO.FriendRequest(
                 request.id(),
                 request.nickname(),
-                "@" + request.loginId(),
+                "@" + request.friendCode(),
                 request.baseAddress(),
                 request.requestedOn().format(historyFormatter)
         );

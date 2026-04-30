@@ -14,6 +14,8 @@ public interface IWemeetViewService {
 
     List<RecommendationDTO.CategoryChip> getCategories();
 
+    List<RecommendationDTO.CategoryChip> getSelectableCategories();
+
     List<FriendDTO.FriendSummary> getFriends(String userId);
 
     List<FriendDTO.FriendSummary> getFriends(String userId, String keyword);

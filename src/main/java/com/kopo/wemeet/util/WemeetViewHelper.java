@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.ui.Model;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Locale;
+
 @Component
 public class WemeetViewHelper {
 
@@ -38,6 +40,16 @@ public class WemeetViewHelper {
 
     public boolean isTransitEnabled() {
         return openApiProperties.isEnabled() && openApiProperties.isOdsayConfigured();
+    }
+
+    public String normalizeRouteMode(String routeMode) {
+        if ("transit".equalsIgnoreCase(routeMode) && isTransitEnabled()) {
+            return "transit";
+        }
+        if ("walk".equalsIgnoreCase(routeMode)) {
+            return routeMode.toLowerCase(Locale.ROOT);
+        }
+        return "car";
     }
 
     public AppUser findLoggedInUser(HttpSession session) {
@@ -77,7 +89,7 @@ public class WemeetViewHelper {
         return new UserDTO.UserProfile(
                 user.getId(),
                 user.getNickname(),
-                "@" + user.getLoginId(),
+                "@" + user.getFriendCode(),
                 user.getFriendCode(),
                 user.getBaseAddress(),
                 "••••••••",
