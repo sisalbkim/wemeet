@@ -24,13 +24,14 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public class ApiRecommendationService implements IApiRecommendationService {
     // 참가자 목록과 추천 모드를 바탕으로 실제 장소 후보를 계산하는 핵심 서비스다.
     private static final int DEFAULT_SEARCH_DISPLAY = 5;
-    private static final String RECOMMENDATION_CACHE_SCHEMA_VERSION = "odsay-route-v2";
+    private static final String RECOMMENDATION_CACHE_SCHEMA_VERSION = "tmap-walk-route-v3";
 
     private final WemeetDataStore store;
     private final OpenApiRoutingService openApiRoutingService;
     private final NaverPlaceSearchService naverPlaceSearchService;
     private final RecommendationCacheService recommendationCacheService;
     private final OdsayTransitRoutingService odsayTransitRoutingService;
+    private final TmapWalkingRoutingService tmapWalkingRoutingService;
 
     // 내부 화면/API에서 공통으로 쓰는 추천 카테고리 목록이다.
     private final List<String> categories = List.of("맛집", "카페", "놀이", "문화", "운동", "기타");
@@ -53,13 +54,15 @@ public class ApiRecommendationService implements IApiRecommendationService {
             OpenApiRoutingService openApiRoutingService,
             NaverPlaceSearchService naverPlaceSearchService,
             RecommendationCacheService recommendationCacheService,
-            OdsayTransitRoutingService odsayTransitRoutingService
+            OdsayTransitRoutingService odsayTransitRoutingService,
+            TmapWalkingRoutingService tmapWalkingRoutingService
     ) {
         this.store = store;
         this.openApiRoutingService = openApiRoutingService;
         this.naverPlaceSearchService = naverPlaceSearchService;
         this.recommendationCacheService = recommendationCacheService;
         this.odsayTransitRoutingService = odsayTransitRoutingService;
+        this.tmapWalkingRoutingService = tmapWalkingRoutingService;
     }
 
     @Override
@@ -474,25 +477,36 @@ public class ApiRecommendationService implements IApiRecommendationService {
             GeoPoint destination
     ) {
         List<RecommendationDTO.RoutePointResponse> straightPath = straightRoutePath(origin, destination);
-        Optional<OpenApiRoutingService.RouteResult> walkingRoute = openApiRoutingService.route(
+        Optional<TmapWalkingRoutingService.WalkingRouteEstimate> walkingRoute = tmapWalkingRoutingService.estimateWalkingRoute(
                 origin.latitude(),
                 origin.longitude(),
                 destination.latitude(),
-                destination.longitude(),
-                openApiRoutingServiceWalkingProfile()
+                destination.longitude()
         );
+        Optional<OpenApiRoutingService.RouteResult> fallbackWalkingRoute = walkingRoute.isPresent()
+                ? Optional.empty()
+                : openApiRoutingService.route(
+                        origin.latitude(),
+                        origin.longitude(),
+                        destination.latitude(),
+                        destination.longitude(),
+                        openApiRoutingServiceWalkingProfile()
+                );
         Optional<OdsayTransitRoutingService.TransitRouteEstimate> transitRoute = odsayTransitRoutingService.estimateTransitRoute(
                 origin.latitude(),
                 origin.longitude(),
                 destination.latitude(),
                 destination.longitude()
         );
-        int walkingMinutes = walkingRoute.map(OpenApiRoutingService.RouteResult::minutes)
-                .orElseGet(() -> estimateWalkingMinutes(origin, destination));
+        int walkingMinutes = walkingRoute.map(TmapWalkingRoutingService.WalkingRouteEstimate::minutes)
+                .orElseGet(() -> fallbackWalkingRoute.map(OpenApiRoutingService.RouteResult::minutes)
+                        .orElseGet(() -> estimateWalkingMinutes(origin, destination)));
         List<RecommendationDTO.RoutePointResponse> walkingPath = walkingRoute
-                .map(OpenApiRoutingService.RouteResult::path)
-                .map(path -> toRecommendationRoutePathFromCoordinates(path, origin, destination))
-                .orElse(straightPath);
+                .map(TmapWalkingRoutingService.WalkingRouteEstimate::routePath)
+                .orElseGet(() -> fallbackWalkingRoute
+                        .map(OpenApiRoutingService.RouteResult::path)
+                        .map(path -> toRecommendationRoutePathFromCoordinates(path, origin, destination))
+                        .orElse(straightPath));
 
         List<RecommendationDTO.RouteModeResponse> routeModes = new ArrayList<>();
         routeModes.add(new RecommendationDTO.RouteModeResponse("car", "자동차", carMinutes, carRoutePath, true));
@@ -949,7 +963,6 @@ public class ApiRecommendationService implements IApiRecommendationService {
     ) {
         // 카드 UI에 노출할 짧은 강조 문구를 만든다.
         List<String> highlights = new ArrayList<>();
-        highlights.add("네이버 검색 기반 실제 장소");
         highlights.add(place.distanceMeters() + "m");
         if (participantCount == 1) {
             highlights.add(place.durationMinutes() + "분");

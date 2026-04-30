@@ -7,6 +7,7 @@ import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.service.IWemeetViewService;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -29,12 +30,6 @@ public class WemeetViewService implements IWemeetViewService {
             new RecommendationDTO.CategoryChip("문화", "문화"),
             new RecommendationDTO.CategoryChip("운동", "운동"),
             new RecommendationDTO.CategoryChip("기타", "기타")
-    );
-
-    private final List<MeetingDTO.UpcomingMeeting> upcomingMeetings = List.of(
-            new MeetingDTO.UpcomingMeeting("주말 맛집 탐방", "주말에 새로운 맛집 찾아가요!", "2026. 3. 15.", "김철수", "예정", "scheduled"),
-            new MeetingDTO.UpcomingMeeting("친구들과 보드게임", "보드게임 카페에서 즐겁게 놀아요", "2026. 3. 20.", "이영희", "예정", "scheduled"),
-            new MeetingDTO.UpcomingMeeting("카페 스터디", "조용한 카페에서 같이 공부해요", "2026. 3. 18.", "김철수", "진행중", "active")
     );
 
     public WemeetViewService(
@@ -122,9 +117,17 @@ public class WemeetViewService implements IWemeetViewService {
     }
 
     @Override
-    public List<MeetingDTO.UpcomingMeeting> getUpcomingMeetings() {
-        // 모임 목록도 현재는 메인 화면 시연용 고정 데이터를 사용한다.
-        return upcomingMeetings;
+    public List<MeetingDTO.UpcomingMeeting> getUpcomingMeetings(String userId) {
+        // 홈 화면에는 현재 사용자가 참여하는 오늘 이후 모임만 날짜순으로 보여준다.
+        LocalDate today = LocalDate.now();
+        return store.listMeetingsForUser(userId).stream()
+                .filter(meeting -> meeting.meetingDate() != null && !meeting.meetingDate().isBefore(today))
+                .sorted(java.util.Comparator
+                        .comparing(WemeetDataStore.MeetingRecord::meetingDate)
+                        .thenComparing(meeting -> meeting.meetingTime() == null ? java.time.LocalTime.MAX : meeting.meetingTime()))
+                .limit(5)
+                .map(this::toUpcomingMeeting)
+                .toList();
     }
 
     @Override
@@ -380,6 +383,21 @@ public class WemeetViewService implements IWemeetViewService {
                 meeting.meetingPlaceName() == null || meeting.meetingPlaceName().isBlank() ? "만날 지점 미정" : meeting.meetingPlaceName(),
                 meeting.meetingPlaceAddress() == null ? "" : meeting.meetingPlaceAddress(),
                 meeting.participantIds().size()
+        );
+    }
+
+    private MeetingDTO.UpcomingMeeting toUpcomingMeeting(WemeetDataStore.MeetingRecord meeting) {
+        String hostName = store.findById(meeting.hostUserId())
+                .map(WemeetDataStore.UserAccount::nickname)
+                .orElse("알 수 없음");
+        boolean isToday = LocalDate.now().equals(meeting.meetingDate());
+        return new MeetingDTO.UpcomingMeeting(
+                meeting.title(),
+                meeting.description() == null || meeting.description().isBlank() ? "등록된 설명이 없습니다." : meeting.description(),
+                meeting.meetingDate().format(historyFormatter),
+                hostName,
+                isToday ? "진행중" : "예정",
+                isToday ? "active" : "scheduled"
         );
     }
 }

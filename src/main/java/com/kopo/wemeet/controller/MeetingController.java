@@ -136,14 +136,36 @@ public class MeetingController {
             @RequestParam(defaultValue = "맛집") String category,
             @RequestParam(defaultValue = "CENTER") String recommendationMode,
             @RequestParam(defaultValue = "") String anchorId,
+            @RequestParam(defaultValue = "car") String routeMode,
             @RequestParam(defaultValue = "") String meetingPreviewKey,
             @RequestParam(required = false) List<String> friendIds,
+            Model model,
             HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
         if (meetingName == null || meetingName.isBlank() || meetingDate == null || meetingDate.isBlank()) {
-            redirectAttributes.addFlashAttribute("meetingCreateError", "모임 이름과 날짜를 입력해주세요.");
+            RecommendationDTO.RecommendationBundle recommendation = findMeetingPreview(session, meetingPreviewKey);
+            if (recommendation != null) {
+                return renderMeetingCreationError(
+                        model,
+                        currentUser,
+                        recommendation,
+                        category,
+                        recommendationMode,
+                        anchorId,
+                        routeMode,
+                        friendIds,
+                        meetingName,
+                        meetingDescription,
+                        meetingDate,
+                        meetingTime,
+                        meetingPreviewKey,
+                        "모임 이름과 날짜를 입력해주세요."
+                );
+            }
+
+            redirectAttributes.addFlashAttribute("meetingCreateError", "추천 결과를 다시 불러온 뒤 저장해주세요.");
             return "redirect:/meetings/new";
         }
 
@@ -293,6 +315,59 @@ public class MeetingController {
         String snapshotJson = previews.remove(previewKey);
         session.setAttribute(MEETING_PREVIEW_SNAPSHOTS, previews);
         return snapshotJson == null || snapshotJson.isBlank() ? null : snapshotJson;
+    }
+
+    private RecommendationDTO.RecommendationBundle findMeetingPreview(HttpSession session, String previewKey) {
+        if (session == null || previewKey == null || previewKey.isBlank()) {
+            return null;
+        }
+
+        String snapshotJson = meetingPreviewStore(session).get(previewKey);
+        if (snapshotJson == null || snapshotJson.isBlank()) {
+            return null;
+        }
+
+        try {
+            return objectMapper.readValue(snapshotJson, RecommendationDTO.RecommendationBundle.class);
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    private String renderMeetingCreationError(
+            Model model,
+            AppUser currentUser,
+            RecommendationDTO.RecommendationBundle recommendation,
+            String category,
+            String recommendationMode,
+            String anchorId,
+            String routeMode,
+            List<String> friendIds,
+            String meetingName,
+            String meetingDescription,
+            String meetingDate,
+            String meetingTime,
+            String meetingPreviewKey,
+            String errorMessage
+    ) {
+        viewHelper.populateCommon(model, "create", false);
+        model.addAttribute("profile", viewHelper.toProfile(currentUser));
+        model.addAttribute("categories", viewService.getSelectableCategories());
+        model.addAttribute("guestAddress", "");
+        model.addAttribute("selectedCategory", category);
+        model.addAttribute("selectedMode", RecommendationMode.from(recommendationMode).name());
+        model.addAttribute("selectedAnchorId", anchorId == null || anchorId.isBlank() ? currentUser.getId() : anchorId);
+        model.addAttribute("selectedFriendIds", friendIds == null ? List.of() : friendIds);
+        model.addAttribute("meetingCreationAvailable", true);
+        model.addAttribute("selectedRouteMode", viewHelper.normalizeRouteMode(routeMode));
+        model.addAttribute("recommendation", recommendation);
+        model.addAttribute("meetingName", meetingName);
+        model.addAttribute("meetingDescription", meetingDescription);
+        model.addAttribute("meetingDate", meetingDate);
+        model.addAttribute("meetingTime", meetingTime);
+        model.addAttribute("meetingPreviewKey", meetingPreviewKey);
+        model.addAttribute("meetingCreateError", errorMessage);
+        return "meeting/results";
     }
 
     @SuppressWarnings("unchecked")

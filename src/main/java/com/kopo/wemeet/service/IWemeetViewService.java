@@ -24,7 +24,7 @@ public interface IWemeetViewService {
 
     List<FriendDTO.FriendRequest> getSentFriendRequests(String userId);
 
-    List<MeetingDTO.UpcomingMeeting> getUpcomingMeetings();
+    List<MeetingDTO.UpcomingMeeting> getUpcomingMeetings(String userId);
 
     List<MeetingDTO.CreatedMeeting> getCreatedMeetings(String userId);
 

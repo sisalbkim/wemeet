@@ -34,6 +34,8 @@ public interface IApiAuthService {
 
     void resetPasswordForUser(String userId, String newPassword);
 
+    void deleteUserAccount(String userId);
+
     UserDTO.UserResponse updateBaseAddress(AppUser user, String baseAddress);
 
     // 토큰에서 실제 사용자 엔티티를 찾아야 할 때 사용한다.

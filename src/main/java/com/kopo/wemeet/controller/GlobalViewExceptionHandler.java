@@ -13,15 +13,15 @@ public class GlobalViewExceptionHandler {
     public String handleResponseStatusException(ResponseStatusException exception, RedirectAttributes redirectAttributes) {
         if (exception.getStatusCode().value() == 401) {
             if ("Login required".equals(exception.getReason())) {
-                return "redirect:/user/login";
+                return "redirect:/login";
             }
             redirectAttributes.addFlashAttribute("loginErrorMessage", "아이디 또는 비밀번호가 올바르지 않습니다.");
-            return "redirect:/user/login?error=true";
+            return "redirect:/login?error=true";
         }
 
         if (exception.getStatusCode().value() == 409 || exception.getStatusCode().value() == 400) {
             redirectAttributes.addFlashAttribute("signupError", exception.getReason());
-            return "redirect:/user/userRegForm";
+            return "redirect:/signup";
         }
 
         throw exception;

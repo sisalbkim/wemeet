@@ -70,7 +70,7 @@ class WemeetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("로그인")))
                 .andExpect(content().string(containsString("아이디")))
-                .andExpect(content().string(containsString("/user/findPassword")));
+                .andExpect(content().string(containsString("/find-password")));
     }
 
     @Test
@@ -102,14 +102,14 @@ class WemeetControllerTest {
                         .param("loginId", "passwordflow01")
                         .param("email", "wrong@wemeet.local"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/user/findPassword"));
+                .andExpect(redirectedUrl("/find-password"));
 
         MvcResult verifyResult = mockMvc.perform(post("/find-password/verify")
                         .session(new MockHttpSession())
                         .param("loginId", "passwordflow01")
                         .param("email", "passwordflow01@wemeet.local"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/user/findPassword/reset"))
+                .andExpect(redirectedUrl("/find-password/reset"))
                 .andReturn();
 
         MockHttpSession resetSession = (MockHttpSession) verifyResult.getRequest().getSession(false);
@@ -128,7 +128,7 @@ class WemeetControllerTest {
                         .param("newPassword", "resetPass123!")
                         .param("confirmPassword", "resetPass123!"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/user/login"))
+                .andExpect(redirectedUrl("/login"))
                 .andReturn();
 
         mockMvc.perform(get("/login").flashAttrs(confirmResult.getFlashMap()))
@@ -244,7 +244,7 @@ class WemeetControllerTest {
                         .param("confirmPassword", "pass1234")
                         .param("baseAddress", "서울특별시 강남구"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/user/login?registered=true"));
+                .andExpect(redirectedUrl("/login?registered=true"));
     }
 
     @Test
@@ -270,6 +270,29 @@ class WemeetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("안녕하세요")))
                 .andExpect(content().string(containsString("홈테스터")));
+    }
+
+    @Test
+    void homePageShowsActualUpcomingMeetingsForCurrentUser() throws Exception {
+        MockHttpSession session = signupAndLogin("homeagenda01", "homeagenda01@wemeet.local");
+        String userId = userRepository.findByLoginId("homeagenda01").orElseThrow().getId();
+
+        store.createMeeting(
+                userId,
+                "홈에 보이는 실제 모임",
+                "샘플이 아니라 저장된 모임이어야 합니다",
+                LocalDate.now().plusDays(2),
+                LocalTime.of(18, 0),
+                "맛집",
+                "홈 테스트 장소",
+                "서울특별시 중구 홈로 2",
+                List.of()
+        );
+
+        mockMvc.perform(get("/").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("홈에 보이는 실제 모임")))
+                .andExpect(content().string(not(containsString("친구들과 보드게임"))));
     }
 
     @Test
@@ -394,7 +417,7 @@ class WemeetControllerTest {
 
         mockMvc.perform(get("/profile").session(session))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/user/login"));
+                .andExpect(redirectedUrl("/login"));
     }
 
     @Test
@@ -660,6 +683,45 @@ class WemeetControllerTest {
     }
 
     @Test
+    void meetingCreateWithBlankRequiredFieldsStaysOnResultsPage() throws Exception {
+        MockHttpSession session = signupAndLogin("meetingerror01", "meetingerror01@wemeet.local");
+        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
+
+        String previewHtml = mockMvc.perform(post("/meetings/preview")
+                        .session(session)
+                        .param("category", "카페")
+                        .param("mode", "CENTER")
+                        .param("meetingName", "")
+                        .param("meetingDate", "")
+                        .param("meetingHour", "18")
+                        .param("meetingMinute", "30")
+                        .param("routeMode", "walk"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String previewKey = extractHiddenInputValue(previewHtml, "meetingPreviewKey");
+
+        mockMvc.perform(post("/meetings")
+                        .session(session)
+                        .param("meetingName", "")
+                        .param("meetingDescription", "결과 페이지에 남아야 합니다")
+                        .param("meetingDate", "")
+                        .param("meetingTime", "18:30")
+                        .param("meetingPlaceName", "중구 로컬 카페")
+                        .param("meetingPlaceAddress", "서울특별시 중구 저장로 12")
+                        .param("category", "카페")
+                        .param("recommendationMode", "CENTER")
+                        .param("routeMode", "walk")
+                        .param("meetingPreviewKey", previewKey))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("모임 이름과 날짜를 입력해주세요.")))
+                .andExpect(content().string(containsString("중구 로컬 카페")))
+                .andExpect(content().string(containsString("모임 저장")));
+    }
+
+    @Test
     void meetingCreateStoresRecommendationSnapshotUntilSevenDaysAfterMeeting() throws Exception {
         MockHttpSession session = signupAndLogin("meetingsnapshot01", "meetingsnapshot01@wemeet.local");
         String userId = userRepository.findByLoginId("meetingsnapshot01").orElseThrow().getId();
@@ -733,6 +795,66 @@ class WemeetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("모임이 삭제되었습니다.")))
                 .andExpect(content().string(not(containsString("삭제될 모임"))));
+    }
+
+    @Test
+    void profileDeleteConfirmPageShowsConfirmationButtons() throws Exception {
+        MockHttpSession session = signupAndLogin("profiledeleteview01", "profiledeleteview01@wemeet.local");
+        session.setAttribute("PROFILE_EDIT_VERIFIED", true);
+
+        mockMvc.perform(get("/profile/delete").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("정말로 탈퇴하시겠습니까?")))
+                .andExpect(content().string(containsString(">예<")))
+                .andExpect(content().string(containsString(">아니오<")));
+    }
+
+    @Test
+    void profileDeleteRemovesUserAndRelatedData() throws Exception {
+        MockHttpSession session = signupAndLogin("accountdelete01", "accountdelete01@wemeet.local");
+        session.setAttribute("PROFILE_EDIT_VERIFIED", true);
+        String deletedUserId = userRepository.findByLoginId("accountdelete01").orElseThrow().getId();
+        String otherUserId = userRepository.findByLoginId("user456").orElseThrow().getId();
+
+        addFriend(session, "accountdelete01", "FRIEND456");
+
+        store.createMeeting(
+                deletedUserId,
+                "탈퇴와 함께 지워질 모임",
+                "호스트 탈퇴 시 삭제되어야 합니다",
+                LocalDate.of(2026, 6, 15),
+                LocalTime.of(19, 0),
+                "카페",
+                "삭제될 호스트 모임 장소",
+                "서울특별시 중구 삭제호스트로 15",
+                List.of(otherUserId)
+        );
+
+        String survivingMeetingId = store.createMeeting(
+                otherUserId,
+                "호스트는 남는 모임",
+                "참여자만 탈퇴합니다",
+                LocalDate.of(2026, 6, 16),
+                LocalTime.of(20, 0),
+                "맛집",
+                "남아야 할 장소",
+                "서울특별시 종로구 유지로 16",
+                List.of(deletedUserId)
+        ).id();
+
+        MvcResult deleteResult = mockMvc.perform(post("/profile/delete").session(session))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"))
+                .andReturn();
+
+        mockMvc.perform(get("/login").flashAttrs(deleteResult.getFlashMap()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("회원탈퇴가 완료되었습니다.")));
+
+        assertTrue(userRepository.findByLoginId("accountdelete01").isEmpty());
+        assertTrue(store.listMeetingsCreatedByUser(deletedUserId).isEmpty());
+        assertTrue(store.listFriends(otherUserId).stream().noneMatch(friend -> friend.id().equals(deletedUserId)));
+        assertFalse(store.findMeetingCreatedByUser(otherUserId, survivingMeetingId).orElseThrow().participantIds().contains(deletedUserId));
     }
 
     @Test

@@ -251,6 +251,21 @@ class ApiRestControllerTest {
     }
 
     @Test
+    void signupEmailVerificationSendCodeFallsBackToPreviewWhenMailIsDisabled() throws Exception {
+        String payload = objectMapper.writeValueAsString(Map.of(
+                "email", "preview-mail@wemeet.local"
+        ));
+
+        mockMvc.perform(post("/api/auth/email/send-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sent").value(true))
+                .andExpect(jsonPath("$.codePreview").isNotEmpty())
+                .andExpect(jsonPath("$.message").value(containsString("화면용 인증코드")));
+    }
+
+    @Test
     void passwordResetFlowWorks() throws Exception {
         String resetRequestPayload = objectMapper.writeValueAsString(Map.of(
                 "email", "user123@wemeet.local"

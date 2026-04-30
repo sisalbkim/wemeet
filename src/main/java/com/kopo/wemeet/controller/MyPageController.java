@@ -181,6 +181,18 @@ public class MyPageController {
         return "profile/edit";
     }
 
+    @GetMapping("/profile/delete")
+    public String profileDeleteConfirm(Model model, HttpSession session) {
+        AppUser currentUser = viewHelper.requireLoggedInUser(session);
+        if (!Boolean.TRUE.equals(session.getAttribute(PROFILE_EDIT_VERIFIED))) {
+            return "redirect:/profile/verify-password";
+        }
+
+        viewHelper.populateCommon(model, "profile", false);
+        model.addAttribute("profile", viewHelper.toProfile(currentUser));
+        return "profile/delete-confirm";
+    }
+
     @PostMapping("/profile/address")
     public String updateProfileAddress(
             @RequestParam(defaultValue = "") String baseAddress,
@@ -218,5 +230,17 @@ public class MyPageController {
         redirectAttributes.addFlashAttribute("profilePasswordNotice", "비밀번호가 변경되었습니다.");
         redirectAttributes.addAttribute("editTab", "password");
         return "redirect:/profile/edit";
+    }
+
+    @PostMapping("/profile/delete")
+    public String deleteProfile(
+            HttpSession session,
+            RedirectAttributes redirectAttributes
+    ) {
+        AppUser currentUser = viewHelper.requireLoggedInUser(session);
+        authService.deleteUserAccount(currentUser.getId());
+        session.invalidate();
+        redirectAttributes.addFlashAttribute("accountDeletedNotice", "회원탈퇴가 완료되었습니다.");
+        return "redirect:/login";
     }
 }

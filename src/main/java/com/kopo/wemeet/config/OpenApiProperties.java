@@ -15,6 +15,7 @@ public class OpenApiProperties {
     private NaverSearch naverSearch = new NaverSearch();
     private NaverMaps naverMaps = new NaverMaps();
     private Odsay odsay = new Odsay();
+    private Tmap tmap = new Tmap();
 
     public boolean isEnabled() {
         return enabled;
@@ -88,6 +89,14 @@ public class OpenApiProperties {
         this.odsay = odsay;
     }
 
+    public Tmap getTmap() {
+        return tmap;
+    }
+
+    public void setTmap(Tmap tmap) {
+        this.tmap = tmap;
+    }
+
     public boolean isNaverSearchConfigured() {
         return naverSearch != null
                 && naverSearch.getClientId() != null
@@ -109,6 +118,13 @@ public class OpenApiProperties {
                 && odsay.isEnabled()
                 && odsay.getApiKey() != null
                 && !odsay.getApiKey().isBlank();
+    }
+
+    public boolean isTmapConfigured() {
+        return tmap != null
+                && tmap.isEnabled()
+                && tmap.getAppKey() != null
+                && !tmap.getAppKey().isBlank();
     }
 
     public static class NaverSearch {
@@ -254,6 +270,54 @@ public class OpenApiProperties {
 
         public void setLoadLanePath(String loadLanePath) {
             this.loadLanePath = loadLanePath;
+        }
+    }
+
+    public static class Tmap {
+        private boolean enabled = true;
+        private String baseUrl = "https://apis.openapi.sk.com";
+        private String appKey = "";
+        private String pedestrianPath = "/tmap/routes/pedestrian";
+        private String version = "1";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public String getAppKey() {
+            return appKey;
+        }
+
+        public void setAppKey(String appKey) {
+            this.appKey = appKey;
+        }
+
+        public String getPedestrianPath() {
+            return pedestrianPath;
+        }
+
+        public void setPedestrianPath(String pedestrianPath) {
+            this.pedestrianPath = pedestrianPath;
+        }
+
+        public String getVersion() {
+            return version;
+        }
+
+        public void setVersion(String version) {
+            this.version = version;
         }
     }
 }

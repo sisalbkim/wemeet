@@ -5,7 +5,11 @@ import com.kopo.wemeet.dto.*;
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.repository.entity.PasswordResetToken;
 import com.kopo.wemeet.repository.AppUserRepository;
+import com.kopo.wemeet.repository.FriendRelationRepository;
+import com.kopo.wemeet.repository.MeetingParticipantRepository;
+import com.kopo.wemeet.repository.MeetingRepository;
 import com.kopo.wemeet.repository.PasswordResetTokenRepository;
+import com.kopo.wemeet.repository.SearchHistoryRepository;
 import com.kopo.wemeet.repository.SessionTokenStore;
 import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.service.IApiAuthService;
@@ -33,17 +37,29 @@ public class ApiAuthService implements IApiAuthService {
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
     private final AppUserRepository userRepository;
+    private final FriendRelationRepository friendRelationRepository;
+    private final SearchHistoryRepository searchHistoryRepository;
+    private final MeetingRepository meetingRepository;
+    private final MeetingParticipantRepository meetingParticipantRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final SessionTokenStore sessionTokenStore;
 
     public ApiAuthService(
             AppUserRepository userRepository,
+            FriendRelationRepository friendRelationRepository,
+            SearchHistoryRepository searchHistoryRepository,
+            MeetingRepository meetingRepository,
+            MeetingParticipantRepository meetingParticipantRepository,
             PasswordResetTokenRepository passwordResetTokenRepository,
             PasswordEncoder passwordEncoder,
             SessionTokenStore sessionTokenStore
     ) {
         this.userRepository = userRepository;
+        this.friendRelationRepository = friendRelationRepository;
+        this.searchHistoryRepository = searchHistoryRepository;
+        this.meetingRepository = meetingRepository;
+        this.meetingParticipantRepository = meetingParticipantRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.sessionTokenStore = sessionTokenStore;
@@ -210,6 +226,24 @@ public class ApiAuthService implements IApiAuthService {
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "user not found"));
         user.changePasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+    }
+
+    @Transactional
+    @Override
+    public void deleteUserAccount(String userId) {
+        if (userId == null || userId.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "userId is required");
+        }
+
+        AppUser user = userRepository.findById(userId.trim())
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "user not found"));
+
+        meetingRepository.deleteAll(meetingRepository.findAllCreatedByUserId(user.getId()));
+        meetingParticipantRepository.deleteByUserId(user.getId());
+        friendRelationRepository.deleteByUserIdOrFriendId(user.getId(), user.getId());
+        searchHistoryRepository.deleteByUserId(user.getId());
+        passwordResetTokenRepository.deleteByUserId(user.getId());
+        userRepository.delete(user);
     }
 
     @Override

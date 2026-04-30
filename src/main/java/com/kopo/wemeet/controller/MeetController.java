@@ -230,7 +230,7 @@ public class MeetController {
         viewHelper.populateCommon(model, "home", false);
         model.addAttribute("profile", viewHelper.toProfile(currentUser));
         model.addAttribute("categories", viewService.getSelectableCategories());
-        model.addAttribute("upcomingMeetings", viewService.getUpcomingMeetings());
+        model.addAttribute("upcomingMeetings", viewService.getUpcomingMeetings(currentUser.getId()));
     }
 
     private UserDTO.UserResponse createGuestUser(String baseAddress) {

@@ -6,6 +6,7 @@ import com.kopo.wemeet.dto.*;
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IWemeetViewService;
+import com.kopo.wemeet.service.impl.MailDeliveryService;
 import com.kopo.wemeet.util.CmmUtil;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
@@ -30,15 +31,18 @@ public class AuthController {
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;
     private final WemeetViewHelper viewHelper;
+    private final MailDeliveryService mailDeliveryService;
 
     public AuthController(
             IWemeetViewService viewService,
             IApiAuthService authService,
-            WemeetViewHelper viewHelper
+            WemeetViewHelper viewHelper,
+            MailDeliveryService mailDeliveryService
     ) {
         this.viewService = viewService;
         this.authService = authService;
         this.viewHelper = viewHelper;
+        this.mailDeliveryService = mailDeliveryService;
     }
 
     @GetMapping({"/login", "/user/login"})
@@ -51,36 +55,36 @@ public class AuthController {
         model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("registered", registered);
         model.addAttribute("error", error);
-        return "user/login";
+        return "auth/login";
     }
 
     @GetMapping({"/signup", "/user/userRegForm"})
     public String signup(Model model, HttpSession session) {
         populateSignupModel(model, session);
-        return "user/userRegForm";
+        return "auth/signup";
     }
 
     @GetMapping({"/find-id", "/user/findId"})
     public String findId(Model model) {
         populateFindIdModel(model);
-        return "user/find-id";
+        return "auth/find-id";
     }
 
     @GetMapping({"/find-password", "/user/findPassword"})
     public String findPassword(Model model) {
         populateFindPasswordModel(model);
-        return "user/find-password";
+        return "auth/find-password";
     }
 
     @GetMapping({"/find-password/reset", "/user/findPassword/reset"})
     public String resetPasswordPage(Model model, HttpSession session) {
         if (session == null || session.getAttribute(PASSWORD_RESET_USER_ID) == null) {
-            return "redirect:/user/findPassword";
+            return "redirect:/find-password";
         }
         viewHelper.populateCommon(model, "login", true);
         model.addAttribute("passwordResetUserId", session.getAttribute(PASSWORD_RESET_USER_ID_INPUT));
         model.addAttribute("passwordResetEmail", session.getAttribute(PASSWORD_RESET_EMAIL));
-        return "user/reset-password";
+        return "auth/reset-password";
     }
 
     @PostMapping({"/signup", "/user/insertUserInfo"})
@@ -104,7 +108,7 @@ public class AuthController {
             redirectAttributes.addFlashAttribute("signupUserId", normalizedUserId);
             redirectAttributes.addFlashAttribute("signupEmail", normalizedEmail);
             redirectAttributes.addFlashAttribute("signupBaseAddress", baseAddress);
-            return "redirect:/user/userRegForm";
+            return "redirect:/signup";
         }
 
         String verifiedEmail = (String) session.getAttribute("SIGNUP_VERIFIED_EMAIL");
@@ -114,7 +118,7 @@ public class AuthController {
             redirectAttributes.addFlashAttribute("signupUserId", normalizedUserId);
             redirectAttributes.addFlashAttribute("signupEmail", normalizedEmail);
             redirectAttributes.addFlashAttribute("signupBaseAddress", baseAddress);
-            return "redirect:/user/userRegForm";
+            return "redirect:/signup";
         }
 
         try {
@@ -136,7 +140,7 @@ public class AuthController {
             redirectAttributes.addFlashAttribute("signupUserId", normalizedUserId);
             redirectAttributes.addFlashAttribute("signupEmail", normalizedEmail);
             redirectAttributes.addFlashAttribute("signupBaseAddress", baseAddress);
-            return "redirect:/user/userRegForm";
+            return "redirect:/signup";
         }
 
         session.removeAttribute("SIGNUP_VERIFICATION_EMAIL");
@@ -145,7 +149,7 @@ public class AuthController {
 
         redirectAttributes.addAttribute("registered", true);
         redirectAttributes.addFlashAttribute("registeredNickname", nickname.isBlank() ? normalizedUserId : nickname);
-        return "redirect:/user/login";
+        return "redirect:/login";
     }
 
     @PostMapping({"/login", "/user/loginProc"})
@@ -185,7 +189,7 @@ public class AuthController {
             redirectAttributes.addFlashAttribute("foundName", normalizedName);
             redirectAttributes.addFlashAttribute("foundEmail", normalizedEmail);
         }
-        return "redirect:/user/findId";
+            return "redirect:/find-id";
     }
 
     @PostMapping({"/find-password/verify", "/user/findPassword/verify"})
@@ -206,7 +210,7 @@ public class AuthController {
             redirectAttributes.addFlashAttribute("passwordResetUserId", normalizedUserId);
             redirectAttributes.addFlashAttribute("passwordResetEmail", normalizedEmail);
             redirectAttributes.addFlashAttribute("passwordResetLookupSuccess", "계정이 확인되었습니다. 새 비밀번호를 입력해주세요.");
-            return "redirect:/user/findPassword/reset";
+            return "redirect:/find-password/reset";
         } catch (ResponseStatusException exception) {
             session.removeAttribute(PASSWORD_RESET_USER_ID);
             session.removeAttribute(PASSWORD_RESET_USER_ID_INPUT);
@@ -218,7 +222,7 @@ public class AuthController {
             });
             redirectAttributes.addFlashAttribute("passwordResetUserId", normalizedUserId);
             redirectAttributes.addFlashAttribute("passwordResetEmail", normalizedEmail);
-            return "redirect:/user/findPassword";
+            return "redirect:/find-password";
         }
     }
 
@@ -232,12 +236,12 @@ public class AuthController {
         String accountId = session == null ? null : (String) session.getAttribute(PASSWORD_RESET_USER_ID);
 
         if (accountId == null || accountId.isBlank()) {
-            return "redirect:/user/findPassword";
+            return "redirect:/find-password";
         }
 
         if (!newPassword.equals(confirmPassword)) {
             redirectAttributes.addFlashAttribute("passwordResetConfirmError", "비밀번호 확인이 일치하지 않습니다.");
-            return "redirect:/user/findPassword/reset";
+            return "redirect:/find-password/reset";
         }
 
         try {
@@ -246,14 +250,14 @@ public class AuthController {
             session.removeAttribute(PASSWORD_RESET_USER_ID_INPUT);
             session.removeAttribute(PASSWORD_RESET_EMAIL);
             redirectAttributes.addFlashAttribute("passwordResetSuccess", "비밀번호가 변경되었습니다.");
-            return "redirect:/user/login";
+            return "redirect:/login";
         } catch (ResponseStatusException exception) {
             redirectAttributes.addFlashAttribute("passwordResetConfirmError", switch (exception.getStatusCode().value()) {
                 case 400 -> "새 비밀번호를 입력해주세요.";
                 case 404 -> "비밀번호를 변경할 계정을 찾지 못했습니다.";
                 default -> "비밀번호를 변경하지 못했습니다.";
             });
-            return "redirect:/user/findPassword/reset";
+            return "redirect:/find-password/reset";
         }
     }
 
@@ -318,13 +322,20 @@ public class AuthController {
     ) {
         String normalizedEmail = CmmUtil.nvl(request.email());
         String code = authService.createSignupEmailVerificationCode(normalizedEmail);
-        session.setAttribute("SIGNUP_VERIFICATION_EMAIL", normalizedEmail);
-        session.setAttribute("SIGNUP_VERIFICATION_CODE", code);
-        session.removeAttribute("SIGNUP_VERIFIED_EMAIL");
+        MailDeliveryService.MailSendResult mailSendResult = mailDeliveryService.sendSignupVerificationCode(normalizedEmail, code);
+        if (mailSendResult.sent()) {
+            session.setAttribute("SIGNUP_VERIFICATION_EMAIL", normalizedEmail);
+            session.setAttribute("SIGNUP_VERIFICATION_CODE", code);
+            session.removeAttribute("SIGNUP_VERIFIED_EMAIL");
+        } else {
+            session.removeAttribute("SIGNUP_VERIFICATION_EMAIL");
+            session.removeAttribute("SIGNUP_VERIFICATION_CODE");
+            session.removeAttribute("SIGNUP_VERIFIED_EMAIL");
+        }
         return new AuthDTO.EmailVerificationSendResponse(
-                true,
-                "인증코드를 전송했습니다. 메일 연동 전 단계라 화면에서 preview 코드를 같이 보여줍니다.",
-                code
+                mailSendResult.sent(),
+                mailSendResult.message(),
+                mailSendResult.previewCode()
         );
     }
 
@@ -372,7 +383,6 @@ public class AuthController {
     private void populateSignupModel(Model model, HttpSession session) {
         viewHelper.populateCommon(model, "login", true);
         model.addAttribute("signupVerifiedEmail", session.getAttribute("SIGNUP_VERIFIED_EMAIL"));
-        model.addAttribute("signupVerifiedUserId", session.getAttribute("SIGNUP_VERIFIED_USER_ID"));
     }
 
     private void populateFindPasswordModel(Model model) {
