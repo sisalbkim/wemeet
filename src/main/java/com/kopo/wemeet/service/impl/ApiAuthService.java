@@ -128,7 +128,7 @@ public class ApiAuthService implements IApiAuthService {
         passwordResetTokenRepository.save(token);
 
         return new AuthDTO.PasswordResetResponse(
-                "비밀번호 재설정 토큰이 생성되었습니다. 메일 연동 전 단계라 preview 값을 같이 반환합니다.",
+                "비밀번호 재설정 토큰이 생성되었습니다. preview 값을 같이 반환합니다.",
                 rawToken
         );
     }
