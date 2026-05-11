@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('프로필')}"></head>
+<body>
+<div class="app-shell">
+    <header th:replace="~{fragments/layout :: topBar}"></header>
+
+    <main class="page">
+        <section class="profile-hero">
+            <div class="profile-avatar" th:text="${#strings.substring(profile.name,0,1)}">김</div>
+            <h1 th:text="${profile.name}">김철수</h1>
+            <p th:text="${profile.handle}">@user123</p>
+            <div class="profile-hero__actions">
+                <a class="ghost-button ghost-button--light" th:href="@{/profile/verify-password}">프로필 수정</a>
+                <a class="ghost-button ghost-button--light ghost-button--danger-light" th:href="@{/logout}">로그아웃</a>
+            </div>
+        </section>
+
+        <section class="stat-grid">
+            <article class="stat-card">
+                <strong th:text="${profile.createdMeetings}">2</strong>
+                <span>생성한 모임</span>
+            </article>
+            <article class="stat-card">
+                <strong th:text="${profile.friendCount}">2</strong>
+                <span>친구</span>
+            </article>
+            <article class="stat-card">
+                <strong th:text="${profile.joinedMeetings}">3</strong>
+                <span>참여한 모임</span>
+            </article>
+        </section>
+
+        <section class="panel" th:if="${profileNotice != null}">
+            <div class="notice-banner">
+                <strong th:text="${profileNotice}">기본 출발지 주소가 수정되었습니다.</strong>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading">
+                <h2>계정 정보</h2>
+            </div>
+            <div class="info-list">
+                <article class="info-item">
+                    <span class="info-item__label">친구 코드</span>
+                    <strong th:text="${profile.handle}">@user123</strong>
+                </article>
+                <article class="info-item info-item--accent">
+                    <span class="info-item__label">집 주소 (기본 출발지)</span>
+                    <strong th:text="${profile.baseAddress}">서울특별시 중구 명동길 74</strong>
+                </article>
+                <article class="info-item">
+                    <span class="info-item__label">비밀번호</span>
+                    <strong th:text="${profile.passwordMask}">••••••••</strong>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading">
+                <h2>내가 생성한 모임</h2>
+                <span th:text="${#lists.size(createdMeetings)} + '개'">0개</span>
+            </div>
+            <div class="card-stack" th:if="${!#lists.isEmpty(createdMeetings)}">
+                <details class="meeting-card meeting-card--profile meeting-card--details" th:each="meeting : ${createdMeetings}">
+                    <summary class="meeting-card__summary">
+                        <div class="meeting-card__header">
+                            <h3 th:text="${meeting.title}">주말 맛집 탐방</h3>
+                            <span class="status-pill" th:text="${meeting.category}">맛집</span>
+                        </div>
+                        <p class="meeting-card__place" th:text="${meeting.meetingPlaceName}">어니언 성수</p>
+                        <div class="meta-row">
+                            <span th:text="${meeting.dateLabel}">2026. 4. 20.</span>
+                            <span th:text="${meeting.timeLabel}">19:30</span>
+                            <span th:text="'참여자 ' + ${meeting.participantCount} + '명'">참여자 3명</span>
+                        </div>
+                    </summary>
+                    <div class="meeting-card__detail">
+                        <div class="info-list">
+                            <article class="info-item info-item--accent">
+                                <span class="info-item__label">만날 지점</span>
+                                <strong th:text="${meeting.meetingPlaceName}">어니언 성수</strong>
+                                <small th:text="${#strings.isEmpty(meeting.meetingPlaceAddress) ? '주소 정보 없음' : meeting.meetingPlaceAddress}">서울 성동구 아차산로9길 8</small>
+                            </article>
+                            <article class="info-item">
+                                <span class="info-item__label">모임 내용</span>
+                                <strong th:text="${#strings.isEmpty(meeting.description) ? '등록된 설명이 없습니다.' : meeting.description}">주말에 새로운 맛집 찾아가요!</strong>
+                            </article>
+                        </div>
+                        <div class="profile-meeting-actions">
+                            <a class="secondary-button secondary-button--compact"
+                               th:href="@{/profile/meetings/results(meetingId=${meeting.id})}"
+                               data-loading-overlay>모임 결과 보기</a>
+                            <a class="secondary-button secondary-button--compact"
+                               th:if="${!#strings.isEmpty(meeting.meetingPlaceName)}"
+                               th:href="${'https://map.naver.com/p/search/' + #uris.escapePathSegment(meeting.meetingPlaceName)}"
+                               target="_blank"
+                               rel="noreferrer noopener">네이버 지도에서 보기</a>
+                        </div>
+                        <form class="meeting-delete-form" method="post" th:action="@{/profile/meetings/delete}">
+                            <input type="hidden" name="meetingId" th:value="${meeting.id}">
+                            <button class="danger-button danger-button--compact" type="submit">모임 삭제</button>
+                        </form>
+                    </div>
+                </details>
+            </div>
+            <p class="empty-state" th:if="${#lists.isEmpty(createdMeetings)}">아직 생성한 모임이 없습니다.</p>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading">
+                <h2>참여한 모임</h2>
+                <span th:text="${#lists.size(participatingMeetings)} + '개'">0개</span>
+            </div>
+            <div class="card-stack" th:if="${!#lists.isEmpty(participatingMeetings)}">
+                <details class="meeting-card meeting-card--profile meeting-card--details" th:each="meeting : ${participatingMeetings}">
+                    <summary class="meeting-card__summary">
+                        <div class="meeting-card__header">
+                            <h3 th:text="${meeting.title}">주말 맛집 탐방</h3>
+                            <span class="status-pill" th:text="${meeting.category}">맛집</span>
+                        </div>
+                        <p class="meeting-card__place" th:text="${meeting.meetingPlaceName}">어니언 성수</p>
+                        <div class="meta-row">
+                            <span th:text="${meeting.dateLabel}">2026. 4. 20.</span>
+                            <span th:text="${meeting.timeLabel}">19:30</span>
+                            <span th:text="'참여자 ' + ${meeting.participantCount} + '명'">참여자 3명</span>
+                        </div>
+                    </summary>
+                    <div class="meeting-card__detail">
+                        <div class="info-list">
+                            <article class="info-item info-item--accent">
+                                <span class="info-item__label">만날 지점</span>
+                                <strong th:text="${meeting.meetingPlaceName}">어니언 성수</strong>
+                                <small th:text="${#strings.isEmpty(meeting.meetingPlaceAddress) ? '주소 정보 없음' : meeting.meetingPlaceAddress}">서울 성동구 아차산로9길 8</small>
+                            </article>
+                            <article class="info-item">
+                                <span class="info-item__label">모임 내용</span>
+                                <strong th:text="${#strings.isEmpty(meeting.description) ? '등록된 설명이 없습니다.' : meeting.description}">주말에 새로운 맛집 찾아가요!</strong>
+                            </article>
+                        </div>
+                        <div class="profile-meeting-actions">
+                            <a class="secondary-button secondary-button--compact"
+                               th:href="@{/profile/meetings/results(meetingId=${meeting.id})}"
+                               data-loading-overlay>모임 결과 보기</a>
+                            <a class="secondary-button secondary-button--compact"
+                               th:if="${!#strings.isEmpty(meeting.meetingPlaceName)}"
+                               th:href="${'https://map.naver.com/p/search/' + #uris.escapePathSegment(meeting.meetingPlaceName)}"
+                               target="_blank"
+                               rel="noreferrer noopener">네이버 지도에서 보기</a>
+                        </div>
+                    </div>
+                </details>
+            </div>
+            <p class="empty-state" th:if="${#lists.isEmpty(participatingMeetings)}">아직 참여한 모임이 없습니다.</p>
+        </section>
+
+    </main>
+
+    <nav th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>
+</div>
+</body>
+</html>

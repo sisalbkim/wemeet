@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('홈')}"></head>
+<body>
+<div class="app-shell">
+    <header th:replace="~{fragments/layout :: topBar}"></header>
+
+    <main class="page">
+        <section class="hero-card hero-card--brand">
+            <div class="hero-brand">
+                <img class="hero-brand__full" th:src="@{/img/brand-hero.png}" alt="we meet">
+            </div>
+            <p class="eyebrow">안녕하세요, <span th:text="${profile.name}">김철수</span>님</p>
+            <h1>모임 장소 찾기를<br>바로 시작하세요</h1>
+            <p class="hero-copy">대중교통 기준으로 모두에게 덜 부담되는 중간 지점을 먼저 찾고, 근처 장소까지 이어서 고릅니다.</p>
+            <div class="cta-row">
+                <a class="primary-button primary-button--brand" th:href="@{/meetings/new}">모임 장소 찾기</a>
+                <a class="secondary-button secondary-button--soft" th:href="@{/search/results(category='맛집')}">예시 추천 보기</a>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading section-heading--stacked">
+                <h2>빠른 장소 검색</h2>
+                <span>태그를 누르면 바로 추천 결과를 볼 수 있습니다</span>
+            </div>
+            <div class="chip-grid chip-grid--three-up">
+                <a class="filter-chip filter-chip--link" th:each="category : ${categories}"
+                   th:href="@{/search/results(category=${category.label})}"
+                   th:text="${category.label}">
+                    맛집
+                </a>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading">
+                <h2>다가오는 모임</h2>
+            </div>
+            <div class="card-stack" th:if="${!#lists.isEmpty(upcomingMeetings)}">
+                <article class="meeting-card" th:each="meeting : ${upcomingMeetings}">
+                    <div class="meeting-card__body">
+                        <h3 th:text="${meeting.title}">주말 맛집 탐방</h3>
+                        <p th:text="${meeting.description}">주말에 새로운 맛집 찾아가요!</p>
+                        <div class="meta-row">
+                            <span th:text="${meeting.dateLabel}">2026. 3. 15.</span>
+                            <span th:text="${meeting.hostName}">김철수</span>
+                            <span class="status-pill"
+                                  th:classappend="${' status-pill--' + meeting.statusTone}"
+                                  th:text="${meeting.status}">
+                                예정
+                            </span>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            <p class="empty-state" th:if="${#lists.isEmpty(upcomingMeetings)}">예정된 모임이 없습니다.</p>
+        </section>
+    </main>
+
+    <nav th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>
+</div>
+</body>
+</html>

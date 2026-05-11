@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('회원탈퇴 확인')}"></head>
+<body>
+<div class="app-shell">
+    <header th:replace="~{fragments/layout :: topBar}"></header>
+
+    <main class="page">
+        <section class="page-heading">
+            <div>
+                <h1>회원탈퇴</h1>
+                <p>계정을 삭제하면 복구할 수 없습니다.</p>
+            </div>
+            <a class="ghost-button page-heading__action" th:href="@{/profile/edit}">돌아가기</a>
+        </section>
+
+        <section class="panel">
+            <div class="form-stack">
+                <div class="notice-banner notice-banner--error">
+                    <strong>정말로 탈퇴하시겠습니까?</strong>
+                    <span>저장된 프로필, 친구 관계, 모임 참여 정보가 함께 삭제됩니다.</span>
+                </div>
+
+                <form method="post" th:action="@{/profile/delete}">
+                    <div class="submit-row submit-row--equal">
+                        <button class="danger-button" type="submit">예</button>
+                        <button class="secondary-button" type="button" onclick="history.back()">아니오</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+</div>
+</body>
+</html>

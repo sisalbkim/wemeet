@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('게스트 추천')}"></head>
+<body>
+<div class="app-shell">
+    <header th:replace="~{fragments/layout :: topBar}"></header>
+
+    <main class="page">
+        <section class="welcome-card welcome-card--brand">
+            <div class="hero-brand">
+                <img class="hero-brand__full" th:src="@{/img/brand-hero.png}" alt="we meet">
+            </div>
+            <h1>어디서 출발하시나요?</h1>
+            <p>비로그인 상태에서도 출발지를 먼저 입력하면 네이버 검색 기반으로 주변 추천 결과를 볼 수 있습니다.</p>
+        </section>
+
+        <form class="form-stack" method="post" th:action="@{/guest/preview}">
+            <section class="panel">
+                <label class="field-label" for="guestAddress">출발지 주소</label>
+                <input class="text-input" id="guestAddress" name="guestAddress"
+                       th:value="${guestAddress}"
+                       placeholder="예: 서울특별시 성동구 성수동1가"
+                       required>
+                <p class="muted-note">지하철역, 동 이름, 도로명 주소 중 편한 방식으로 입력해도 됩니다.</p>
+            </section>
+
+            <section class="panel">
+                <div class="section-heading">
+                    <h2>카테고리</h2>
+                    <span>먼저 보고 싶은 장소 유형을 고릅니다</span>
+                </div>
+                <div class="radio-grid radio-grid--three-up">
+                    <label class="choice-chip" th:each="category : ${categories}" th:classappend="${selectedCategory == category.label} ? ' is-selected'">
+                        <input type="radio" name="category" th:value="${category.label}" th:checked="${selectedCategory == category.label}" required>
+                        <span th:text="${category.label}">맛집</span>
+                    </label>
+                </div>
+                <p class="muted-note">선택한 카테고리를 기준으로 `한식`, `디저트`, `미술관` 같은 검색어로 자동 보정해 네이버에서 찾습니다.</p>
+            </section>
+
+            <section class="panel">
+                <div class="section-heading">
+                    <h2>이동수단</h2>
+                    <span>처음 추천 결과에서 볼 경로 기준을 고릅니다</span>
+                </div>
+                <div class="radio-grid radio-grid--three-up">
+                    <label class="choice-chip" th:classappend="${selectedRouteMode == 'car'} ? ' is-selected'">
+                        <input type="radio" name="routeMode" value="car" th:checked="${selectedRouteMode == 'car'}">
+                        <span>자동차</span>
+                    </label>
+                    <label class="choice-chip" th:if="${tmapTransitEnabled}" th:classappend="${selectedRouteMode == 'transit'} ? ' is-selected'">
+                        <input type="radio" name="routeMode" value="transit" th:checked="${selectedRouteMode == 'transit'}">
+                        <span>대중교통</span>
+                    </label>
+                    <label class="choice-chip" th:classappend="${selectedRouteMode == 'walk'} ? ' is-selected'">
+                        <input type="radio" name="routeMode" value="walk" th:checked="${selectedRouteMode == 'walk'}">
+                        <span>걷기</span>
+                    </label>
+                </div>
+            </section>
+
+            <input type="hidden" name="mode" value="CENTER">
+
+            <div class="submit-row">
+                <button class="primary-button primary-button--brand" type="submit" data-loading-overlay-submit>네이버 기반 추천 보기</button>
+                <a class="secondary-button" th:href="@{/}">취소</a>
+            </div>
+        </form>
+
+        <div class="loading-overlay" id="pageLoadingOverlay" hidden aria-live="polite" aria-busy="true">
+            <div class="loading-overlay__backdrop"></div>
+            <div class="loading-overlay__dialog" role="dialog" aria-modal="true" aria-label="로딩 중">
+                <div class="loading-overlay__spinner" aria-hidden="true"></div>
+                <strong>로딩중...</strong>
+                <p>입력한 출발지 기준으로 네이버 추천 결과를 계산하고 있습니다.</p>
+            </div>
+        </div>
+    </main>
+
+    <nav th:replace="~{fragments/layout :: guestBottomNav(${activeTab})}"></nav>
+</div>
+</body>
+</html>

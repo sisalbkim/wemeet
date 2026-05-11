@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('근처 장소 검색')}"></head>
+<body>
+<div class="app-shell">
+    <header th:replace="~{fragments/layout :: topBar}"></header>
+
+    <main class="page">
+        <section class="result-hero">
+            <p class="eyebrow">네이버 장소 검색</p>
+            <h1>출발지 주변 후보를 바로 확인합니다</h1>
+            <p>입력한 출발지와 태그를 묶어 네이버 지역검색으로 후보를 찾고, 길찾기 기준 거리와 시간을 함께 보여줍니다.</p>
+        </section>
+
+        <form class="form-stack" method="get" th:action="@{/guest/places}">
+            <section class="panel">
+                <div class="section-heading section-heading--stacked">
+                    <h2>검색 조건</h2>
+                    <span>예: 성수역 + 카페, 강남역 + 조용한 술집</span>
+                </div>
+                <label class="field-label" for="originQuery">출발지</label>
+                <input class="text-input" id="originQuery" name="originQuery" th:value="${originQuery}"
+                       placeholder="예: 성수역, 서울숲, 판교역" required>
+                <label class="field-label" for="tag">태그</label>
+                <input class="text-input" id="tag" name="tag" th:value="${tag}"
+                       placeholder="예: 카페, 브런치, 조용한 술집" required>
+                <input type="hidden" name="display" th:value="${display}">
+                <div class="submit-row">
+                    <button class="primary-button primary-button--brand" type="submit" data-loading-overlay-submit>네이버 검색</button>
+                    <a class="secondary-button" th:href="@{/guest/plan}">추천 화면으로</a>
+                </div>
+            </section>
+        </form>
+
+        <section class="panel" th:if="${placeSearchError}">
+            <div class="notice-banner notice-banner--error" th:text="${placeSearchError}">장소 검색 중 오류가 발생했습니다.</div>
+        </section>
+
+        <section class="panel" th:if="${placeSearch != null}">
+            <div class="section-heading section-heading--stacked">
+                <h2 th:text="${placeSearch.combinedQuery}">성수역 카페</h2>
+                <span>
+                    기준점:
+                    <strong th:text="${placeSearch.origin.name}">성수역</strong>
+                    ·
+                    <span th:text="${placeSearch.origin.address}">서울 성동구 성수동2가</span>
+                </span>
+            </div>
+            <div class="result-stats">
+                <span>입력 태그 <strong th:text="${placeSearch.requestedTag}">카페</strong></span>
+                <span>정규화 <strong th:text="${placeSearch.normalizedTag}">카페</strong></span>
+                <span>검색 결과 <strong th:text="${#lists.size(placeSearch.places) + '곳'}">5곳</strong></span>
+                <span th:if="${!#lists.isEmpty(placeSearch.places)}">최단 거리 <strong th:text="${placeSearch.places[0].distanceMeters + 'm'}">410m</strong></span>
+                <span th:if="${!#lists.isEmpty(placeSearch.places)}">예상 시간 <strong th:text="${placeSearch.places[0].durationMinutes + '분'}">3분</strong></span>
+            </div>
+            <div class="tag-row">
+                <span class="mini-tag" th:each="queryTerm : ${placeSearch.appliedQueryTerms}" th:text="${queryTerm}">디저트</span>
+            </div>
+            <div class="tag-row" th:if="${placeSearch.observedCategories != null and !#lists.isEmpty(placeSearch.observedCategories)}">
+                <span class="mini-tag" th:each="observedCategory : ${placeSearch.observedCategories}" th:text="${observedCategory}">카페,디저트</span>
+            </div>
+        </section>
+
+        <section class="panel" th:if="${placeSearch != null and placeMapPoints != null and !#lists.isEmpty(placeMapPoints)}">
+            <div class="section-heading section-heading--stacked section-heading--map">
+                <h2>지도</h2>
+                <span>출발지와 검색 결과를 한 화면에 표시합니다</span>
+            </div>
+            <div th:if="${naverMapEnabled}" id="recommendationMap" class="map-canvas"></div>
+            <div th:if="${naverMapEnabled}" id="recommendationMapError" class="notice-banner notice-banner--error" hidden>
+                네이버 지도 SDK를 불러오지 못했습니다. NAVER Cloud Platform에서 JavaScript Client ID 설정을 확인해 주세요.
+            </div>
+            <div th:if="${!naverMapEnabled}" class="map-placeholder">
+                <div class="map-placeholder__label">
+                    <strong>네이버 지도 Client ID가 아직 설정되지 않았습니다.</strong>
+                    <div>NAVER_MAPS_JS_CLIENT_ID 값을 넣고 서버를 다시 시작하면 지도가 표시됩니다.</div>
+                </div>
+            </div>
+            <div class="visually-hidden" id="recommendationMapData">
+                <span th:each="point : ${placeMapPoints}"
+                      data-map-point
+                      th:attr="data-id=${point.id},
+                               data-label=${point.label},
+                               data-address=${point.address},
+                               data-lat=${point.latitude},
+                               data-lng=${point.longitude},
+                               data-type=${point.markerType},
+                               data-selected=${point.selected}">
+                </span>
+            </div>
+        </section>
+
+        <section class="panel" th:if="${placeSearch != null and #lists.isEmpty(placeSearch.places)}">
+            <div class="map-placeholder">
+                <div class="map-placeholder__label">
+                    <strong>검색 결과가 없습니다.</strong>
+                    <div>태그를 더 구체적으로 바꾸거나 출발지를 역 이름으로 입력해 보세요.</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card-stack" th:if="${placeSearch != null and !#lists.isEmpty(placeSearch.places)}">
+            <article class="venue-card" th:each="place, placeStat : ${placeSearch.places}"
+                     th:attr="data-map-target=${'place-' + placeStat.index}">
+                <div class="venue-card__header">
+                    <div>
+                        <p class="eyebrow" th:text="${place.normalizedCategory + ' · ' + place.category}">카페 · 카페,디저트</p>
+                        <h2 th:text="${place.name}">어니언 성수</h2>
+                    </div>
+                    <div class="score-badge">
+                        <strong th:text="${place.durationMinutes + '분'}">3분</strong>
+                        <span th:text="${place.distanceMeters + 'm'}">410m</span>
+                    </div>
+                </div>
+                <p class="venue-card__copy" th:text="${place.roadAddress != null and !place.roadAddress.isBlank() ? place.roadAddress : place.address}">
+                    서울 성동구 아차산로9길 8
+                </p>
+                <p class="venue-card__reason">네이버 지역검색 결과를 길찾기 거리 기준으로 다시 정렬했습니다.</p>
+                <div class="tag-row">
+                    <span class="mini-tag" th:if="${place.telephone != null and !place.telephone.isBlank()}" th:text="${place.telephone}">02-000-0000</span>
+                    <a class="mini-tag" th:if="${place.link != null and !place.link.isBlank()}" th:href="${place.link}" target="_blank" rel="noreferrer">바로가기</a>
+                </div>
+            </article>
+        </section>
+
+        <div class="loading-overlay" id="pageLoadingOverlay" hidden aria-live="polite" aria-busy="true">
+            <div class="loading-overlay__backdrop"></div>
+            <div class="loading-overlay__dialog" role="dialog" aria-modal="true" aria-label="로딩 중">
+                <div class="loading-overlay__spinner" aria-hidden="true"></div>
+                <strong>로딩중...</strong>
+                <p>네이버 검색 결과와 지도 정보를 불러오고 있습니다.</p>
+            </div>
+        </div>
+    </main>
+
+    <nav th:replace="~{fragments/layout :: guestBottomNav(${activeTab})}"></nav>
+</div>
+<script th:if="${naverMapEnabled}" defer th:src="|https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${naverMapKeyId}|"></script>
+</body>
+</html>

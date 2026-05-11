@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>추천 결과 | WeMeet</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="stylesheet" href="/css/app.css">
+    <script defer src="/js/app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar">
+    <a class="brand" href="/" aria-label="WeMeet 홈">
+        <div class="brand-lockup">
+    <img class="brand-lockup__symbol" src="/img/brand-symbol.png" alt="" aria-hidden="true">
+    <img class="brand-lockup__wordmark" src="/img/brand-wordmark.png" alt="we meet">
+</div>
+    </a>
+</header>
+
+    <main class="page">
+        <section class="result-hero">
+            <p class="eyebrow">맛집 추천</p>
+            
+            <h1><span>서울 강북구 도봉로 338</span> 기준으로 가까운 후보를 추천했습니다</h1>
+            <p>1인 검색은 출발지 주변 실제 네이버 장소검색 결과를 우선 보여줍니다. 네이버 지역검색과 Directions 5 기준으로 이동시간을 계산했습니다.</p>
+            <div class="result-stats">
+                <span>기준 역 <strong>서울 강북구 도봉로 338</strong></span>
+                <span>평균 <strong>2분</strong></span>
+                <span>최대 편차 <strong>0분</strong></span>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading section-heading--stacked">
+                <h2>카테고리 바꾸기</h2>
+                <span>선택 인원은 그대로 두고 태그만 바꿉니다</span>
+            </div>
+            <div class="chip-grid chip-grid--three-up">
+                <a class="filter-chip filter-chip--link  is-active" href="/search/results?category=%EB%A7%9B%EC%A7%91&amp;mode=CENTER&amp;anchorId=user-123&amp;routeMode=transit&amp;guest=true&amp;guestAddress=%EC%84%9C%EC%9A%B8%20%EA%B0%95%EB%B6%81%EA%B5%AC%20%EB%8F%84%EB%B4%89%EB%A1%9C%20338"
+                   data-loading-overlay>맛집</a><a class="filter-chip filter-chip--link" href="/search/results?category=%EC%B9%B4%ED%8E%98&amp;mode=CENTER&amp;anchorId=user-123&amp;routeMode=transit&amp;guest=true&amp;guestAddress=%EC%84%9C%EC%9A%B8%20%EA%B0%95%EB%B6%81%EA%B5%AC%20%EB%8F%84%EB%B4%89%EB%A1%9C%20338"
+                   data-loading-overlay>카페</a><a class="filter-chip filter-chip--link" href="/search/results?category=%EB%86%80%EC%9D%B4&amp;mode=CENTER&amp;anchorId=user-123&amp;routeMode=transit&amp;guest=true&amp;guestAddress=%EC%84%9C%EC%9A%B8%20%EA%B0%95%EB%B6%81%EA%B5%AC%20%EB%8F%84%EB%B4%89%EB%A1%9C%20338"
+                   data-loading-overlay>놀이</a><a class="filter-chip filter-chip--link" href="/search/results?category=%EB%AC%B8%ED%99%94&amp;mode=CENTER&amp;anchorId=user-123&amp;routeMode=transit&amp;guest=true&amp;guestAddress=%EC%84%9C%EC%9A%B8%20%EA%B0%95%EB%B6%81%EA%B5%AC%20%EB%8F%84%EB%B4%89%EB%A1%9C%20338"
+                   data-loading-overlay>문화</a><a class="filter-chip filter-chip--link" href="/search/results?category=%EC%9A%B4%EB%8F%99&amp;mode=CENTER&amp;anchorId=user-123&amp;routeMode=transit&amp;guest=true&amp;guestAddress=%EC%84%9C%EC%9A%B8%20%EA%B0%95%EB%B6%81%EA%B5%AC%20%EB%8F%84%EB%B4%89%EB%A1%9C%20338"
+                   data-loading-overlay>운동</a><a class="filter-chip filter-chip--link" href="/search/results?category=%EA%B8%B0%ED%83%80&amp;mode=CENTER&amp;anchorId=user-123&amp;routeMode=transit&amp;guest=true&amp;guestAddress=%EC%84%9C%EC%9A%B8%20%EA%B0%95%EB%B6%81%EA%B5%AC%20%EB%8F%84%EB%B4%89%EB%A1%9C%20338"
+                   data-loading-overlay>기타</a>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading section-heading--stacked">
+                <h2>참여 인원</h2>
+                <span>중심점 부근 · Naver Local Search + Directions 5</span>
+            </div>
+            <div class="participant-row">
+                <span class="participant-pill">서울 강북구 도봉로 338</span>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="section-heading section-heading--stacked section-heading--map">
+                <div class="section-heading__body">
+                    <h2>이동시간 기준 추천 지도</h2>
+                    
+                    <span>출발지와 추천 장소를 한 지도에서 확인할 수 있습니다</span>
+                </div>
+                <div class="route-controls">
+                    <div class="route-mode-tabs" role="tablist" aria-label="경로 보기 방식">
+                        <button type="button" class="route-mode-tabs__button" data-route-mode-button data-route-mode="car" aria-pressed="false">자동차</button>
+                        <button type="button" class="route-mode-tabs__button  is-active" data-route-mode-button data-route-mode="transit" aria-pressed="true">대중교통</button>
+                        <button type="button" class="route-mode-tabs__button" data-route-mode-button data-route-mode="walk" aria-pressed="false">걷기</button>
+                    </div>
+                    <button type="button"
+                            id="recommendationRouteToggle"
+                            class="secondary-button secondary-button--compact map-route-toggle"
+                            aria-pressed="true">
+                        경로선 끄기
+                    </button>
+                </div>
+            </div>
+            <div id="recommendationMap" class="map-canvas" data-initial-route-mode="transit"></div>
+            <div id="recommendationMapError" class="notice-banner notice-banner--error" hidden>
+                네이버 지도 SDK를 불러오지 못했습니다. NAVER Cloud Platform에서 JavaScript Client ID인지 확인하고, 서비스 환경에
+                <strong>http://localhost:8080</strong> 도메인이 등록되어 있는지 확인해 주세요.
+            </div>
+            
+            <div class="map-placeholder__label map-placeholder__label--static">
+                추천 후보를 클릭하지 않아도 최적 후보와 참가자 출발지가 바로 표시됩니다.
+            </div>
+            <article id="recommendationVenuePanel" class="map-detail-panel">
+                <div class="map-detail-panel__header">
+                    <div>
+                        <p class="eyebrow" id="recommendationVenuePanelEyebrow">강북구 · 맛집</p>
+                        <h3 id="recommendationVenuePanelName">도고집</h3>
+                    </div>
+                    <div class="score-badge score-badge--compact">
+                        <strong id="recommendationVenuePanelAverage">2분</strong>
+                        <span>평균 이동</span>
+                    </div>
+                </div>
+                <p class="map-detail-panel__copy" id="recommendationVenuePanelDescription">서울특별시 강북구 한천로139나길 22 1층</p>
+                <div class="map-detail-panel__actions">
+                    <button type="button" class="secondary-button secondary-button--compact map-detail-panel__button" id="recommendationVenuePanelCallButton">
+                        전화하기
+                    </button>
+                    <a class="secondary-button secondary-button--compact map-detail-panel__link"
+                       id="recommendationVenuePanelLink"
+                       href="https://map.naver.com/p/search/%EB%8F%84%EA%B3%A0%EC%A7%91"
+                       target="_blank"
+                       rel="noreferrer noopener">네이버 지도에서 보기</a>
+                </div>
+                <p class="map-detail-panel__meta" id="recommendationVenuePanelTelephone">전화번호 정보 없음</p>
+                <p class="map-detail-panel__reason" id="recommendationVenuePanelReason">입력한 출발지 주변 실제 검색 결과를 거리와 이동시간 기준으로 정렬했습니다.</p>
+                <div class="map-detail-panel__stats">
+                    <span>최대 편차 <strong id="recommendationVenuePanelFairness">0분</strong></span>
+                    <span>추천 기준 <strong>서울 강북구 도봉로 338</strong></span>
+                </div>
+                <div class="tag-row" id="recommendationVenuePanelHighlights">
+                    <span class="mini-tag">네이버 검색 기반 실제 장소</span><span class="mini-tag">369m</span><span class="mini-tag">2분</span><span class="mini-tag">한식&gt;육류,고기요리</span>
+                </div>
+                <div class="participant-row" id="recommendationVenuePanelTravelTimes">
+                    <span class="participant-pill participant-pill--light">서울 강북구 도봉로 338 2분</span>
+                </div>
+            </article>
+            
+            <div class="visually-hidden" id="recommendationMapData">
+                <span data-map-point data-id="user-123" data-label="김철수" data-address="서울 강북구 도봉로 338" data-lat="37.6377416" data-lng="127.0253613" data-type="participant" data-selected="false">
+                </span><span data-map-point data-id="venue-0" data-label="도고집" data-address="서울특별시 강북구 한천로139나길 22 1층" data-lat="37.6397821" data-lng="127.0245427" data-type="venue" data-selected="true">
+                </span><span data-map-point data-id="venue-1" data-label="박만배아리랑보쌈 수유점" data-address="서울특별시 강북구 도봉로 315 1층 R111호,R112호" data-lat="37.6369286" data-lng="127.0233101" data-type="venue" data-selected="false">
+                </span><span data-map-point data-id="venue-2" data-label="육빙고" data-address="서울특별시 강북구 노해로 45 1층" data-lat="37.6397039" data-lng="127.0224472" data-type="venue" data-selected="false">
+                </span>
+            </div>
+        </section>
+
+        <section class="card-stack">
+            <article class="venue-card" data-map-target="venue-0" data-venue-name="도고집" data-venue-category="맛집" data-venue-area="강북구" data-venue-description="서울특별시 강북구 한천로139나길 22 1층" data-venue-address="서울특별시 강북구 한천로139나길 22 1층" data-venue-search-query="도고집" data-venue-reason="입력한 출발지 주변 실제 검색 결과를 거리와 이동시간 기준으로 정렬했습니다." data-venue-average="2" data-venue-fairness="0">
+                <div class="venue-card__header">
+                    <div>
+                        <p class="eyebrow">강북구 · 맛집</p>
+                        <h2>도고집</h2>
+                    </div>
+                    <div class="score-badge">
+                        <strong>0분</strong>
+                        <span>최대 편차</span>
+                    </div>
+                </div>
+                <p class="venue-card__copy">서울특별시 강북구 한천로139나길 22 1층</p>
+                <p class="venue-card__reason">입력한 출발지 주변 실제 검색 결과를 거리와 이동시간 기준으로 정렬했습니다.</p>
+                <div class="participant-row">
+                    <span class="participant-pill participant-pill--light">서울 강북구 도봉로 338 2분</span>
+                </div>
+                <div class="tag-row">
+                    <span class="mini-tag">네이버 검색 기반 실제 장소</span><span class="mini-tag">369m</span><span class="mini-tag">2분</span><span class="mini-tag">한식&gt;육류,고기요리</span>
+                </div>
+                <div class="visually-hidden">
+                    <span data-venue-highlight>네이버 검색 기반 실제 장소</span><span data-venue-highlight>369m</span><span data-venue-highlight>2분</span><span data-venue-highlight>한식&gt;육류,고기요리</span>
+                    <span data-venue-time data-participant-id="user-123" data-name="서울 강북구 도봉로 338" data-minutes="2">18</span>
+                    <span>
+                        <span data-venue-route data-venue-id="venue-0" data-participant-id="user-123" data-participant-name="서울 강북구 도봉로 338" data-route-mode="car" data-route-label="자동차" data-route-available="true" data-minutes="2">
+                        <span data-route-point data-lat="37.6377412" data-lng="127.02536"></span><span data-route-point data-lat="37.6374741" data-lng="127.0250625"></span><span data-route-point data-lat="37.6375629" data-lng="127.0249361"></span><span data-route-point data-lat="37.6377242" data-lng="127.0246993"></span><span data-route-point data-lat="37.6377949" data-lng="127.0245901"></span><span data-route-point data-lat="37.637839" data-lng="127.0245637"></span><span data-route-point data-lat="37.6379561" data-lng="127.0245585"></span><span data-route-point data-lat="37.6380976" data-lng="127.0245417"></span><span data-route-point data-lat="37.6384579" data-lng="127.0244997"></span><span data-route-point data-lat="37.6385434" data-lng="127.0246737"></span><span data-route-point data-lat="37.6385661" data-lng="127.0247246"></span><span data-route-point data-lat="37.638593" data-lng="127.0246836"></span><span data-route-point data-lat="37.6386656" data-lng="127.0245777"></span><span data-route-point data-lat="37.6388152" data-lng="127.0243569"></span><span data-route-point data-lat="37.6389182" data-lng="127.0242044"></span><span data-route-point data-lat="37.639032" data-lng="127.0240359"></span><span data-route-point data-lat="37.6391082" data-lng="127.0239243"></span><span data-route-point data-lat="37.6392166" data-lng="127.0239996"></span><span data-route-point data-lat="37.6393326" data-lng="127.0241496"></span><span data-route-point data-lat="37.6394114" data-lng="127.0242352"></span><span data-route-point data-lat="37.6395065" data-lng="127.0243412"></span><span data-route-point data-lat="37.639616" data-lng="127.0244617"></span><span data-route-point data-lat="37.6396665" data-lng="127.0244739"></span><span data-route-point data-lat="37.6397079" data-lng="127.0244498"></span>
+                        </span><span data-venue-route data-venue-id="venue-0" data-participant-id="user-123" data-participant-name="서울 강북구 도봉로 338" data-route-mode="transit" data-route-label="대중교통" data-route-available="false" data-minutes="0">
+                        
+                        </span><span data-venue-route data-venue-id="venue-0" data-participant-id="user-123" data-participant-name="서울 강북구 도봉로 338" data-route-mode="walk" data-route-label="걷기" data-route-available="true" data-minutes="3">
+                        <span data-route-point data-lat="37.6377416" data-lng="127.0253613"></span><span data-route-point data-lat="37.6397821" data-lng="127.0245427"></span>
+                        </span>
+                    </span>
+                </div>
+            </article>
+            <article class="venue-card" data-map-target="venue-1" data-venue-name="박만배아리랑보쌈 수유점" data-venue-category="맛집" data-venue-area="강북구" data-venue-description="서울특별시 강북구 도봉로 315 1층 R111호,R112호" data-venue-address="서울특별시 강북구 도봉로 315 1층 R111호,R112호" data-venue-search-query="박만배아리랑보쌈 수유점" data-venue-reason="입력한 출발지 주변 실제 검색 결과를 거리와 이동시간 기준으로 정렬했습니다." data-venue-average="2" data-venue-fairness="0">
+                <div class="venue-card__header">
+                    <div>
+                        <p class="eyebrow">강북구 · 맛집</p>
+                        <h2>박만배아리랑보쌈 수유점</h2>
+                    </div>
+                    <div class="score-badge">
+                        <strong>0분</strong>
+                        <span>최대 편차</span>
+                    </div>
+                </div>
+                <p class="venue-card__copy">서울특별시 강북구 도봉로 315 1층 R111호,R112호</p>
+                <p class="venue-card__reason">입력한 출발지 주변 실제 검색 결과를 거리와 이동시간 기준으로 정렬했습니다.</p>
+                <div class="participant-row">
+                    <span class="participant-pill participant-pill--light">서울 강북구 도봉로 338 2분</span>
+                </div>
+                <div class="tag-row">
+                    <span class="mini-tag">네이버 검색 기반 실제 장소</span><span class="mini-tag">364m</span><span class="mini-tag">2분</span><span class="mini-tag">음식점&gt;한식</span>
+                </div>
+                <div class="visually-hidden">
+                    <span data-venue-highlight>네이버 검색 기반 실제 장소</span><span data-venue-highlight>364m</span><span data-venue-highlight>2분</span><span data-venue-highlight>음식점&gt;한식</span>
+                    <span data-venue-time data-participant-id="user-123" data-name="서울 강북구 도봉로 338" data-minutes="2">18</span>
+                    <span>
+                        <span data-venue-route data-venue-id="venue-1" data-participant-id="user-123" data-participant-name="서울 강북구 도봉로 338" data-route-mode="car" data-route-label="자동차" data-route-available="true" data-minutes="2">
+                        <span data-route-point data-lat="37.6377412" data-lng="127.02536"></span><span data-route-point data-lat="37.6374741" data-lng="127.0250625"></span><span data-route-point data-lat="37.6372071" data-lng="127.0247684"></span><span data-route-point data-lat="37.6370269" data-lng="127.0245746"></span><span data-route-point data-lat="37.6366603" data-lng="127.0241848"></span><span data-route-point data-lat="37.6362755" data-lng="127.0237667"></span><span data-route-point data-lat="37.6362366" data-lng="127.0237296"></span><span data-route-point data-lat="37.6361489" data-lng="127.0236474"></span><span data-route-point data-lat="37.636146" data-lng="127.0233822"></span><span data-route-point data-lat="37.6361519" data-lng="127.0232677"></span><span data-route-point data-lat="37.6361669" data-lng="127.0232018"></span><span data-route-point data-lat="37.6362312" data-lng="127.0230439"></span><span data-route-point data-lat="37.6363582" data-lng="127.0230329"></span><span data-route-point data-lat="37.6367817" data-lng="127.0229894"></span><span data-route-point data-lat="37.636906" data-lng="127.0229761"></span>
+                        </span><span data-venue-route data-venue-id="venue-1" data-participant-id="user-123" data-participant-name="서울 강북구 도봉로 338" data-route-mode="transit" data-route-label="대중교통" data-route-available="false" data-minutes="0">
+                        
+                        </span><span data-venue-route data-venue-id="venue-1" data-participant-id="user-123" data-participant-name="서울 강북구 도봉로 338" data-route-mode="walk" data-route-label="걷기" data-route-available="true" data-minutes="3">
+                        <span data-route-point data-lat="37.6377416" data-lng="127.0253613"></span><span data-route-point data-lat="37.6369286" data-lng="127.0233101"></span>
+                        </span>
+                    </span>
+                </div>
+            </article>
+            <article class="venue-card" data-map-target="venue-2" data-venue-name="육빙고" data-venue-category="맛집" data-venue-area="강북구" data-venue-description="서울특별시 강북구 노해로 45 1층" data-venue-address="서울특별시 강북구 노해로 45 1층" data-venue-search-query="육빙고" data-venue-reason="입력한 출발지 주변 실제 검색 결과를 거리와 이동시간 기준으로 정렬했습니다." data-venue-average="4" data-venue-fairness="0">
+                <div class="venue-card__header">
+                    <div>
+                        <p class="eyebrow">강북구 · 맛집</p>
+                        <h2>육빙고</h2>
+                    </div>
+                    <div class="score-badge">
+                        <strong>0분</strong>
+                        <span>최대 편차</span>
+                    </div>
+                </div>
+                <p class="venue-card__copy">서울특별시 강북구 노해로 45 1층</p>
+                <p class="venue-card__reason">입력한 출발지 주변 실제 검색 결과를 거리와 이동시간 기준으로 정렬했습니다.</p>
+                <div class="participant-row">
+                    <span class="participant-pill participant-pill--light">서울 강북구 도봉로 338 4분</span>
+                </div>
+                <div class="tag-row">
+                    <span class="mini-tag">네이버 검색 기반 실제 장소</span><span class="mini-tag">801m</span><span class="mini-tag">4분</span><span class="mini-tag">한식&gt;육류,고기요리</span>
+                </div>
+                <div class="visually-hidden">
+                    <span data-venue-highlight>네이버 검색 기반 실제 장소</span><span data-venue-highlight>801m</span><span data-venue-highlight>4분</span><span data-venue-highlight>한식&gt;육류,고기요리</span>
+                    <span data-venue-time data-participant-id="user-123" data-name="서울 강북구 도봉로 338" data-minutes="4">18</span>
+                    <span>
+                        <span data-venue-route data-venue-id="venue-2" data-participant-id="user-123" data-participant-name="서울 강북구 도봉로 338" data-route-mode="car" data-route-label="자동차" data-route-available="true" data-minutes="4">
+                        <span data-route-point data-lat="37.6377412" data-lng="127.02536"></span><span data-route-point data-lat="37.6374741" data-lng="127.0250625"></span><span data-route-point data-lat="37.6372071" data-lng="127.0247684"></span><span data-route-point data-lat="37.6370269" data-lng="127.0245746"></span><span data-route-point data-lat="37.6366603" data-lng="127.0241848"></span><span data-route-point data-lat="37.6362755" data-lng="127.0237667"></span><span data-route-point data-lat="37.6362366" data-lng="127.0237296"></span><span data-route-point data-lat="37.6361489" data-lng="127.0236474"></span><span data-route-point data-lat="37.636146" data-lng="127.0233822"></span><span data-route-point data-lat="37.6361519" data-lng="127.0232677"></span><span data-route-point data-lat="37.6361669" data-lng="127.0232018"></span><span data-route-point data-lat="37.6362312" data-lng="127.0230439"></span><span data-route-point data-lat="37.6363582" data-lng="127.0230329"></span><span data-route-point data-lat="37.6367817" data-lng="127.0229894"></span><span data-route-point data-lat="37.6376403" data-lng="127.0229"></span><span data-route-point data-lat="37.6377277" data-lng="127.0228915"></span><span data-route-point data-lat="37.6377592" data-lng="127.0228879"></span><span data-route-point data-lat="37.6378664" data-lng="127.0228748"></span><span data-route-point data-lat="37.6382565" data-lng="127.0228269"></span><span data-route-point data-lat="37.6386799" data-lng="127.0227777"></span><span data-route-point data-lat="37.638943" data-lng="127.0227466"></span><span data-route-point data-lat="37.6389898" data-lng="127.0227418"></span><span data-route-point data-lat="37.6390331" data-lng="127.022737"></span><span data-route-point data-lat="37.6390236" data-lng="127.0226157"></span><span data-route-point data-lat="37.6390074" data-lng="127.0224016"></span><span data-route-point data-lat="37.6389998" data-lng="127.0222997"></span><span data-route-point data-lat="37.6389914" data-lng="127.0222374"></span><span data-route-point data-lat="37.6389665" data-lng="127.0218748"></span><span data-route-point data-lat="37.6392575" data-lng="127.0218492"></span><span data-route-point data-lat="37.6394999" data-lng="127.0218193"></span><span data-route-point data-lat="37.6395575" data-lng="127.0218121"></span><span data-route-point data-lat="37.6395642" data-lng="127.0218914"></span><span data-route-point data-lat="37.6396106" data-lng="127.022459"></span>
+                        </span><span data-venue-route data-venue-id="venue-2" data-participant-id="user-123" data-participant-name="서울 강북구 도봉로 338" data-route-mode="transit" data-route-label="대중교통" data-route-available="true" data-minutes="8">
+                        <span data-route-point data-lat="37.637745" data-lng="127.02536"></span><span data-route-point data-lat="37.637276" data-lng="127.02485"></span><span data-route-point data-lat="37.637356" data-lng="127.02474"></span><span data-route-point data-lat="37.637474" data-lng="127.024864"></span><span data-route-point data-lat="37.637493" data-lng="127.02481"></span><span data-route-point data-lat="37.637566" data-lng="127.024895"></span><span data-route-point data-lat="37.637638" data-lng="127.02499"></span><span data-route-point data-lat="37.637578" data-lng="127.025064"></span><span data-route-point data-lat="37.636456" data-lng="127.023856"></span><span data-route-point data-lat="37.636175" data-lng="127.023564"></span><span data-route-point data-lat="37.636156" data-lng="127.023353"></span><span data-route-point data-lat="37.636197" data-lng="127.023203"></span><span data-route-point data-lat="37.636222" data-lng="127.023161"></span><span data-route-point data-lat="37.63625" data-lng="127.02315"></span><span data-route-point data-lat="37.636992" data-lng="127.023069"></span><span data-route-point data-lat="37.640339" data-lng="127.0227"></span><span data-route-point data-lat="37.640343" data-lng="127.02272"></span><span data-route-point data-lat="37.64052" data-lng="127.022705"></span><span data-route-point data-lat="37.64055" data-lng="127.0227"></span><span data-route-point data-lat="37.64059" data-lng="127.02269"></span><span data-route-point data-lat="37.640648" data-lng="127.02268"></span><span data-route-point data-lat="37.640606" data-lng="127.02241"></span><span data-route-point data-lat="37.64053" data-lng="127.02242"></span><span data-route-point data-lat="37.640167" data-lng="127.02246"></span><span data-route-point data-lat="37.639786" data-lng="127.0225"></span><span data-route-point data-lat="37.63971" data-lng="127.02251"></span>
+                        </span><span data-venue-route data-venue-id="venue-2" data-participant-id="user-123" data-participant-name="서울 강북구 도봉로 338" data-route-mode="walk" data-route-label="걷기" data-route-available="true" data-minutes="4">
+                        <span data-route-point data-lat="37.6377416" data-lng="127.0253613"></span><span data-route-point data-lat="37.6397039" data-lng="127.0224472"></span>
+                        </span>
+                    </span>
+                </div>
+            </article>
+        </section>
+
+        <div class="loading-overlay" id="pageLoadingOverlay" hidden aria-live="polite" aria-busy="true">
+            <div class="loading-overlay__backdrop"></div>
+            <div class="loading-overlay__dialog" role="dialog" aria-modal="true" aria-label="로딩 중">
+                <div class="loading-overlay__spinner" aria-hidden="true"></div>
+                <strong>로딩중...</strong>
+                <p>추천 결과를 다시 계산하고 있습니다.</p>
+            </div>
+        </div>
+    </main>
+
+    <nav class="bottom-nav">
+    <a class="bottom-nav__item" href="/">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"></path>
+        </svg>
+        <span>홈</span>
+    </a>
+    <span class="bottom-nav__item bottom-nav__item--placeholder" aria-hidden="true">
+        <span class="bottom-nav__ghost"></span>
+        <span>&nbsp;</span>
+    </span>
+    <a class="bottom-nav__item bottom-nav__item--wide  is-active"
+       href="/guest/plan">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m21 21-4.4-4.4"></path>
+            <circle cx="11" cy="11" r="6.5"></circle>
+        </svg>
+        <span>근처 장소 검색</span>
+    </a>
+    <span class="bottom-nav__item bottom-nav__item--placeholder" aria-hidden="true">
+        <span class="bottom-nav__ghost"></span>
+        <span>&nbsp;</span>
+    </span>
+    <a class="bottom-nav__item" href="/login">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M10 17H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h4"></path>
+            <path d="M13 8l5 4-5 4"></path>
+            <path d="M18 12H9"></path>
+        </svg>
+        <span>로그인</span>
+    </a>
+</nav>
+</div>
+<script defer src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=b9m7h1nhur"></script>
+</body>
+</html>
+
