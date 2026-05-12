@@ -84,7 +84,7 @@ class WemeetControllerTest {
     }
 
     @Test
-    void passwordResetFlowRequiresMatchingLoginIdAndEmail() throws Exception {
+    void passwordResetFlowEmailsTemporaryPasswordWhenLoginIdAndEmailMatch() throws Exception {
         String signUpPayload = objectMapper.writeValueAsString(Map.of(
                 "nickname", "비번테스터",
                 "loginId", "passwordflow01",
@@ -105,39 +105,21 @@ class WemeetControllerTest {
                 .andExpect(redirectedUrl("/find-password"));
 
         MvcResult verifyResult = mockMvc.perform(post("/find-password/verify")
-                        .session(new MockHttpSession())
                         .param("loginId", "passwordflow01")
                         .param("email", "passwordflow01@wemeet.local"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/find-password/reset"))
-                .andReturn();
-
-        MockHttpSession resetSession = (MockHttpSession) verifyResult.getRequest().getSession(false);
-
-        mockMvc.perform(get("/find-password/reset")
-                        .session(resetSession)
-                        .flashAttrs(verifyResult.getFlashMap()))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("비밀번호 변경")))
-                .andExpect(content().string(containsString("passwordflow01")))
-                .andExpect(content().string(containsString("passwordflow01@wemeet.local")))
-                .andExpect(content().string(containsString("계정이 확인되었습니다. 새 비밀번호를 입력해주세요.")));
-
-        MvcResult confirmResult = mockMvc.perform(post("/find-password/reset")
-                        .session(resetSession)
-                        .param("newPassword", "resetPass123!")
-                        .param("confirmPassword", "resetPass123!"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"))
                 .andReturn();
 
-        mockMvc.perform(get("/login").flashAttrs(confirmResult.getFlashMap()))
+        String temporaryPassword = (String) verifyResult.getFlashMap().get("passwordResetPreview");
+
+        mockMvc.perform(get("/login").flashAttrs(verifyResult.getFlashMap()))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("비밀번호가 변경되었습니다.")));
+                .andExpect(content().string(containsString("임시 비밀번호를 이메일로 전송했습니다.")));
 
         mockMvc.perform(post("/login")
                         .param("loginId", "passwordflow01")
-                        .param("password", "resetPass123!"))
+                        .param("password", temporaryPassword))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"));
     }

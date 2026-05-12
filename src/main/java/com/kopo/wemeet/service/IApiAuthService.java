@@ -20,9 +20,7 @@ public interface IApiAuthService {
 
     String findLoginIdByEmail(String email);
 
-    String issueTemporaryPassword(String name, String loginId, String email);
-
-    String findUserIdByLoginIdAndEmail(String loginId, String email);
+    AuthDTO.PasswordResetResponse issueTemporaryPassword(String loginId, String email);
 
     boolean isLoginIdAvailable(String loginId);
 

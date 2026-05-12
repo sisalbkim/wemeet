@@ -24,10 +24,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class AuthController {
     // 로그인, 회원가입, 비밀번호 찾기 같은 인증 화면 흐름을 처리하는 컨트롤러.
 
-    private static final String PASSWORD_RESET_USER_ID = "PASSWORD_RESET_USER_ID";
-    private static final String PASSWORD_RESET_USER_ID_INPUT = "PASSWORD_RESET_USER_ID_INPUT";
-    private static final String PASSWORD_RESET_EMAIL = "PASSWORD_RESET_EMAIL";
-
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;
     private final WemeetViewHelper viewHelper;
@@ -74,17 +70,6 @@ public class AuthController {
     public String findPassword(Model model) {
         populateFindPasswordModel(model);
         return "auth/find-password";
-    }
-
-    @GetMapping({"/find-password/reset", "/user/findPassword/reset"})
-    public String resetPasswordPage(Model model, HttpSession session) {
-        if (session == null || session.getAttribute(PASSWORD_RESET_USER_ID) == null) {
-            return "redirect:/find-password";
-        }
-        viewHelper.populateCommon(model, "login", true);
-        model.addAttribute("passwordResetUserId", session.getAttribute(PASSWORD_RESET_USER_ID_INPUT));
-        model.addAttribute("passwordResetEmail", session.getAttribute(PASSWORD_RESET_EMAIL));
-        return "auth/reset-password";
     }
 
     @PostMapping({"/signup", "/user/insertUserInfo"})
@@ -197,67 +182,27 @@ public class AuthController {
             @RequestParam(name = "userId", defaultValue = "") String userId,
             @RequestParam(name = "loginId", defaultValue = "") String legacyLoginId,
             @RequestParam(defaultValue = "") String email,
-            HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
         String normalizedUserId = resolveUserIdInput(userId, legacyLoginId);
         String normalizedEmail = CmmUtil.nvl(email);
         try {
-            String accountId = authService.findUserIdByLoginIdAndEmail(normalizedUserId, normalizedEmail);
-            session.setAttribute(PASSWORD_RESET_USER_ID, accountId);
-            session.setAttribute(PASSWORD_RESET_USER_ID_INPUT, normalizedUserId);
-            session.setAttribute(PASSWORD_RESET_EMAIL, normalizedEmail);
-            redirectAttributes.addFlashAttribute("passwordResetUserId", normalizedUserId);
-            redirectAttributes.addFlashAttribute("passwordResetEmail", normalizedEmail);
-            redirectAttributes.addFlashAttribute("passwordResetLookupSuccess", "계정이 확인되었습니다. 새 비밀번호를 입력해주세요.");
-            return "redirect:/find-password/reset";
+            AuthDTO.PasswordResetResponse response = authService.issueTemporaryPassword(normalizedUserId, normalizedEmail);
+            redirectAttributes.addFlashAttribute("passwordResetSuccess", buildTemporaryPasswordNotice(response));
+            if (response.resetTokenPreview() != null && !response.resetTokenPreview().isBlank()) {
+                redirectAttributes.addFlashAttribute("passwordResetPreview", response.resetTokenPreview());
+            }
+            return "redirect:/login";
         } catch (ResponseStatusException exception) {
-            session.removeAttribute(PASSWORD_RESET_USER_ID);
-            session.removeAttribute(PASSWORD_RESET_USER_ID_INPUT);
-            session.removeAttribute(PASSWORD_RESET_EMAIL);
             redirectAttributes.addFlashAttribute("passwordResetLookupError", switch (exception.getStatusCode().value()) {
                 case 400 -> "아이디와 올바른 이메일을 입력해주세요.";
                 case 404 -> "아이디와 이메일이 일치하는 계정을 찾지 못했습니다.";
-                default -> "비밀번호 변경 대상 계정을 확인하지 못했습니다.";
+                case 503 -> "임시 비밀번호 메일 전송에 실패했습니다. 잠시 후 다시 시도해주세요.";
+                default -> "임시 비밀번호를 발급하지 못했습니다.";
             });
             redirectAttributes.addFlashAttribute("passwordResetUserId", normalizedUserId);
             redirectAttributes.addFlashAttribute("passwordResetEmail", normalizedEmail);
             return "redirect:/find-password";
-        }
-    }
-
-    @PostMapping({"/find-password/reset", "/user/findPassword/reset"})
-    public String resetPassword(
-            @RequestParam(defaultValue = "") String newPassword,
-            @RequestParam(defaultValue = "") String confirmPassword,
-            HttpSession session,
-            RedirectAttributes redirectAttributes
-    ) {
-        String accountId = session == null ? null : (String) session.getAttribute(PASSWORD_RESET_USER_ID);
-
-        if (accountId == null || accountId.isBlank()) {
-            return "redirect:/find-password";
-        }
-
-        if (!newPassword.equals(confirmPassword)) {
-            redirectAttributes.addFlashAttribute("passwordResetConfirmError", "비밀번호 확인이 일치하지 않습니다.");
-            return "redirect:/find-password/reset";
-        }
-
-        try {
-            authService.resetPasswordForUser(accountId, newPassword);
-            session.removeAttribute(PASSWORD_RESET_USER_ID);
-            session.removeAttribute(PASSWORD_RESET_USER_ID_INPUT);
-            session.removeAttribute(PASSWORD_RESET_EMAIL);
-            redirectAttributes.addFlashAttribute("passwordResetSuccess", "비밀번호가 변경되었습니다.");
-            return "redirect:/login";
-        } catch (ResponseStatusException exception) {
-            redirectAttributes.addFlashAttribute("passwordResetConfirmError", switch (exception.getStatusCode().value()) {
-                case 400 -> "새 비밀번호를 입력해주세요.";
-                case 404 -> "비밀번호를 변경할 계정을 찾지 못했습니다.";
-                default -> "비밀번호를 변경하지 못했습니다.";
-            });
-            return "redirect:/find-password/reset";
         }
     }
 
@@ -396,5 +341,13 @@ public class AuthController {
     private String resolveUserIdInput(String userId, String legacyLoginId) {
         String normalizedUserId = CmmUtil.nvl(userId);
         return normalizedUserId.isBlank() ? CmmUtil.nvl(legacyLoginId) : normalizedUserId;
+    }
+
+    private String buildTemporaryPasswordNotice(AuthDTO.PasswordResetResponse response) {
+        if (response.resetTokenPreview() == null || response.resetTokenPreview().isBlank()) {
+            return "임시 비밀번호를 이메일로 전송했습니다. 로그인 후 바로 비밀번호를 변경해 주세요.";
+        }
+        return "임시 비밀번호를 이메일로 전송했습니다. 메일 설정이 없어 임시 비밀번호를 함께 표시합니다: "
+                + response.resetTokenPreview();
     }
 }

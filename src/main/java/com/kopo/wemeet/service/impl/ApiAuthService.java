@@ -13,6 +13,7 @@ import com.kopo.wemeet.repository.SearchHistoryRepository;
 import com.kopo.wemeet.repository.SessionTokenStore;
 import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.service.IApiAuthService;
+import com.kopo.wemeet.service.impl.MailDeliveryService.MailSendResult;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,7 @@ import java.util.regex.Pattern;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Service
@@ -44,6 +46,7 @@ public class ApiAuthService implements IApiAuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final SessionTokenStore sessionTokenStore;
+    private final MailDeliveryService mailDeliveryService;
 
     public ApiAuthService(
             AppUserRepository userRepository,
@@ -53,7 +56,8 @@ public class ApiAuthService implements IApiAuthService {
             MeetingParticipantRepository meetingParticipantRepository,
             PasswordResetTokenRepository passwordResetTokenRepository,
             PasswordEncoder passwordEncoder,
-            SessionTokenStore sessionTokenStore
+            SessionTokenStore sessionTokenStore,
+            MailDeliveryService mailDeliveryService
     ) {
         this.userRepository = userRepository;
         this.friendRelationRepository = friendRelationRepository;
@@ -63,6 +67,7 @@ public class ApiAuthService implements IApiAuthService {
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.sessionTokenStore = sessionTokenStore;
+        this.mailDeliveryService = mailDeliveryService;
     }
 
     @Override
@@ -179,24 +184,9 @@ public class ApiAuthService implements IApiAuthService {
         return user.getLoginId();
     }
 
+    @Transactional
     @Override
-    public String issueTemporaryPassword(String name, String loginId, String email) {
-        if (name == null || name.isBlank() || loginId == null || loginId.isBlank() || email == null || email.isBlank()) {
-            throw new ResponseStatusException(BAD_REQUEST, "name, loginId, and email are required");
-        }
-        validateEmailFormat(email);
-
-        AppUser user = userRepository.findByNicknameAndLoginIdAndEmail(name.trim(), loginId.trim(), email.trim())
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "name, loginId, and email do not match"));
-
-        String temporaryPassword = "WM" + String.format("%06d", ThreadLocalRandom.current().nextInt(0, 1_000_000)) + "!";
-        user.changePasswordHash(passwordEncoder.encode(temporaryPassword));
-        userRepository.save(user);
-        return temporaryPassword;
-    }
-
-    @Override
-    public String findUserIdByLoginIdAndEmail(String loginId, String email) {
+    public AuthDTO.PasswordResetResponse issueTemporaryPassword(String loginId, String email) {
         if (loginId == null || loginId.isBlank() || email == null || email.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "loginId and email are required");
         }
@@ -204,7 +194,19 @@ public class ApiAuthService implements IApiAuthService {
 
         AppUser user = userRepository.findByLoginIdAndEmail(loginId.trim(), email.trim())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "loginId and email do not match"));
-        return user.getId();
+
+        String temporaryPassword = generateTemporaryPassword();
+        user.changePasswordHash(passwordEncoder.encode(temporaryPassword));
+        userRepository.save(user);
+        MailSendResult mailSendResult = mailDeliveryService.sendTemporaryPassword(
+                user.getEmail(),
+                user.getLoginId(),
+                temporaryPassword
+        );
+        if (!mailSendResult.sent()) {
+            throw new ResponseStatusException(SERVICE_UNAVAILABLE, mailSendResult.message());
+        }
+        return new AuthDTO.PasswordResetResponse(mailSendResult.message(), mailSendResult.previewCode());
     }
 
     @Override
@@ -357,6 +359,10 @@ public class ApiAuthService implements IApiAuthService {
         String base = loginId.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
         String suffix = UUID.randomUUID().toString().substring(0, 4).toUpperCase();
         return (base.isBlank() ? "FRIEND" : base) + suffix;
+    }
+
+    private String generateTemporaryPassword() {
+        return "WM" + String.format("%06d", ThreadLocalRandom.current().nextInt(0, 1_000_000)) + "!";
     }
 
     private String hashToken(String rawToken) {
