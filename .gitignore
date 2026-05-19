@@ -38,3 +38,4 @@ out/
 
 ### Local Secrets ###
 .wemeet.local.properties
+deploy/aws/.env
