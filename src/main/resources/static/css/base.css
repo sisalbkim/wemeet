@@ -250,3 +250,31 @@ textarea {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.app-shell[data-view-mode="desktop"] {
+    width: min(1220px, calc(100% - 48px));
+    min-height: calc(100vh - 48px);
+    margin: 24px auto;
+    border-radius: 32px;
+    overflow: clip;
+}
+
+.app-shell[data-view-mode="desktop"] .topbar {
+    padding: 22px 28px;
+}
+
+.app-shell[data-view-mode="desktop"] .page {
+    gap: 22px;
+    padding: 28px 28px 40px;
+}
+
+.app-shell[data-view-mode="desktop"] .page--guest {
+    justify-content: flex-start;
+}
+
+.app-shell[data-view-mode="desktop"] .hero-card h1,
+.app-shell[data-view-mode="desktop"] .result-hero h1,
+.app-shell[data-view-mode="desktop"] .profile-hero h1,
+.app-shell[data-view-mode="desktop"] .page-heading h1 {
+    font-size: 2.2rem;
+}
+

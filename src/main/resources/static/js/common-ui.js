@@ -1,5 +1,24 @@
 ﻿// 공통 화면 인터랙션을 담당한다.
 document.addEventListener("DOMContentLoaded", () => {
+    const appShell = document.querySelector(".app-shell");
+    if (appShell instanceof HTMLElement) {
+        const currentViewMode = appShell.dataset.viewMode === "desktop" ? "desktop" : "mobile";
+        const currentLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        const mobileViewHref = `/view-mode?mode=mobile&redirect=${encodeURIComponent(currentLocation)}`;
+        const desktopViewHref = `/view-mode?mode=desktop&redirect=${encodeURIComponent(currentLocation)}`;
+        const switcher = document.createElement("div");
+
+        switcher.className = "view-mode-switcher";
+        switcher.innerHTML = `
+            <span class="view-mode-switcher__label">보기 모드</span>
+            <div class="view-mode-switcher__actions">
+                <a class="view-mode-switcher__button${currentViewMode === "mobile" ? " is-active" : ""}" href="${mobileViewHref}" data-loading-overlay>모바일로 보기</a>
+                <a class="view-mode-switcher__button${currentViewMode === "desktop" ? " is-active" : ""}" href="${desktopViewHref}" data-loading-overlay>웹으로 보기</a>
+            </div>
+        `;
+        appShell.appendChild(switcher);
+    }
+
     // 친구 목록 검색은 화면 안에서 카드 표시만 바꿔 새로고침 없이 처리한다.
     document.querySelectorAll("[data-friend-filter]").forEach((friendFilter) => {
         const filterScope = friendFilter.closest("[data-friend-filter-scope]") ?? document;

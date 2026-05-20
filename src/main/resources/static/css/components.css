@@ -732,6 +732,98 @@
     font-weight: 700;
 }
 
+.view-mode-switcher {
+    display: flex;
+    margin: 0 20px 20px;
+    padding: 14px 16px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: var(--shadow-sm);
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.view-mode-switcher__label {
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.view-mode-switcher__actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.view-mode-switcher__button {
+    display: inline-flex;
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid rgba(91, 112, 152, 0.16);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 700;
+    align-items: center;
+    justify-content: center;
+}
+
+.view-mode-switcher__button.is-active {
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--primary), #255eff);
+    color: #ffffff;
+    box-shadow: 0 14px 28px rgba(47, 107, 255, 0.18);
+}
+
+.app-shell[data-view-mode="desktop"] .hero-card,
+.app-shell[data-view-mode="desktop"] .result-hero,
+.app-shell[data-view-mode="desktop"] .profile-hero,
+.app-shell[data-view-mode="desktop"] .welcome-card,
+.app-shell[data-view-mode="desktop"] .login-card {
+    padding: 28px;
+}
+
+.app-shell[data-view-mode="desktop"] .panel,
+.app-shell[data-view-mode="desktop"] .code-card {
+    padding: 24px;
+}
+
+.app-shell[data-view-mode="desktop"] .cta-row {
+    gap: 14px;
+}
+
+.app-shell[data-view-mode="desktop"] .link-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.app-shell[data-view-mode="desktop"] .action-grid,
+.app-shell[data-view-mode="desktop"] .stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.app-shell[data-view-mode="desktop"] .chip-grid--three-up {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.app-shell[data-view-mode="desktop"] .meeting-create-fields {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.app-shell[data-view-mode="desktop"] .meeting-create-fields .field-stack:last-child {
+    grid-column: auto;
+}
+
+.app-shell[data-view-mode="desktop"] .search-form,
+.app-shell[data-view-mode="desktop"] .friend-search-form,
+.app-shell[data-view-mode="desktop"] .inline-row,
+.app-shell[data-view-mode="desktop"] .helper-row {
+    gap: 12px;
+}
+
 .email-warning-stack {
     display: flex;
     flex-direction: column;

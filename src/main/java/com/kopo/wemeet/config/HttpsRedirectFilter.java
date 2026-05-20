@@ -28,6 +28,9 @@ public class HttpsRedirectFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
+        if (isLocalDevelopmentHost(resolveRequestHost(request))) {
+            return true;
+        }
         return !requiresRedirect(request);
     }
 
@@ -182,5 +185,13 @@ public class HttpsRedirectFilter extends OncePerRequestFilter {
     private static boolean isDefaultPort(String scheme, int port) {
         return ("http".equalsIgnoreCase(scheme) && port == 80)
                 || ("https".equalsIgnoreCase(scheme) && port == 443);
+    }
+
+    private static boolean isLocalDevelopmentHost(String host) {
+        String normalizedHost = normalizeHost(host);
+        return "localhost".equals(normalizedHost)
+                || "127.0.0.1".equals(normalizedHost)
+                || "[::1]".equals(normalizedHost)
+                || "::1".equals(normalizedHost);
     }
 }

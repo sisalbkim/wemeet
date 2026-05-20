@@ -2,7 +2,7 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('추천 결과')}"></head>
 <body>
-<div class="app-shell">
+<div class="app-shell" th:attr="data-view-mode=${viewMode}">
     <header th:replace="~{fragments/layout :: topBar}"></header>
 
     <main class="page">
