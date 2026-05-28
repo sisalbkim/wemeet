@@ -16,6 +16,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.ObjectMapper;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -929,6 +931,61 @@ class WemeetControllerTest {
     }
 
     @Test
+    void profileMeetingNaverMapLinkUsesSavedRouteWhenSnapshotExists() throws Exception {
+        MockHttpSession session = signupAndLogin("savedroute01", "savedroute01@wemeet.local");
+        String userId = userRepository.findByLoginId("savedroute01").orElseThrow().getId();
+
+        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "저장된 결과 카페"));
+
+        String previewHtml = mockMvc.perform(post("/meetings/preview")
+                        .session(session)
+                        .param("category", "카페")
+                        .param("mode", "CENTER")
+                        .param("meetingName", "지도 링크 확인 모임")
+                        .param("meetingDate", "2026-06-15")
+                        .param("meetingHour", "19")
+                        .param("meetingMinute", "30")
+                        .param("routeMode", "car"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String previewKey = extractHiddenInputValue(previewHtml, "meetingPreviewKey");
+
+        mockMvc.perform(post("/meetings")
+                        .session(session)
+                        .param("meetingName", "지도 링크 확인 모임")
+                        .param("meetingDescription", "프로필 링크 확인")
+                        .param("meetingDate", "2026-06-15")
+                        .param("meetingTime", "19:30")
+                        .param("meetingPlaceName", "저장된 결과 카페")
+                        .param("meetingPlaceAddress", "서울특별시 중구 저장결과로 12")
+                        .param("category", "카페")
+                        .param("recommendationMode", "CENTER")
+                        .param("anchorId", userId)
+                        .param("meetingPreviewKey", previewKey))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/profile"));
+
+        String profileHtml = mockMvc.perform(get("/profile").session(session))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String naverMapHref = extractAnchorHref(profileHtml, "네이버 지도에서 보기")
+                .replace("&amp;", "&");
+        String decodedHref = URLDecoder.decode(naverMapHref, StandardCharsets.UTF_8);
+
+        assertTrue(decodedHref.contains("menu=route"));
+        assertTrue(decodedHref.contains("stext=서울특별시 중구"));
+        assertTrue(decodedHref.contains("etext=저장된 결과 카페"));
+        assertTrue(decodedHref.contains("slat="));
+        assertTrue(decodedHref.contains("elat="));
+    }
+
+    @Test
     void participantCanOpenRecommendationResultsFromProfile() throws Exception {
         MockHttpSession session = signupAndLogin("participantresults01", "participantresults01@wemeet.local");
         String participantUserId = userRepository.findByLoginId("participantresults01").orElseThrow().getId();
@@ -1032,6 +1089,13 @@ class WemeetControllerTest {
         Pattern pattern = Pattern.compile("name=\"" + Pattern.quote(inputName) + "\"[^>]*value=\"([^\"]*)\"");
         Matcher matcher = pattern.matcher(html);
         assertTrue(matcher.find(), "Expected hidden input for " + inputName);
+        return matcher.group(1);
+    }
+
+    private String extractAnchorHref(String html, String linkText) {
+        Pattern pattern = Pattern.compile("<a[^>]*href=\"([^\"]*)\"[^>]*>\\s*" + Pattern.quote(linkText) + "\\s*</a>");
+        Matcher matcher = pattern.matcher(html);
+        assertTrue(matcher.find(), "Expected link for " + linkText);
         return matcher.group(1);
     }
 

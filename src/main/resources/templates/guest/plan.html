@@ -48,8 +48,10 @@
                         <input type="radio" name="routeMode" value="car" th:checked="${selectedRouteMode == 'car'}">
                         <span>자동차</span>
                     </label>
-                    <label class="choice-chip" th:if="${tmapTransitEnabled}" th:classappend="${selectedRouteMode == 'transit'} ? ' is-selected'">
-                        <input type="radio" name="routeMode" value="transit" th:checked="${selectedRouteMode == 'transit'}">
+                    <label class="choice-chip"
+                           th:if="${transitOptionVisible}"
+                           th:classappend="${(selectedRouteMode == 'transit' ? ' is-selected' : '') + (!tmapTransitEnabled ? ' is-disabled' : '')}">
+                        <input type="radio" name="routeMode" value="transit" th:checked="${selectedRouteMode == 'transit'}" th:disabled="${!tmapTransitEnabled}">
                         <span>대중교통</span>
                     </label>
                     <label class="choice-chip" th:classappend="${selectedRouteMode == 'walk'} ? ' is-selected'">

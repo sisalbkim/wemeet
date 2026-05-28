@@ -66,7 +66,14 @@
                 <div th:if="${naverMapEnabled}" class="route-controls">
                     <div class="route-mode-tabs" role="tablist" aria-label="경로 보기 방식">
                         <button type="button" class="route-mode-tabs__button" th:classappend="${selectedRouteMode == 'car'} ? ' is-active'" data-route-mode-button data-route-mode="car" th:attr="aria-pressed=${selectedRouteMode == 'car'}">자동차</button>
-                        <button type="button" class="route-mode-tabs__button" th:if="${tmapTransitEnabled}" th:classappend="${selectedRouteMode == 'transit'} ? ' is-active'" data-route-mode-button data-route-mode="transit" th:attr="aria-pressed=${selectedRouteMode == 'transit'}">대중교통</button>
+                        <button type="button"
+                                class="route-mode-tabs__button"
+                                th:if="${transitOptionVisible}"
+                                th:classappend="${selectedRouteMode == 'transit'} ? ' is-active'"
+                                data-route-mode-button
+                                data-route-mode="transit"
+                                th:disabled="${!tmapTransitEnabled}"
+                                th:attr="aria-pressed=${selectedRouteMode == 'transit'}">대중교통</button>
                         <button type="button" class="route-mode-tabs__button" th:classappend="${selectedRouteMode == 'walk'} ? ' is-active'" data-route-mode-button data-route-mode="walk" th:attr="aria-pressed=${selectedRouteMode == 'walk'}">걷기</button>
                     </div>
                     <button type="button"

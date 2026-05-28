@@ -53,7 +53,8 @@ public final class MeetingDTO {
             String category,
             String meetingPlaceName,
             String meetingPlaceAddress,
-            int participantCount
+            int participantCount,
+            String naverMapUrl
     ) {
     }
 }

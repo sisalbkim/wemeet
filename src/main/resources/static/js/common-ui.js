@@ -16,7 +16,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 <a class="view-mode-switcher__button${currentViewMode === "desktop" ? " is-active" : ""}" href="${desktopViewHref}" data-loading-overlay>웹으로 보기</a>
             </div>
         `;
-        appShell.appendChild(switcher);
+        const bottomNav = appShell.querySelector(".bottom-nav");
+        if (bottomNav instanceof HTMLElement) {
+            appShell.insertBefore(switcher, bottomNav);
+        } else {
+            appShell.appendChild(switcher);
+        }
     }
 
     // 친구 목록 검색은 화면 안에서 카드 표시만 바꿔 새로고침 없이 처리한다.

@@ -818,13 +818,16 @@
 }
 
 .app-shell[data-view-mode="desktop"] .bottom-nav {
-    position: static;
+    position: sticky;
+    bottom: 0;
+    z-index: 40;
     max-width: calc(100% - 56px);
-    margin: 0 auto 12px;
-    padding: 0;
-    border-top: 0;
-    background: transparent;
-    backdrop-filter: none;
+    margin: 0 auto 16px;
+    padding: 12px;
+    border-top: 1px solid rgba(85, 104, 142, 0.1);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(18px);
     gap: 10px;
 }
 

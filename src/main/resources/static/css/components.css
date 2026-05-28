@@ -187,6 +187,11 @@
     color: #ffffff;
 }
 
+.route-mode-tabs__button:disabled {
+    opacity: 0.58;
+    cursor: not-allowed;
+}
+
 .section-heading h2,
 .page-heading h1,
 .venue-card h2,
@@ -259,6 +264,17 @@
     background: linear-gradient(135deg, var(--primary), #245cff);
     color: #ffffff;
     box-shadow: 0 14px 28px rgba(47, 107, 255, 0.24);
+}
+
+.choice-chip.is-disabled {
+    opacity: 0.58;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.choice-chip.is-disabled:has(input:disabled) {
+    background: rgba(24, 32, 51, 0.05);
+    color: var(--muted);
 }
 
 .filter-chip--danger {

@@ -27,8 +27,9 @@ docker push <account>.dkr.ecr.ap-northeast-2.amazonaws.com/wemeet:latest
 
 1. `deploy/aws/.env.example` 을 `deploy/aws/.env` 로 복사하고 실제 값으로 수정한다.
 2. `ECR_IMAGE` 값을 푸시한 이미지 URI로 바꾼다.
-3. `CANONICAL_HOST` 는 대표 도메인으로 설정한다. 예: `wemeet.ai.kr`
-4. EC2에서 다음을 실행한다.
+3. `APP_SERVER_PORT=11000`, `HOST_PORT=11000` 기준으로 애플리케이션 포트를 맞춘다.
+4. `CANONICAL_HOST` 는 대표 도메인으로 설정한다. 예: `wemeet.ai.kr`
+5. EC2에서 다음을 실행한다.
 
 ```bash
 docker compose -f deploy/aws/compose.ec2.yaml --env-file deploy/aws/.env up -d
@@ -37,7 +38,7 @@ docker compose -f deploy/aws/compose.ec2.yaml --env-file deploy/aws/.env up -d
 ## 4. HTTPS
 
 - ALB 리스너 `80 -> 443 redirect`
-- ALB 리스너 `443 -> target group :8080`
+- ALB 리스너 `443 -> target group :11000`
 - ACM 인증서를 443 리스너에 연결
 - 애플리케이션은 `server.forward-headers-strategy=framework`, `app.security.require-https=true`, `app.security.canonical-host` 로 프록시 뒤에서 HTTPS와 대표 도메인을 강제한다.
 

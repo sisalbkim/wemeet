@@ -93,8 +93,8 @@
                                th:href="@{/profile/meetings/results(meetingId=${meeting.id})}"
                                data-loading-overlay>모임 결과 보기</a>
                             <a class="secondary-button secondary-button--compact"
-                               th:if="${!#strings.isEmpty(meeting.meetingPlaceName)}"
-                               th:href="${'https://map.naver.com/p/search/' + #uris.escapePathSegment(meeting.meetingPlaceName)}"
+                               th:if="${!#strings.isEmpty(meeting.naverMapUrl)}"
+                               th:href="${meeting.naverMapUrl}"
                                target="_blank"
                                rel="noreferrer noopener">네이버 지도에서 보기</a>
                         </div>
@@ -144,8 +144,8 @@
                                th:href="@{/profile/meetings/results(meetingId=${meeting.id})}"
                                data-loading-overlay>모임 결과 보기</a>
                             <a class="secondary-button secondary-button--compact"
-                               th:if="${!#strings.isEmpty(meeting.meetingPlaceName)}"
-                               th:href="${'https://map.naver.com/p/search/' + #uris.escapePathSegment(meeting.meetingPlaceName)}"
+                               th:if="${!#strings.isEmpty(meeting.naverMapUrl)}"
+                               th:href="${meeting.naverMapUrl}"
                                target="_blank"
                                rel="noreferrer noopener">네이버 지도에서 보기</a>
                         </div>

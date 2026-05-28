@@ -6,9 +6,11 @@ import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.service.IWemeetViewService;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriUtils;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 
@@ -382,7 +384,11 @@ public class WemeetViewService implements IWemeetViewService {
                 meeting.category(),
                 meeting.meetingPlaceName() == null || meeting.meetingPlaceName().isBlank() ? "만날 지점 미정" : meeting.meetingPlaceName(),
                 meeting.meetingPlaceAddress() == null ? "" : meeting.meetingPlaceAddress(),
-                meeting.participantIds().size()
+                meeting.participantIds().size(),
+                meeting.meetingPlaceName() == null || meeting.meetingPlaceName().isBlank()
+                        ? ""
+                        : "https://map.naver.com/p/search/"
+                        + UriUtils.encodePathSegment(meeting.meetingPlaceName().trim(), StandardCharsets.UTF_8)
         );
     }
 

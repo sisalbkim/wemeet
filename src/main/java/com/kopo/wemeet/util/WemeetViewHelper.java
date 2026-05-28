@@ -6,6 +6,7 @@ import com.kopo.wemeet.dto.UserDTO;
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.Model;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,15 +20,18 @@ public class WemeetViewHelper {
     private final IApiAuthService authService;
     private final NaverMapProperties naverMapProperties;
     private final OpenApiProperties openApiProperties;
+    private final boolean forceTransitVisible;
 
     public WemeetViewHelper(
             IApiAuthService authService,
             NaverMapProperties naverMapProperties,
-            OpenApiProperties openApiProperties
+            OpenApiProperties openApiProperties,
+            @Value("${app.ui.force-transit-visible:false}") boolean forceTransitVisible
     ) {
         this.authService = authService;
         this.naverMapProperties = naverMapProperties;
         this.openApiProperties = openApiProperties;
+        this.forceTransitVisible = forceTransitVisible;
     }
 
     public void populateCommon(Model model, String activeTab, boolean guestMode) {
@@ -37,10 +41,15 @@ public class WemeetViewHelper {
         model.addAttribute("naverMapEnabled", naverMapProperties.isEnabled());
         model.addAttribute("naverMapKeyId", naverMapProperties.getKeyId());
         model.addAttribute("tmapTransitEnabled", isTransitEnabled());
+        model.addAttribute("transitOptionVisible", isTransitOptionVisible());
     }
 
     public boolean isTransitEnabled() {
         return openApiProperties.isEnabled() && openApiProperties.isOdsayConfigured();
+    }
+
+    public boolean isTransitOptionVisible() {
+        return forceTransitVisible || isTransitEnabled();
     }
 
     public String normalizeRouteMode(String routeMode) {

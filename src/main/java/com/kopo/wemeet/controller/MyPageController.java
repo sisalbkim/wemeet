@@ -15,6 +15,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import tools.jackson.databind.ObjectMapper;
 
@@ -49,8 +50,14 @@ public class MyPageController {
     @GetMapping("/profile")
     public String profile(Model model, HttpSession session) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
-        List<MeetingDTO.CreatedMeeting> createdMeetings = viewService.getCreatedMeetings(currentUser.getId());
-        List<MeetingDTO.CreatedMeeting> participatingMeetings = viewService.getParticipatingMeetings(currentUser.getId());
+        List<MeetingDTO.CreatedMeeting> createdMeetings = enrichProfileMeetings(
+                viewService.getCreatedMeetings(currentUser.getId()),
+                currentUser.getId()
+        );
+        List<MeetingDTO.CreatedMeeting> participatingMeetings = enrichProfileMeetings(
+                viewService.getParticipatingMeetings(currentUser.getId()),
+                currentUser.getId()
+        );
         viewHelper.populateCommon(model, "profile", false);
         model.addAttribute("profile", viewHelper.toProfile(
                 currentUser,
@@ -127,6 +134,103 @@ public class MyPageController {
         } catch (Exception exception) {
             return null;
         }
+    }
+
+    private List<MeetingDTO.CreatedMeeting> enrichProfileMeetings(List<MeetingDTO.CreatedMeeting> meetings, String viewerUserId) {
+        return meetings.stream()
+                .map(meeting -> store.findMeetingForUser(viewerUserId, meeting.id())
+                        .map(record -> copyMeetingWithNaverMapUrl(meeting, buildMeetingNaverMapUrl(record, viewerUserId)))
+                        .orElse(meeting))
+                .toList();
+    }
+
+    private MeetingDTO.CreatedMeeting copyMeetingWithNaverMapUrl(MeetingDTO.CreatedMeeting meeting, String naverMapUrl) {
+        return new MeetingDTO.CreatedMeeting(
+                meeting.id(),
+                meeting.title(),
+                meeting.description(),
+                meeting.dateLabel(),
+                meeting.timeLabel(),
+                meeting.category(),
+                meeting.meetingPlaceName(),
+                meeting.meetingPlaceAddress(),
+                meeting.participantCount(),
+                naverMapUrl
+        );
+    }
+
+    private String buildMeetingNaverMapUrl(WemeetDataStore.MeetingRecord meeting, String viewerUserId) {
+        if (meeting.meetingPlaceName() == null || meeting.meetingPlaceName().isBlank()) {
+            return "";
+        }
+
+        RecommendationDTO.RecommendationBundle snapshot = deserializeRecommendationSnapshot(meeting);
+        RecommendationDTO.MapPoint originPoint = resolveMeetingOriginPoint(snapshot, viewerUserId);
+        RecommendationDTO.VenueOption destinationVenue = resolveMeetingDestinationVenue(snapshot, meeting);
+        if (originPoint == null || destinationVenue == null) {
+            return "https://map.naver.com/p/search/" + org.springframework.web.util.UriUtils.encodePathSegment(
+                    meeting.meetingPlaceName().trim(),
+                    java.nio.charset.StandardCharsets.UTF_8
+            );
+        }
+
+        return UriComponentsBuilder.fromUriString("https://map.naver.com/index.nhn")
+                .queryParam("menu", "route")
+                .queryParam("slng", originPoint.longitude())
+                .queryParam("slat", originPoint.latitude())
+                .queryParam("stext", firstNonBlank(originPoint.address(), originPoint.label(), "출발지"))
+                .queryParam("elng", destinationVenue.longitude())
+                .queryParam("elat", destinationVenue.latitude())
+                .queryParam("etext", destinationVenue.name())
+                .build()
+                .toUriString();
+    }
+
+    private RecommendationDTO.MapPoint resolveMeetingOriginPoint(
+            RecommendationDTO.RecommendationBundle snapshot,
+            String viewerUserId
+    ) {
+        if (snapshot == null) {
+            return null;
+        }
+
+        return snapshot.mapPoints().stream()
+                .filter(point -> viewerUserId.equals(point.id()))
+                .findFirst()
+                .or(() -> snapshot.mapPoints().stream()
+                        .filter(point -> "participant".equals(point.markerType()) || "anchor".equals(point.markerType()))
+                        .findFirst())
+                .orElse(null);
+    }
+
+    private RecommendationDTO.VenueOption resolveMeetingDestinationVenue(
+            RecommendationDTO.RecommendationBundle snapshot,
+            WemeetDataStore.MeetingRecord meeting
+    ) {
+        if (snapshot == null) {
+            return null;
+        }
+
+        return snapshot.venues().stream()
+                .filter(venue -> venue.name() != null && venue.name().equals(meeting.meetingPlaceName()))
+                .filter(venue -> meeting.meetingPlaceAddress() == null
+                        || meeting.meetingPlaceAddress().isBlank()
+                        || meeting.meetingPlaceAddress().equals(venue.description()))
+                .findFirst()
+                .or(() -> snapshot.venues().stream()
+                        .filter(venue -> venue.name() != null && venue.name().equals(meeting.meetingPlaceName()))
+                        .findFirst())
+                .or(() -> snapshot.venues().stream().findFirst())
+                .orElse(null);
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return "";
     }
 
     @PostMapping("/profile/meetings/delete")
