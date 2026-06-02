@@ -1,5 +1,8 @@
 package com.kopo.wemeet.dto;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 public final class MeetingDTO {
@@ -31,6 +34,25 @@ public final class MeetingDTO {
             String meetingPlaceAddress,
             UserDTO.UserResponse host,
             List<UserDTO.UserResponse> participants
+    ) {
+    }
+
+    public record MeetingRecord(
+            String id,
+            String title,
+            String description,
+            LocalDate meetingDate,
+            LocalTime meetingTime,
+            String category,
+            String meetingPlaceName,
+            String meetingPlaceAddress,
+            String recommendationMode,
+            String anchorParticipantId,
+            String recommendationSnapshotJson,
+            LocalDateTime recommendationSnapshotExpiresAt,
+            String hostUserId,
+            List<String> participantIds,
+            LocalDateTime createdAt
     ) {
     }
 

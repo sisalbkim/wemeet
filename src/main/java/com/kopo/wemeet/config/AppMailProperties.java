@@ -7,7 +7,7 @@ public class AppMailProperties {
     // SMTP 메일 발송 사용 여부와 발신자 표기를 application.properties에서 바인딩한다.
 
     private boolean enabled = false;
-    private boolean previewFallbackEnabled = true;
+    private boolean previewFallbackEnabled = false;
     private String fromAddress = "";
     private String fromName = "WeMeet";
     private String signupVerificationSubject = "[WeMeet] 이메일 인증코드 안내";

@@ -3,9 +3,9 @@ package com.kopo.wemeet.controller;
 import com.kopo.wemeet.util.WemeetViewHelper;
 
 import com.kopo.wemeet.dto.*;
-import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
+import com.kopo.wemeet.service.IFriendService;
 import com.kopo.wemeet.service.IWemeetViewService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
@@ -30,18 +30,18 @@ public class FriendController {
 
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;
-    private final WemeetDataStore store;
+    private final IFriendService friendService;
     private final WemeetViewHelper viewHelper;
 
     public FriendController(
             IWemeetViewService viewService,
             IApiAuthService authService,
-            WemeetDataStore store,
+            IFriendService friendService,
             WemeetViewHelper viewHelper
     ) {
         this.viewService = viewService;
         this.authService = authService;
-        this.store = store;
+        this.friendService = friendService;
         this.viewHelper = viewHelper;
     }
 
@@ -127,7 +127,7 @@ public class FriendController {
     @GetMapping("/api/friends")
     public List<UserDTO.UserResponse> apiFriends(@RequestHeader("Authorization") String authorization) {
         AppUser requester = authService.requireUser(authorization);
-        return store.listFriends(requester.getId()).stream().map(authService::toUserResponse).toList();
+        return friendService.listFriends(requester.getId()).stream().map(authService::toUserResponse).toList();
     }
 
     @ResponseBody
@@ -137,7 +137,7 @@ public class FriendController {
             @RequestBody FriendDTO.FriendAddRequest request
     ) {
         AppUser requester = authService.requireUser(authorization);
-        return authService.toUserResponse(store.addFriendByCode(requester.getId(), request.friendCode()));
+        return authService.toUserResponse(friendService.addFriendByCode(requester.getId(), request.friendCode()));
     }
 
     private void populateFriendsModel(

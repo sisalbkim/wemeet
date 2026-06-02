@@ -112,8 +112,17 @@ public class ApiAuthService implements IApiAuthService {
     }
 
     @Override
+    public AuthDTO.AuthResponse createSessionForUser(String userId) {
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "user not found"));
+
+        String token = createSession(user.getId());
+        return new AuthDTO.AuthResponse(token, toUserResponse(user));
+    }
+
+    @Override
     public AuthDTO.PasswordResetResponse createPasswordResetToken(AuthDTO.PasswordResetRequest request) {
-        // 실제 메일 발송 전 단계라서 화면 시연용으로 raw token을 preview 형태로 함께 돌려준다.
+        // 비밀번호 재설정은 토큰 저장 후 메일 또는 명시적 dev preview 경로로만 전달한다.
         if (request.email() == null || request.email().isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "email is required");
         }
@@ -132,9 +141,14 @@ public class ApiAuthService implements IApiAuthService {
         );
         passwordResetTokenRepository.save(token);
 
+        MailSendResult mailSendResult = mailDeliveryService.sendPasswordResetToken(user.getEmail(), rawToken);
+        if (!mailSendResult.sent()) {
+            throw new ResponseStatusException(SERVICE_UNAVAILABLE, mailSendResult.message());
+        }
+
         return new AuthDTO.PasswordResetResponse(
-                "비밀번호 재설정 토큰이 생성되었습니다. preview  값을 같이 반환합니다.",
-                rawToken
+                mailSendResult.message(),
+                mailSendResult.previewCode()
         );
     }
 
@@ -317,7 +331,7 @@ public class ApiAuthService implements IApiAuthService {
     }
 
     @Override
-    public UserDTO.UserResponse toUserResponse(WemeetDataStore.UserAccount user) {
+    public UserDTO.UserResponse toUserResponse(UserDTO.UserAccount user) {
         AppUser persistentUser = userRepository.findById(user.id())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found: " + user.id()));
         return new UserDTO.UserResponse(
@@ -380,3 +394,4 @@ public class ApiAuthService implements IApiAuthService {
         }
     }
 }
+

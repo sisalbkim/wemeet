@@ -3,9 +3,9 @@ package com.kopo.wemeet.controller;
 import com.kopo.wemeet.util.WemeetViewHelper;
 
 import com.kopo.wemeet.dto.HistoryDTO;
-import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
+import com.kopo.wemeet.service.IHistoryService;
 import com.kopo.wemeet.service.IWemeetViewService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
@@ -25,18 +25,18 @@ public class HistoryController {
 
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;
-    private final WemeetDataStore store;
+    private final IHistoryService historyService;
     private final WemeetViewHelper viewHelper;
 
     public HistoryController(
             IWemeetViewService viewService,
             IApiAuthService authService,
-            WemeetDataStore store,
+            IHistoryService historyService,
             WemeetViewHelper viewHelper
     ) {
         this.viewService = viewService;
         this.authService = authService;
-        this.store = store;
+        this.historyService = historyService;
         this.viewHelper = viewHelper;
     }
 
@@ -89,7 +89,7 @@ public class HistoryController {
     @GetMapping("/api/history")
     public List<HistoryDTO.SearchHistoryResponse> apiHistory(@RequestHeader("Authorization") String authorization) {
         AppUser requester = authService.requireUser(authorization);
-        return store.listHistory(requester.getId()).stream()
+        return historyService.listHistory(requester.getId()).stream()
                 .map(entry -> new HistoryDTO.SearchHistoryResponse(
                         entry.query(),
                         entry.category(),

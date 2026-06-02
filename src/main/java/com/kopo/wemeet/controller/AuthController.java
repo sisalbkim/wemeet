@@ -7,7 +7,9 @@ import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IWemeetViewService;
 import com.kopo.wemeet.service.impl.MailDeliveryService;
+import com.kopo.wemeet.service.impl.RememberMeJwtService;
 import com.kopo.wemeet.util.CmmUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -28,17 +30,20 @@ public class AuthController {
     private final IApiAuthService authService;
     private final WemeetViewHelper viewHelper;
     private final MailDeliveryService mailDeliveryService;
+    private final RememberMeJwtService rememberMeJwtService;
 
     public AuthController(
             IWemeetViewService viewService,
             IApiAuthService authService,
             WemeetViewHelper viewHelper,
-            MailDeliveryService mailDeliveryService
+            MailDeliveryService mailDeliveryService,
+            RememberMeJwtService rememberMeJwtService
     ) {
         this.viewService = viewService;
         this.authService = authService;
         this.viewHelper = viewHelper;
         this.mailDeliveryService = mailDeliveryService;
+        this.rememberMeJwtService = rememberMeJwtService;
     }
 
     @GetMapping({"/login", "/user/login"})
@@ -142,13 +147,20 @@ public class AuthController {
             @RequestParam(name = "userId", defaultValue = "") String userId,
             @RequestParam(name = "loginId", defaultValue = "") String legacyLoginId,
             @RequestParam(defaultValue = "") String password,
-            HttpSession session
+            @RequestParam(defaultValue = "false") boolean rememberMe,
+            HttpSession session,
+            HttpServletResponse response
     ) {
         String normalizedUserId = resolveUserIdInput(userId, legacyLoginId);
         AuthDTO.AuthResponse loginResult = authService.login(new AuthDTO.LoginRequest(normalizedUserId, password));
         session.setAttribute("AUTH_TOKEN", loginResult.token());
         session.setAttribute("USER_ID", loginResult.user().id());
         session.setAttribute("USER_NICKNAME", loginResult.user().nickname());
+        if (rememberMe) {
+            rememberMeJwtService.writeRememberMeCookie(response, loginResult.user().id());
+        } else {
+            rememberMeJwtService.clearRememberMeCookie(response);
+        }
         return "redirect:/";
     }
 
@@ -207,7 +219,8 @@ public class AuthController {
     }
 
     @GetMapping({"/logout", "/user/logout"})
-    public String logout(HttpSession session) {
+    public String logout(HttpSession session, HttpServletResponse response) {
+        rememberMeJwtService.clearRememberMeCookie(response);
         session.invalidate();
         return "redirect:/";
     }

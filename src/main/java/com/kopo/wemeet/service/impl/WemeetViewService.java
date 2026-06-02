@@ -4,6 +4,9 @@ import com.kopo.wemeet.dto.*;
 
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.repository.WemeetDataStore;
+import com.kopo.wemeet.service.IFriendService;
+import com.kopo.wemeet.service.IHistoryService;
+import com.kopo.wemeet.service.IMeetingService;
 import com.kopo.wemeet.service.IWemeetViewService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriUtils;
@@ -22,6 +25,10 @@ public class WemeetViewService implements IWemeetViewService {
     private final ApiRecommendationService recommendationService;
     private final ApiAuthService authService;
     private final WemeetDataStore store;
+    private final IFriendService friendService;
+    private final IHistoryService historyService;
+    private final IMeetingService meetingService;
+    private final RecommendationBundleMapper recommendationBundleMapper;
     private final DateTimeFormatter historyFormatter = DateTimeFormatter.ofPattern("yyyy. M. d.");
 
     private final List<RecommendationDTO.CategoryChip> categories = List.of(
@@ -37,11 +44,19 @@ public class WemeetViewService implements IWemeetViewService {
     public WemeetViewService(
             ApiRecommendationService recommendationService,
             ApiAuthService authService,
-            WemeetDataStore store
+            WemeetDataStore store,
+            IFriendService friendService,
+            IHistoryService historyService,
+            IMeetingService meetingService,
+            RecommendationBundleMapper recommendationBundleMapper
     ) {
         this.recommendationService = recommendationService;
         this.authService = authService;
         this.store = store;
+        this.friendService = friendService;
+        this.historyService = historyService;
+        this.meetingService = meetingService;
+        this.recommendationBundleMapper = recommendationBundleMapper;
     }
 
     @Override
@@ -89,7 +104,7 @@ public class WemeetViewService implements IWemeetViewService {
     public List<FriendDTO.FriendSummary> getFriends(String userId, String keyword) {
         String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
         // 저장소 데이터를 화면에서 바로 쓰기 쉽게 FriendDTO.FriendSummary 형태로 변환한다.
-        return store.listFriends(userId).stream()
+        return friendService.listFriends(userId).stream()
                 .map(friend -> new FriendDTO.FriendSummary(
                         friend.id(),
                         friend.nickname(),
@@ -106,14 +121,14 @@ public class WemeetViewService implements IWemeetViewService {
 
     @Override
     public List<FriendDTO.FriendRequest> getFriendRequests(String userId) {
-        return store.listIncomingFriendRequests(userId).stream()
+        return friendService.listIncomingFriendRequests(userId).stream()
                 .map(this::toFriendRequest)
                 .toList();
     }
 
     @Override
     public List<FriendDTO.FriendRequest> getSentFriendRequests(String userId) {
-        return store.listOutgoingFriendRequests(userId).stream()
+        return friendService.listOutgoingFriendRequests(userId).stream()
                 .map(this::toFriendRequest)
                 .toList();
     }
@@ -122,10 +137,10 @@ public class WemeetViewService implements IWemeetViewService {
     public List<MeetingDTO.UpcomingMeeting> getUpcomingMeetings(String userId) {
         // 홈 화면에는 현재 사용자가 참여하는 오늘 이후 모임만 날짜순으로 보여준다.
         LocalDate today = LocalDate.now();
-        return store.listMeetingsForUser(userId).stream()
+        return meetingService.listMeetingsForUser(userId).stream()
                 .filter(meeting -> meeting.meetingDate() != null && !meeting.meetingDate().isBefore(today))
                 .sorted(java.util.Comparator
-                        .comparing(WemeetDataStore.MeetingRecord::meetingDate)
+                        .comparing(MeetingDTO.MeetingRecord::meetingDate)
                         .thenComparing(meeting -> meeting.meetingTime() == null ? java.time.LocalTime.MAX : meeting.meetingTime()))
                 .limit(5)
                 .map(this::toUpcomingMeeting)
@@ -134,14 +149,14 @@ public class WemeetViewService implements IWemeetViewService {
 
     @Override
     public List<MeetingDTO.CreatedMeeting> getCreatedMeetings(String userId) {
-        return store.listMeetingsCreatedByUser(userId).stream()
+        return meetingService.listMeetingsCreatedByUser(userId).stream()
                 .map(this::toCreatedMeeting)
                 .toList();
     }
 
     @Override
     public List<MeetingDTO.CreatedMeeting> getParticipatingMeetings(String userId) {
-        return store.listMeetingsForUser(userId).stream()
+        return meetingService.listMeetingsForUser(userId).stream()
                 .filter(meeting -> !userId.equals(meeting.hostUserId()))
                 .map(this::toCreatedMeeting)
                 .toList();
@@ -150,17 +165,17 @@ public class WemeetViewService implements IWemeetViewService {
     @Override
     public UserDTO.UserResponse addFriendByCode(String userId, String friendCode) {
         // 친구 코드를 입력하면 즉시 친구가 되지 않고 상대에게 승인 요청을 보낸다.
-        return authService.toUserResponse(store.addFriendByCode(userId, friendCode));
+        return authService.toUserResponse(friendService.addFriendByCode(userId, friendCode));
     }
 
     @Override
     public void updateFriendFavorite(String userId, String friendId, boolean favorite) {
-        store.updateFriendFavorite(userId, friendId, favorite);
+        friendService.updateFriendFavorite(userId, friendId, favorite);
     }
 
     @Override
     public UserDTO.UserResponse respondFriendRequest(String userId, String requesterId, boolean approve) {
-        return authService.toUserResponse(store.respondFriendRequest(userId, requesterId, approve));
+        return authService.toUserResponse(friendService.respondFriendRequest(userId, requesterId, approve));
     }
 
     @Override
@@ -169,7 +184,7 @@ public class WemeetViewService implements IWemeetViewService {
         String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
 
         // 히스토리 화면은 사용자별 저장값을 필터링해서 바로 출력한다.
-        return store.listHistory(userId).stream()
+        return historyService.listHistory(userId).stream()
                 .map(item -> new HistoryDTO.SearchHistoryItem(
                         item.id(),
                         item.query(),
@@ -183,12 +198,12 @@ public class WemeetViewService implements IWemeetViewService {
 
     @Override
     public void clearSearchHistory(String userId) {
-        store.clearHistory(userId);
+        historyService.clearHistory(userId);
     }
 
     @Override
     public void removeSearchHistory(String userId, Long historyId) {
-        store.removeHistory(userId, historyId);
+        historyService.removeHistory(userId, historyId);
     }
 
     @Override
@@ -207,69 +222,7 @@ public class WemeetViewService implements IWemeetViewService {
                 authService
         );
 
-        List<FriendDTO.FriendSummary> participants = response.participants().stream()
-                .map(participant -> new FriendDTO.FriendSummary(
-                        participant.id(),
-                        participant.nickname(),
-                        "@" + participant.friendCode(),
-                        participant.baseAddress(),
-                        "활성 사용자",
-                        false
-                ))
-                .toList();
-
-        List<RecommendationDTO.VenueOption> venues = response.venues().stream()
-                .map(venue -> new RecommendationDTO.VenueOption(
-                        venue.name(),
-                        venue.category(),
-                        venue.area(),
-                        venue.latitude(),
-                        venue.longitude(),
-                        venue.description(),
-                        venue.telephone(),
-                        venue.link(),
-                        venue.reason(),
-                        venue.fairnessGap(),
-                        venue.averageMinutes(),
-                        venue.highlights(),
-                        venue.travelTimes().stream()
-                                .map(time -> new RecommendationDTO.TravelTime(
-                                        time.participantId(),
-                                        time.participantName(),
-                                        time.minutes(),
-                                        time.routePath(),
-                                        time.routeModes()
-                                ))
-                                .toList()
-                ))
-                .toList();
-
-        return new RecommendationDTO.RecommendationBundle(
-                response.category(),
-                participants,
-                new RecommendationDTO.MidpointSummary(
-                        response.midpoint().district(),
-                        response.midpoint().station(),
-                        response.midpoint().latitude(),
-                        response.midpoint().longitude(),
-                        response.midpoint().averageMinutes(),
-                        response.midpoint().fairnessGap(),
-                        response.midpoint().note()
-                ),
-                venues,
-                response.mapPoints().stream()
-                        .map(point -> new RecommendationDTO.MapPoint(
-                                point.id(),
-                                point.label(),
-                                point.address(),
-                                point.latitude(),
-                                point.longitude(),
-                                point.markerType(),
-                                point.selected()
-                        ))
-                        .toList(),
-                response.calculationMode()
-        );
+        return recommendationBundleMapper.toBundle(response, "활성 사용자");
     }
 
     @Override
@@ -295,65 +248,7 @@ public class WemeetViewService implements IWemeetViewService {
                 new RecommendationDTO.RecommendationRequest(normalizeCategory(category), List.of(), mode, anchorId, routeMode)
         );
 
-        return new RecommendationDTO.RecommendationBundle(
-                response.category(),
-                response.participants().stream()
-                        .map(participant -> new FriendDTO.FriendSummary(
-                                participant.id(),
-                                participant.nickname(),
-                                "@" + participant.friendCode(),
-                                participant.baseAddress(),
-                                "게스트",
-                                false
-                        ))
-                        .toList(),
-                new RecommendationDTO.MidpointSummary(
-                        response.midpoint().district(),
-                        response.midpoint().station(),
-                        response.midpoint().latitude(),
-                        response.midpoint().longitude(),
-                        response.midpoint().averageMinutes(),
-                        response.midpoint().fairnessGap(),
-                        response.midpoint().note()
-                ),
-                response.venues().stream()
-                        .map(venue -> new RecommendationDTO.VenueOption(
-                                venue.name(),
-                                venue.category(),
-                                venue.area(),
-                                venue.latitude(),
-                                venue.longitude(),
-                                venue.description(),
-                                venue.telephone(),
-                                venue.link(),
-                                venue.reason(),
-                                venue.fairnessGap(),
-                                venue.averageMinutes(),
-                                venue.highlights(),
-                                venue.travelTimes().stream()
-                                        .map(time -> new RecommendationDTO.TravelTime(
-                                                time.participantId(),
-                                                time.participantName(),
-                                                time.minutes(),
-                                                time.routePath(),
-                                                time.routeModes()
-                                        ))
-                                        .toList()
-                        ))
-                        .toList(),
-                response.mapPoints().stream()
-                        .map(point -> new RecommendationDTO.MapPoint(
-                                point.id(),
-                                point.label(),
-                                point.address(),
-                                point.latitude(),
-                                point.longitude(),
-                                point.markerType(),
-                                point.selected()
-                        ))
-                        .toList(),
-                response.calculationMode()
-        );
+        return recommendationBundleMapper.toBundle(response, "게스트");
     }
 
     private String normalizeCategory(String category) {
@@ -364,7 +259,7 @@ public class WemeetViewService implements IWemeetViewService {
         return category;
     }
 
-    private FriendDTO.FriendRequest toFriendRequest(WemeetDataStore.FriendRequestEntry request) {
+    private FriendDTO.FriendRequest toFriendRequest(FriendDTO.FriendRequestEntry request) {
         return new FriendDTO.FriendRequest(
                 request.id(),
                 request.nickname(),
@@ -374,7 +269,7 @@ public class WemeetViewService implements IWemeetViewService {
         );
     }
 
-    private MeetingDTO.CreatedMeeting toCreatedMeeting(WemeetDataStore.MeetingRecord meeting) {
+    private MeetingDTO.CreatedMeeting toCreatedMeeting(MeetingDTO.MeetingRecord meeting) {
         return new MeetingDTO.CreatedMeeting(
                 meeting.id(),
                 meeting.title(),
@@ -392,9 +287,9 @@ public class WemeetViewService implements IWemeetViewService {
         );
     }
 
-    private MeetingDTO.UpcomingMeeting toUpcomingMeeting(WemeetDataStore.MeetingRecord meeting) {
+    private MeetingDTO.UpcomingMeeting toUpcomingMeeting(MeetingDTO.MeetingRecord meeting) {
         String hostName = store.findById(meeting.hostUserId())
-                .map(WemeetDataStore.UserAccount::nickname)
+                .map(UserDTO.UserAccount::nickname)
                 .orElse("알 수 없음");
         boolean isToday = LocalDate.now().equals(meeting.meetingDate());
         return new MeetingDTO.UpcomingMeeting(
@@ -407,3 +302,4 @@ public class WemeetViewService implements IWemeetViewService {
         );
     }
 }
+

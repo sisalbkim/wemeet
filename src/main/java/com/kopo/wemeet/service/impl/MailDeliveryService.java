@@ -91,12 +91,43 @@ public class MailDeliveryService {
         }
     }
 
-    private MailSendResult previewFallback(String email, String code, String message) {
-        if (!mailProperties.isPreviewFallbackEnabled()) {
-            return new MailSendResult(false, "메일 설정이 없어 인증코드를 발송할 수 없습니다.", null);
+    public MailSendResult sendPasswordResetToken(String email, String token) {
+        if (!mailProperties.isEnabled()) {
+            return previewFallback(email, token, "메일 설정이 없어 비밀번호 재설정 토큰을 함께 반환합니다.");
         }
 
-        log.info("Mail preview fallback for signup verification. email={}, code={}", email, code);
+        JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
+        if (mailSender == null) {
+            return new MailSendResult(false, "메일 발송기가 등록되지 않았습니다. SMTP 설정을 확인해주세요.", null);
+        }
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            if (mailProperties.getFromAddress() != null && !mailProperties.getFromAddress().isBlank()) {
+                helper.setFrom(new InternetAddress(
+                        mailProperties.getFromAddress().trim(),
+                        mailProperties.getFromName(),
+                        StandardCharsets.UTF_8.name()
+                ));
+            }
+            helper.setTo(email);
+            message.setSubject("[WeMeet] 비밀번호 재설정 안내", StandardCharsets.UTF_8.name());
+            helper.setText(buildPasswordResetBody(token), false);
+            mailSender.send(message);
+            return new MailSendResult(true, "비밀번호 재설정 안내를 이메일로 전송했습니다.", null);
+        } catch (Exception exception) {
+            log.error("Failed to send password reset email to {}", email, exception);
+            return new MailSendResult(false, "비밀번호 재설정 메일 전송에 실패했습니다. SMTP 설정을 확인해주세요.", null);
+        }
+    }
+
+    private MailSendResult previewFallback(String email, String code, String message) {
+        if (!mailProperties.isPreviewFallbackEnabled()) {
+            return new MailSendResult(false, "메일 설정이 없어 메일을 발송할 수 없습니다.", null);
+        }
+
+        log.info("Mail preview fallback enabled for {}", email);
         return new MailSendResult(true, message, code);
     }
 
@@ -119,6 +150,16 @@ public class MailDeliveryService {
 
                 로그인 후 바로 비밀번호를 변경해 주세요.
                 """.formatted(loginId, temporaryPassword);
+    }
+
+    private String buildPasswordResetBody(String token) {
+        return """
+                WeMeet 비밀번호 재설정 토큰입니다.
+
+                재설정 토큰: %s
+
+                비밀번호 재설정 화면에서 토큰과 새 비밀번호를 입력해 주세요.
+                """.formatted(token);
     }
 
     public record MailSendResult(

@@ -1,5 +1,7 @@
 package com.kopo.wemeet.dto;
 
+import java.time.LocalDate;
+
 public final class UserDTO {
     // 사용자 프로필과 API 응답에 쓰는 DTO 모음이다.
 
@@ -31,6 +33,18 @@ public final class UserDTO {
             int createdMeetings,
             int friendCount,
             int joinedMeetings
+    ) {
+    }
+
+    public record UserAccount(
+            String id,
+            String nickname,
+            String loginId,
+            String password,
+            String friendCode,
+            String baseAddress,
+            LocalDate joinedOn,
+            boolean favorite
     ) {
     }
 }

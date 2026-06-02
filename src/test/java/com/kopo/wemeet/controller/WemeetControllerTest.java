@@ -4,6 +4,9 @@ import com.kopo.wemeet.dto.*;
 
 import com.kopo.wemeet.repository.AppUserRepository;
 import com.kopo.wemeet.repository.WemeetDataStore;
+import jakarta.servlet.http.Cookie;
+import com.kopo.wemeet.service.IFriendService;
+import com.kopo.wemeet.service.IMeetingService;
 import com.kopo.wemeet.service.impl.NaverPlaceSearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +32,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -55,6 +59,12 @@ class WemeetControllerTest {
     @Autowired
     private WemeetDataStore store;
 
+    @Autowired
+    private IMeetingService meetingService;
+
+    @Autowired
+    private IFriendService friendService;
+
     @MockitoBean
     private NaverPlaceSearchService naverPlaceSearchService;
 
@@ -72,6 +82,7 @@ class WemeetControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("로그인")))
                 .andExpect(content().string(containsString("아이디")))
+                .andExpect(content().string(containsString("자동로그인")))
                 .andExpect(content().string(containsString("/find-password")));
     }
 
@@ -257,11 +268,67 @@ class WemeetControllerTest {
     }
 
     @Test
+    void loginWithRememberMeSetsRememberMeCookie() throws Exception {
+        mockMvc.perform(post("/signup")
+                        .session(verifiedSignupSession("rememberuser01@wemeet.local"))
+                        .param("nickname", "리멤버테스터")
+                        .param("loginId", "rememberuser01")
+                        .param("email", "rememberuser01@wemeet.local")
+                        .param("password", "pass1234")
+                        .param("confirmPassword", "pass1234")
+                        .param("baseAddress", "서울특별시 중구"))
+                .andExpect(status().is3xxRedirection());
+
+        MvcResult loginResult = mockMvc.perform(post("/login")
+                        .param("loginId", "rememberuser01")
+                        .param("password", "pass1234")
+                        .param("rememberMe", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"))
+                .andReturn();
+
+        Cookie rememberMeCookie = loginResult.getResponse().getCookie("WM_REMEMBER_ME");
+        assertNotNull(rememberMeCookie);
+        assertTrue(rememberMeCookie.isHttpOnly());
+        assertEquals("/", rememberMeCookie.getPath());
+        assertTrue(rememberMeCookie.getMaxAge() > 0);
+    }
+
+    @Test
+    void rememberMeCookieRestoresLoginWithoutExistingSession() throws Exception {
+        mockMvc.perform(post("/signup")
+                        .session(verifiedSignupSession("rememberrestore01@wemeet.local"))
+                        .param("nickname", "자동로그인테스터")
+                        .param("loginId", "rememberrestore01")
+                        .param("email", "rememberrestore01@wemeet.local")
+                        .param("password", "pass1234")
+                        .param("confirmPassword", "pass1234")
+                        .param("baseAddress", "서울특별시 중구"))
+                .andExpect(status().is3xxRedirection());
+
+        MvcResult loginResult = mockMvc.perform(post("/login")
+                        .param("loginId", "rememberrestore01")
+                        .param("password", "pass1234")
+                        .param("rememberMe", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"))
+                .andReturn();
+
+        Cookie rememberMeCookie = loginResult.getResponse().getCookie("WM_REMEMBER_ME");
+        assertNotNull(rememberMeCookie);
+
+        mockMvc.perform(get("/").cookie(rememberMeCookie))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("안녕하세요")))
+                .andExpect(content().string(containsString("자동로그인테스터")));
+    }
+
+    @Test
     void homePageShowsActualUpcomingMeetingsForCurrentUser() throws Exception {
         MockHttpSession session = signupAndLogin("homeagenda01", "homeagenda01@wemeet.local");
         String userId = userRepository.findByLoginId("homeagenda01").orElseThrow().getId();
 
-        store.createMeeting(
+        meetingService.createMeeting(
                 userId,
                 "홈에 보이는 실제 모임",
                 "샘플이 아니라 저장된 모임이어야 합니다",
@@ -318,7 +385,7 @@ class WemeetControllerTest {
         MockHttpSession session = signupAndLogin("profilemeeting01", "profilemeeting01@wemeet.local");
         String userId = userRepository.findByLoginId("profilemeeting01").orElseThrow().getId();
 
-        store.createMeeting(
+        meetingService.createMeeting(
                 userId,
                 "프로필에서 보이는 모임",
                 "내가 만든 모임 설명",
@@ -349,7 +416,7 @@ class WemeetControllerTest {
         String userId = userRepository.findByLoginId("profilejoined01").orElseThrow().getId();
         String hostId = userRepository.findByLoginId("user456").orElseThrow().getId();
 
-        store.createMeeting(
+        meetingService.createMeeting(
                 hostId,
                 "친구가 만든 참여 모임",
                 "내가 참여자로 들어간 모임 설명",
@@ -402,6 +469,42 @@ class WemeetControllerTest {
         mockMvc.perform(get("/profile").session(session))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    void logoutClearsRememberMeCookie() throws Exception {
+        mockMvc.perform(post("/signup")
+                        .session(verifiedSignupSession("logoutremember01@wemeet.local"))
+                        .param("nickname", "로그아웃쿠키테스터")
+                        .param("loginId", "logoutremember01")
+                        .param("email", "logoutremember01@wemeet.local")
+                        .param("password", "pass1234")
+                        .param("confirmPassword", "pass1234")
+                        .param("baseAddress", "서울특별시 중구"))
+                .andExpect(status().is3xxRedirection());
+
+        MvcResult loginResult = mockMvc.perform(post("/login")
+                        .param("loginId", "logoutremember01")
+                        .param("password", "pass1234")
+                        .param("rememberMe", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"))
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
+        Cookie rememberMeCookie = loginResult.getResponse().getCookie("WM_REMEMBER_ME");
+        assertNotNull(rememberMeCookie);
+
+        MvcResult logoutResult = mockMvc.perform(get("/logout")
+                        .session(session)
+                        .cookie(rememberMeCookie))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"))
+                .andReturn();
+
+        Cookie clearedCookie = logoutResult.getResponse().getCookie("WM_REMEMBER_ME");
+        assertNotNull(clearedCookie);
+        assertEquals(0, clearedCookie.getMaxAge());
     }
 
     @Test
@@ -661,7 +764,7 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/profile"));
 
-        assertTrue(store.listMeetingsForUser(friendId).stream()
+        assertTrue(meetingService.listMeetingsForUser(friendId).stream()
                 .anyMatch(meeting -> "참여자에게 추가되는 모임".equals(meeting.title())
                         && "명륜진사갈비 서울후암점".equals(meeting.meetingPlaceName())));
     }
@@ -744,7 +847,7 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/profile"));
 
-        WemeetDataStore.MeetingRecord savedMeeting = store.listMeetingsCreatedByUser(userId).stream()
+        MeetingDTO.MeetingRecord savedMeeting = meetingService.listMeetingsCreatedByUser(userId).stream()
                 .filter(meeting -> "스냅샷 저장 모임".equals(meeting.title()))
                 .findFirst()
                 .orElseThrow();
@@ -757,7 +860,7 @@ class WemeetControllerTest {
     void profileCanDeleteCreatedMeeting() throws Exception {
         MockHttpSession session = signupAndLogin("meetingdelete01", "meetingdelete01@wemeet.local");
         String userId = userRepository.findByLoginId("meetingdelete01").orElseThrow().getId();
-        String meetingId = store.createMeeting(
+        String meetingId = meetingService.createMeeting(
                 userId,
                 "삭제될 모임",
                 "삭제 테스트",
@@ -802,7 +905,7 @@ class WemeetControllerTest {
 
         addFriend(session, "accountdelete01", "FRIEND456");
 
-        store.createMeeting(
+        meetingService.createMeeting(
                 deletedUserId,
                 "탈퇴와 함께 지워질 모임",
                 "호스트 탈퇴 시 삭제되어야 합니다",
@@ -814,7 +917,7 @@ class WemeetControllerTest {
                 List.of(otherUserId)
         );
 
-        String survivingMeetingId = store.createMeeting(
+        String survivingMeetingId = meetingService.createMeeting(
                 otherUserId,
                 "호스트는 남는 모임",
                 "참여자만 탈퇴합니다",
@@ -836,9 +939,9 @@ class WemeetControllerTest {
                 .andExpect(content().string(containsString("회원탈퇴가 완료되었습니다.")));
 
         assertTrue(userRepository.findByLoginId("accountdelete01").isEmpty());
-        assertTrue(store.listMeetingsCreatedByUser(deletedUserId).isEmpty());
-        assertTrue(store.listFriends(otherUserId).stream().noneMatch(friend -> friend.id().equals(deletedUserId)));
-        assertFalse(store.findMeetingCreatedByUser(otherUserId, survivingMeetingId).orElseThrow().participantIds().contains(deletedUserId));
+        assertTrue(meetingService.listMeetingsCreatedByUser(deletedUserId).isEmpty());
+        assertTrue(friendService.listFriends(otherUserId).stream().noneMatch(friend -> friend.id().equals(deletedUserId)));
+        assertFalse(meetingService.findMeetingCreatedByUser(otherUserId, survivingMeetingId).orElseThrow().participantIds().contains(deletedUserId));
     }
 
     @Test
@@ -847,7 +950,7 @@ class WemeetControllerTest {
         addFriend(session, "meetingresults01", "FRIEND456");
         String userId = userRepository.findByLoginId("meetingresults01").orElseThrow().getId();
         String friendId = userRepository.findByLoginId("user456").orElseThrow().getId();
-        String meetingId = store.createMeeting(
+        String meetingId = meetingService.createMeeting(
                 userId,
                 "결과 다시 보기 모임",
                 "추천 결과로 다시 이동",
@@ -912,7 +1015,7 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/profile"));
 
-        String meetingId = store.listMeetingsCreatedByUser(userId).stream()
+        String meetingId = meetingService.listMeetingsCreatedByUser(userId).stream()
                 .filter(meeting -> "저장 결과 확인 모임".equals(meeting.title()))
                 .findFirst()
                 .orElseThrow()
@@ -990,7 +1093,7 @@ class WemeetControllerTest {
         MockHttpSession session = signupAndLogin("participantresults01", "participantresults01@wemeet.local");
         String participantUserId = userRepository.findByLoginId("participantresults01").orElseThrow().getId();
         String hostUserId = userRepository.findByLoginId("user456").orElseThrow().getId();
-        String meetingId = store.createMeeting(
+        String meetingId = meetingService.createMeeting(
                 hostUserId,
                 "참여자 결과 보기 모임",
                 "참여자도 결과를 열 수 있어야 함",
@@ -1126,3 +1229,4 @@ class WemeetControllerTest {
         );
     }
 }
+

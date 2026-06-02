@@ -5,9 +5,9 @@ import com.kopo.wemeet.util.WemeetViewHelper;
 import com.kopo.wemeet.dto.MeetingDTO;
 import com.kopo.wemeet.dto.RecommendationDTO;
 import com.kopo.wemeet.dto.RecommendationMode;
-import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
+import com.kopo.wemeet.service.IMeetingService;
 import com.kopo.wemeet.service.IWemeetViewService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
@@ -30,20 +30,20 @@ public class MyPageController {
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;
     private final WemeetViewHelper viewHelper;
-    private final WemeetDataStore store;
+    private final IMeetingService meetingService;
     private final ObjectMapper objectMapper;
 
     public MyPageController(
             IWemeetViewService viewService,
             IApiAuthService authService,
             WemeetViewHelper viewHelper,
-            WemeetDataStore store,
+            IMeetingService meetingService,
             ObjectMapper objectMapper
     ) {
         this.viewService = viewService;
         this.authService = authService;
         this.viewHelper = viewHelper;
-        this.store = store;
+        this.meetingService = meetingService;
         this.objectMapper = objectMapper;
     }
 
@@ -78,7 +78,7 @@ public class MyPageController {
             HttpSession session
     ) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
-        WemeetDataStore.MeetingRecord meeting = store.findMeetingForUser(currentUser.getId(), meetingId)
+        MeetingDTO.MeetingRecord meeting = meetingService.findMeetingForUser(currentUser.getId(), meetingId)
                 .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
                         org.springframework.http.HttpStatus.NOT_FOUND,
                         "Meeting not found"
@@ -125,7 +125,7 @@ public class MyPageController {
         return "meeting/results";
     }
 
-    private RecommendationDTO.RecommendationBundle deserializeRecommendationSnapshot(WemeetDataStore.MeetingRecord meeting) {
+    private RecommendationDTO.RecommendationBundle deserializeRecommendationSnapshot(MeetingDTO.MeetingRecord meeting) {
         if (meeting.recommendationSnapshotJson() == null || meeting.recommendationSnapshotJson().isBlank()) {
             return null;
         }
@@ -138,7 +138,7 @@ public class MyPageController {
 
     private List<MeetingDTO.CreatedMeeting> enrichProfileMeetings(List<MeetingDTO.CreatedMeeting> meetings, String viewerUserId) {
         return meetings.stream()
-                .map(meeting -> store.findMeetingForUser(viewerUserId, meeting.id())
+                .map(meeting -> meetingService.findMeetingForUser(viewerUserId, meeting.id())
                         .map(record -> copyMeetingWithNaverMapUrl(meeting, buildMeetingNaverMapUrl(record, viewerUserId)))
                         .orElse(meeting))
                 .toList();
@@ -159,7 +159,7 @@ public class MyPageController {
         );
     }
 
-    private String buildMeetingNaverMapUrl(WemeetDataStore.MeetingRecord meeting, String viewerUserId) {
+    private String buildMeetingNaverMapUrl(MeetingDTO.MeetingRecord meeting, String viewerUserId) {
         if (meeting.meetingPlaceName() == null || meeting.meetingPlaceName().isBlank()) {
             return "";
         }
@@ -205,7 +205,7 @@ public class MyPageController {
 
     private RecommendationDTO.VenueOption resolveMeetingDestinationVenue(
             RecommendationDTO.RecommendationBundle snapshot,
-            WemeetDataStore.MeetingRecord meeting
+            MeetingDTO.MeetingRecord meeting
     ) {
         if (snapshot == null) {
             return null;
@@ -240,7 +240,7 @@ public class MyPageController {
             RedirectAttributes redirectAttributes
     ) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
-        store.deleteMeetingCreatedByUser(currentUser.getId(), meetingId);
+        meetingService.deleteMeetingCreatedByUser(currentUser.getId(), meetingId);
         redirectAttributes.addFlashAttribute("profileNotice", "모임이 삭제되었습니다.");
         return "redirect:/profile";
     }
