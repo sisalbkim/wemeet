@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="WemeetApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="wemeet.main" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.kopo.wemeet.WemeetApplication" />
+    <option name="ACTIVE_PROFILES" value="aws" />
+    <option name="PROGRAM_PARAMETERS" value="--server.port=11000" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
