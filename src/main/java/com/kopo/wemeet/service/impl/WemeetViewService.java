@@ -2,6 +2,7 @@ package com.kopo.wemeet.service.impl;
 
 import com.kopo.wemeet.dto.*;
 
+import com.kopo.wemeet.mapper.RecommendationBundleMapper;
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.service.IFriendService;

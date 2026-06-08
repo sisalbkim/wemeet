@@ -1,4 +1,4 @@
-package com.kopo.wemeet.service.impl;
+package com.kopo.wemeet.mapper;
 
 import com.kopo.wemeet.dto.FriendDTO;
 import com.kopo.wemeet.dto.RecommendationDTO;
