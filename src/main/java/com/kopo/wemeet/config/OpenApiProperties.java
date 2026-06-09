@@ -7,6 +7,8 @@ public class OpenApiProperties {
     // 외부 지도 API 호출에 필요한 설정값을 application.properties에서 바인딩한다.
 
     private boolean enabled = true;
+    private int connectTimeoutMillis = 3000;
+    private int readTimeoutMillis = 5000;
     private String userAgent = "WeMeet/1.0";
     private String nominatimBaseUrl = "https://nominatim.openstreetmap.org";
     private String osrmBaseUrl = "https://router.project-osrm.org";
@@ -23,6 +25,22 @@ public class OpenApiProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public int getConnectTimeoutMillis() {
+        return connectTimeoutMillis;
+    }
+
+    public void setConnectTimeoutMillis(int connectTimeoutMillis) {
+        this.connectTimeoutMillis = connectTimeoutMillis;
+    }
+
+    public int getReadTimeoutMillis() {
+        return readTimeoutMillis;
+    }
+
+    public void setReadTimeoutMillis(int readTimeoutMillis) {
+        this.readTimeoutMillis = readTimeoutMillis;
     }
 
     public String getUserAgent() {

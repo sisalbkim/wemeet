@@ -1,6 +1,7 @@
 package com.kopo.wemeet.service.impl;
 
 import com.kopo.wemeet.config.OpenApiProperties;
+import com.kopo.wemeet.config.OpenApiRestClientFactory;
 import com.kopo.wemeet.dto.RecommendationDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,13 +28,17 @@ public class TmapWalkingRoutingService {
     private final ObjectMapper objectMapper;
     private final RestClient tmapClient;
 
-    public TmapWalkingRoutingService(OpenApiProperties properties, ObjectMapper objectMapper) {
+    public TmapWalkingRoutingService(
+            OpenApiProperties properties,
+            ObjectMapper objectMapper,
+            OpenApiRestClientFactory restClientFactory
+    ) {
         this.properties = properties;
         this.objectMapper = objectMapper;
-        this.tmapClient = RestClient.builder()
-                .baseUrl(properties.getTmap().getBaseUrl())
-                .defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
-                .build();
+        this.tmapClient = restClientFactory.create(
+                properties.getTmap().getBaseUrl(),
+                builder -> builder.defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
+        );
     }
 
     public Optional<WalkingRouteEstimate> estimateWalkingRoute(

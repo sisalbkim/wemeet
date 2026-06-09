@@ -1,6 +1,7 @@
 package com.kopo.wemeet.service.impl;
 
 import com.kopo.wemeet.config.OpenApiProperties;
+import com.kopo.wemeet.config.OpenApiRestClientFactory;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
@@ -10,7 +11,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class TmapWalkingRoutingServiceTest {
     @Test
     void parsePedestrianRouteExtractsMinutesAndPolyline() {
-        TmapWalkingRoutingService service = new TmapWalkingRoutingService(new OpenApiProperties(), new ObjectMapper());
+        OpenApiProperties properties = new OpenApiProperties();
+        TmapWalkingRoutingService service = new TmapWalkingRoutingService(
+                properties,
+                new ObjectMapper(),
+                new OpenApiRestClientFactory(properties)
+        );
         String responseBody = """
                 {
                   "type": "FeatureCollection",

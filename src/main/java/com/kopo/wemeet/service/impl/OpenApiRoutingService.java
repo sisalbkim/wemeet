@@ -1,6 +1,7 @@
 package com.kopo.wemeet.service.impl;
 
 import com.kopo.wemeet.config.OpenApiProperties;
+import com.kopo.wemeet.config.OpenApiRestClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -29,16 +30,16 @@ public class OpenApiRoutingService {
     private final RestClient osrmClient;
     private final Map<String, Coordinate> geocodeCache = new ConcurrentHashMap<>();
 
-    public OpenApiRoutingService(OpenApiProperties properties) {
+    public OpenApiRoutingService(OpenApiProperties properties, OpenApiRestClientFactory restClientFactory) {
         this.properties = properties;
-        this.nominatimClient = RestClient.builder()
-                .baseUrl(properties.getNominatimBaseUrl())
-                .defaultHeader("User-Agent", properties.getUserAgent())
-                .build();
-        this.osrmClient = RestClient.builder()
-                .baseUrl(properties.getOsrmBaseUrl())
-                .defaultHeader("User-Agent", properties.getUserAgent())
-                .build();
+        this.nominatimClient = restClientFactory.create(
+                properties.getNominatimBaseUrl(),
+                builder -> builder.defaultHeader("User-Agent", properties.getUserAgent())
+        );
+        this.osrmClient = restClientFactory.create(
+                properties.getOsrmBaseUrl(),
+                builder -> builder.defaultHeader("User-Agent", properties.getUserAgent())
+        );
     }
 
     public Optional<Map<String, Integer>> estimateTravelMinutes(

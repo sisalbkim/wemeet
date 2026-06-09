@@ -3,6 +3,7 @@ package com.kopo.wemeet.service.impl;
 import com.kopo.wemeet.dto.*;
 
 import com.kopo.wemeet.config.OpenApiProperties;
+import com.kopo.wemeet.config.OpenApiRestClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -35,19 +36,25 @@ public class NaverPlaceSearchService {
     private final RestClient naverSearchClient;
     private final RestClient naverMapsClient;
 
-    public NaverPlaceSearchService(OpenApiProperties properties, NaverPlaceTagCatalog tagCatalog) {
+    public NaverPlaceSearchService(
+            OpenApiProperties properties,
+            NaverPlaceTagCatalog tagCatalog,
+            OpenApiRestClientFactory restClientFactory
+    ) {
         this.properties = properties;
         this.tagCatalog = tagCatalog;
-        this.naverSearchClient = RestClient.builder()
-                .baseUrl(properties.getNaverSearch().getBaseUrl())
-                .defaultHeader("X-Naver-Client-Id", properties.getNaverSearch().getClientId())
-                .defaultHeader("X-Naver-Client-Secret", properties.getNaverSearch().getClientSecret())
-                .build();
-        this.naverMapsClient = RestClient.builder()
-                .baseUrl(properties.getNaverMaps().getBaseUrl())
-                .defaultHeader("x-ncp-apigw-api-key-id", properties.getNaverMaps().getApiKeyId())
-                .defaultHeader("x-ncp-apigw-api-key", properties.getNaverMaps().getApiKey())
-                .build();
+        this.naverSearchClient = restClientFactory.create(
+                properties.getNaverSearch().getBaseUrl(),
+                builder -> builder
+                        .defaultHeader("X-Naver-Client-Id", properties.getNaverSearch().getClientId())
+                        .defaultHeader("X-Naver-Client-Secret", properties.getNaverSearch().getClientSecret())
+        );
+        this.naverMapsClient = restClientFactory.create(
+                properties.getNaverMaps().getBaseUrl(),
+                builder -> builder
+                        .defaultHeader("x-ncp-apigw-api-key-id", properties.getNaverMaps().getApiKeyId())
+                        .defaultHeader("x-ncp-apigw-api-key", properties.getNaverMaps().getApiKey())
+        );
     }
 
     public PlaceDTO.PlaceSearchResponse search(PlaceDTO.PlaceSearchRequest request) {

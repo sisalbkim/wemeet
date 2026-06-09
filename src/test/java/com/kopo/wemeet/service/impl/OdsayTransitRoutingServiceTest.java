@@ -1,6 +1,7 @@
 package com.kopo.wemeet.service.impl;
 
 import com.kopo.wemeet.config.OpenApiProperties;
+import com.kopo.wemeet.config.OpenApiRestClientFactory;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
@@ -12,7 +13,12 @@ class OdsayTransitRoutingServiceTest {
 
     @Test
     void parseTransitPathExtractsFirstRouteInfo() {
-        OdsayTransitRoutingService service = new OdsayTransitRoutingService(new OpenApiProperties(), new ObjectMapper());
+        OpenApiProperties properties = new OpenApiProperties();
+        OdsayTransitRoutingService service = new OdsayTransitRoutingService(
+                properties,
+                new ObjectMapper(),
+                new OpenApiRestClientFactory(properties)
+        );
         String responseBody = """
                 {
                   "result": {
@@ -38,7 +44,12 @@ class OdsayTransitRoutingServiceTest {
 
     @Test
     void parseLanePathSupportsSingleLaneObjectResponse() {
-        OdsayTransitRoutingService service = new OdsayTransitRoutingService(new OpenApiProperties(), new ObjectMapper());
+        OpenApiProperties properties = new OpenApiProperties();
+        OdsayTransitRoutingService service = new OdsayTransitRoutingService(
+                properties,
+                new ObjectMapper(),
+                new OpenApiRestClientFactory(properties)
+        );
         String responseBody = """
                 {
                   "result": {
