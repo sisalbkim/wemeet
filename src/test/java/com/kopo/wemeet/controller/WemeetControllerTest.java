@@ -3,11 +3,10 @@ package com.kopo.wemeet.controller;
 import com.kopo.wemeet.dto.*;
 
 import com.kopo.wemeet.repository.AppUserRepository;
-import com.kopo.wemeet.repository.WemeetDataStore;
 import jakarta.servlet.http.Cookie;
 import com.kopo.wemeet.service.IFriendService;
 import com.kopo.wemeet.service.IMeetingService;
-import com.kopo.wemeet.service.impl.NaverPlaceSearchService;
+import com.kopo.wemeet.service.impl.ApiNaverPlaceSearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -57,16 +56,13 @@ class WemeetControllerTest {
     private AppUserRepository userRepository;
 
     @Autowired
-    private WemeetDataStore store;
-
-    @Autowired
     private IMeetingService meetingService;
 
     @Autowired
     private IFriendService friendService;
 
     @MockitoBean
-    private NaverPlaceSearchService naverPlaceSearchService;
+    private ApiNaverPlaceSearchService apiNaverPlaceSearchService;
 
     @Test
     void landingPageShowsGuestNavigation() throws Exception {
@@ -152,7 +148,7 @@ class WemeetControllerTest {
 
     @Test
     void guestRecommendationUsesProvidedAddressInsteadOfDefaultGuestAddress() throws Exception {
-        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("용두동", "용두동", "용두 로컬 카페"));
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("용두동", "용두동", "용두 로컬 카페"));
 
         mockMvc.perform(get("/search/results")
                         .param("guest", "true")
@@ -167,7 +163,7 @@ class WemeetControllerTest {
 
     @Test
     void recommendationPageShowsNaverMapPlaceholderWhenClientIdIsMissing() throws Exception {
-        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("성수동", "성수동", "성수 로컬 맛집"));
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("성수동", "성수동", "성수 로컬 맛집"));
 
         mockMvc.perform(get("/search/results")
                         .param("guest", "true")
@@ -181,7 +177,7 @@ class WemeetControllerTest {
 
     @Test
     void guestPlaceSearchPageRendersNaverResults() throws Exception {
-        given(naverPlaceSearchService.search(any())).willReturn(new PlaceDTO.PlaceSearchResponse(
+        given(apiNaverPlaceSearchService.search(any())).willReturn(new PlaceDTO.PlaceSearchResponse(
                 "성수역 카페",
                 "카페",
                 "카페",
@@ -711,7 +707,7 @@ class WemeetControllerTest {
     void meetingPreviewComposesTimeFromHourAndMinute() throws Exception {
         MockHttpSession session = signupAndLogin("meetingtime01", "meetingtime01@wemeet.local");
 
-        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
 
         mockMvc.perform(post("/meetings/preview")
                         .session(session)
@@ -735,7 +731,7 @@ class WemeetControllerTest {
     @Test
     void loggedInRecommendationPageDoesNotShowMeetingSavePanelWithoutPreview() throws Exception {
         MockHttpSession session = signupAndLogin("resultsave01", "resultsave01@wemeet.local");
-        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
 
         mockMvc.perform(get("/search/results")
                         .session(session)
@@ -772,7 +768,7 @@ class WemeetControllerTest {
     @Test
     void meetingCreateWithBlankRequiredFieldsStaysOnResultsPage() throws Exception {
         MockHttpSession session = signupAndLogin("meetingerror01", "meetingerror01@wemeet.local");
-        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
 
         String previewHtml = mockMvc.perform(post("/meetings/preview")
                         .session(session)
@@ -813,7 +809,7 @@ class WemeetControllerTest {
         MockHttpSession session = signupAndLogin("meetingsnapshot01", "meetingsnapshot01@wemeet.local");
         String userId = userRepository.findByLoginId("meetingsnapshot01").orElseThrow().getId();
 
-        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "저장된 추천 카페"));
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "저장된 추천 카페"));
 
         String previewHtml = mockMvc.perform(post("/meetings/preview")
                         .session(session)
@@ -962,7 +958,7 @@ class WemeetControllerTest {
                 List.of(friendId)
         ).id();
 
-        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
 
         mockMvc.perform(get("/profile/meetings/results")
                         .session(session)
@@ -982,7 +978,7 @@ class WemeetControllerTest {
         MockHttpSession session = signupAndLogin("savedresult01", "savedresult01@wemeet.local");
         String userId = userRepository.findByLoginId("savedresult01").orElseThrow().getId();
 
-        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "저장된 결과 카페"));
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "저장된 결과 카페"));
 
         String previewHtml = mockMvc.perform(post("/meetings/preview")
                         .session(session)
@@ -1021,7 +1017,7 @@ class WemeetControllerTest {
                 .orElseThrow()
                 .id();
 
-        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "바뀐 최신 카페"));
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "바뀐 최신 카페"));
 
         mockMvc.perform(get("/profile/meetings/results")
                         .session(session)
@@ -1038,7 +1034,7 @@ class WemeetControllerTest {
         MockHttpSession session = signupAndLogin("savedroute01", "savedroute01@wemeet.local");
         String userId = userRepository.findByLoginId("savedroute01").orElseThrow().getId();
 
-        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "저장된 결과 카페"));
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "저장된 결과 카페"));
 
         String previewHtml = mockMvc.perform(post("/meetings/preview")
                         .session(session)
@@ -1105,7 +1101,7 @@ class WemeetControllerTest {
                 List.of(participantUserId)
         ).id();
 
-        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
 
         mockMvc.perform(get("/profile/meetings/results")
                         .session(session)
@@ -1229,4 +1225,6 @@ class WemeetControllerTest {
         );
     }
 }
+
+
 

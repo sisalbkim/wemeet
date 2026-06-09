@@ -13,6 +13,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Locale;
 
+import static com.kopo.wemeet.util.UiDefaults.APP_NAME;
+import static com.kopo.wemeet.util.UiDefaults.DEFAULT_ROUTE_MODE;
+import static com.kopo.wemeet.util.UiDefaults.ROUTE_MODE_TRANSIT;
+import static com.kopo.wemeet.util.UiDefaults.ROUTE_MODE_WALK;
+
 @Component
 public class WemeetViewHelper {
     // 화면 컨트롤러에서 공통으로 쓰는 로그인 체크와 모델 조립 보조 로직 모음이다.
@@ -35,7 +40,7 @@ public class WemeetViewHelper {
     }
 
     public void populateCommon(Model model, String activeTab, boolean guestMode) {
-        model.addAttribute("appName", "모임 장소 찾기");
+        model.addAttribute("appName", APP_NAME);
         model.addAttribute("activeTab", activeTab);
         model.addAttribute("guestMode", guestMode);
         model.addAttribute("naverMapEnabled", naverMapProperties.isEnabled());
@@ -53,13 +58,13 @@ public class WemeetViewHelper {
     }
 
     public String normalizeRouteMode(String routeMode) {
-        if ("transit".equalsIgnoreCase(routeMode) && isTransitEnabled()) {
-            return "transit";
+        if (ROUTE_MODE_TRANSIT.equalsIgnoreCase(routeMode) && isTransitEnabled()) {
+            return ROUTE_MODE_TRANSIT;
         }
-        if ("walk".equalsIgnoreCase(routeMode)) {
+        if (ROUTE_MODE_WALK.equalsIgnoreCase(routeMode)) {
             return routeMode.toLowerCase(Locale.ROOT);
         }
-        return "car";
+        return DEFAULT_ROUTE_MODE;
     }
 
     public AppUser findLoggedInUser(HttpSession session) {

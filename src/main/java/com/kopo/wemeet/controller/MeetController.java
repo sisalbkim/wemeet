@@ -7,7 +7,7 @@ import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IApiRecommendationService;
 import com.kopo.wemeet.service.IWemeetViewService;
-import com.kopo.wemeet.service.impl.NaverPlaceSearchService;
+import com.kopo.wemeet.service.impl.ApiNaverPlaceSearchService;
 import com.kopo.wemeet.service.impl.NaverPlaceTagCatalog;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
@@ -24,6 +24,15 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.List;
 import java.util.Optional;
 
+import static com.kopo.wemeet.util.UiDefaults.DEFAULT_CATEGORY;
+import static com.kopo.wemeet.util.UiDefaults.DEFAULT_GUEST_ADDRESS;
+import static com.kopo.wemeet.util.UiDefaults.DEFAULT_PLACE_DISPLAY_COUNT;
+import static com.kopo.wemeet.util.UiDefaults.DEFAULT_RECOMMENDATION_MODE;
+import static com.kopo.wemeet.util.UiDefaults.DEFAULT_ROUTE_MODE;
+import static com.kopo.wemeet.util.UiDefaults.TAB_GUEST_HOME;
+import static com.kopo.wemeet.util.UiDefaults.TAB_HOME;
+import static com.kopo.wemeet.util.UiDefaults.TAB_NEARBY;
+
 @Controller
 public class MeetController {
     // 홈, 게스트 추천, 장소 검색 같은 메인 화면 진입점을 연결하는 컨트롤러.
@@ -31,7 +40,7 @@ public class MeetController {
     private final IWemeetViewService viewService;
     private final IApiAuthService authService;
     private final IApiRecommendationService recommendationService;
-    private final NaverPlaceSearchService naverPlaceSearchService;
+    private final ApiNaverPlaceSearchService apiNaverPlaceSearchService;
     private final NaverPlaceTagCatalog naverPlaceTagCatalog;
     private final WemeetViewHelper viewHelper;
 
@@ -39,14 +48,14 @@ public class MeetController {
             IWemeetViewService viewService,
             IApiAuthService authService,
             IApiRecommendationService recommendationService,
-            NaverPlaceSearchService naverPlaceSearchService,
+            ApiNaverPlaceSearchService apiNaverPlaceSearchService,
             NaverPlaceTagCatalog naverPlaceTagCatalog,
             WemeetViewHelper viewHelper
     ) {
         this.viewService = viewService;
         this.authService = authService;
         this.recommendationService = recommendationService;
-        this.naverPlaceSearchService = naverPlaceSearchService;
+        this.apiNaverPlaceSearchService = apiNaverPlaceSearchService;
         this.naverPlaceTagCatalog = naverPlaceTagCatalog;
         this.viewHelper = viewHelper;
     }
@@ -59,7 +68,7 @@ public class MeetController {
             return "home/index";
         }
 
-        viewHelper.populateCommon(model, "guest-home", true);
+        viewHelper.populateCommon(model, TAB_GUEST_HOME, true);
         model.addAttribute("categories", viewService.getSelectableCategories());
         return "landing/index";
     }
@@ -73,8 +82,8 @@ public class MeetController {
     @GetMapping("/guest/plan")
     public String guestPlan(
             @RequestParam(defaultValue = "") String guestAddress,
-            @RequestParam(defaultValue = "맛집") String category,
-            @RequestParam(defaultValue = "car") String routeMode,
+            @RequestParam(defaultValue = DEFAULT_CATEGORY) String category,
+            @RequestParam(defaultValue = DEFAULT_ROUTE_MODE) String routeMode,
             Model model
     ) {
         populateGuestPlanModel(model, guestAddress, category, routeMode);
@@ -87,7 +96,7 @@ public class MeetController {
             @RequestParam(defaultValue = "") String guestAddress,
             @RequestParam(defaultValue = "") String tag,
             @RequestParam(defaultValue = "") String category,
-            @RequestParam(defaultValue = "5") Integer display,
+            @RequestParam(defaultValue = "" + DEFAULT_PLACE_DISPLAY_COUNT) Integer display,
             Model model
     ) {
         String effectiveOriginQuery = originQuery == null || originQuery.isBlank() ? guestAddress : originQuery;
@@ -99,9 +108,9 @@ public class MeetController {
     @PostMapping("/guest/preview")
     public String guestPreview(
             @RequestParam(defaultValue = "") String guestAddress,
-            @RequestParam(defaultValue = "맛집") String category,
-            @RequestParam(defaultValue = "CENTER") String mode,
-            @RequestParam(defaultValue = "car") String routeMode,
+            @RequestParam(defaultValue = DEFAULT_CATEGORY) String category,
+            @RequestParam(defaultValue = DEFAULT_RECOMMENDATION_MODE) String mode,
+            @RequestParam(defaultValue = DEFAULT_ROUTE_MODE) String routeMode,
             RedirectAttributes redirectAttributes
     ) {
         redirectAttributes.addAttribute("guest", true);
@@ -141,13 +150,13 @@ public class MeetController {
             @RequestBody PlaceDTO.PlaceSearchRequest request
     ) {
         authService.requireUser(authorization);
-        return naverPlaceSearchService.search(request);
+        return apiNaverPlaceSearchService.search(request);
     }
 
     @ResponseBody
     @PostMapping("/api/public/places/search")
     public PlaceDTO.PlaceSearchResponse apiPublicPlaceSearch(@RequestBody PlaceDTO.PlaceSearchRequest request) {
-        return naverPlaceSearchService.search(request);
+        return apiNaverPlaceSearchService.search(request);
     }
 
     @ResponseBody
@@ -165,7 +174,7 @@ public class MeetController {
     }
 
     private void populateGuestPlanModel(Model model, String guestAddress, String category, String routeMode) {
-        viewHelper.populateCommon(model, "nearby", true);
+        viewHelper.populateCommon(model, TAB_NEARBY, true);
         model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("guestAddress", guestAddress);
         model.addAttribute("selectedCategory", category);
@@ -178,10 +187,10 @@ public class MeetController {
             String tag,
             Integer display
     ) {
-        viewHelper.populateCommon(model, "nearby", true);
+        viewHelper.populateCommon(model, TAB_NEARBY, true);
         model.addAttribute("originQuery", originQuery);
         model.addAttribute("tag", tag);
-        model.addAttribute("display", display == null ? 5 : display);
+        model.addAttribute("display", display == null ? DEFAULT_PLACE_DISPLAY_COUNT : display);
         model.addAttribute("categories", viewService.getSelectableCategories());
 
         if (originQuery == null || originQuery.isBlank() || tag == null || tag.isBlank()) {
@@ -189,7 +198,7 @@ public class MeetController {
         }
 
         try {
-            PlaceDTO.PlaceSearchResponse placeSearch = naverPlaceSearchService.search(new PlaceDTO.PlaceSearchRequest(originQuery, tag, display));
+            PlaceDTO.PlaceSearchResponse placeSearch = apiNaverPlaceSearchService.search(new PlaceDTO.PlaceSearchRequest(originQuery, tag, display));
             model.addAttribute("placeSearch", placeSearch);
             model.addAttribute("placeMapPoints", buildPlaceMapPoints(placeSearch));
         } catch (ResponseStatusException exception) {
@@ -227,7 +236,7 @@ public class MeetController {
     }
 
     private void populateHomeModel(Model model, AppUser currentUser) {
-        viewHelper.populateCommon(model, "home", false);
+        viewHelper.populateCommon(model, TAB_HOME, false);
         model.addAttribute("profile", viewHelper.toProfile(currentUser));
         model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("upcomingMeetings", viewService.getUpcomingMeetings(currentUser.getId()));
@@ -235,7 +244,7 @@ public class MeetController {
 
     private UserDTO.UserResponse createGuestUser(String baseAddress) {
         String normalizedBaseAddress = baseAddress == null || baseAddress.isBlank()
-                ? "서울특별시 중구 명동길 74"
+                ? DEFAULT_GUEST_ADDRESS
                 : baseAddress.trim();
         return new UserDTO.UserResponse(
                 "guest-user",
@@ -248,3 +257,5 @@ public class MeetController {
     }
 
 }
+
+

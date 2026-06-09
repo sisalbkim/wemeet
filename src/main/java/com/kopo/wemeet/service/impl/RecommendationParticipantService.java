@@ -2,7 +2,7 @@ package com.kopo.wemeet.service.impl;
 
 import com.kopo.wemeet.dto.RecommendationMode;
 import com.kopo.wemeet.dto.UserDTO;
-import com.kopo.wemeet.repository.WemeetDataStore;
+import com.kopo.wemeet.service.support.UserAccountLookup;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -19,10 +19,10 @@ public class RecommendationParticipantService {
     private static final String DEFAULT_CATEGORY = "맛집";
     private static final List<String> CATEGORIES = List.of("맛집", "카페", "놀이", "문화", "운동", "기타");
 
-    private final WemeetDataStore store;
+    private final UserAccountLookup userAccountLookup;
 
-    public RecommendationParticipantService(WemeetDataStore store) {
-        this.store = store;
+    public RecommendationParticipantService(UserAccountLookup userAccountLookup) {
+        this.userAccountLookup = userAccountLookup;
     }
 
     public List<String> categories() {
@@ -44,7 +44,7 @@ public class RecommendationParticipantService {
         }
 
         return uniqueIds.stream()
-                .map(id -> store.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Participant not found: " + id)))
+                .map(id -> userAccountLookup.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Participant not found: " + id)))
                 .toList();
     }
 

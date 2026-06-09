@@ -4,7 +4,7 @@ import com.kopo.wemeet.dto.*;
 
 import com.kopo.wemeet.mapper.RecommendationBundleMapper;
 import com.kopo.wemeet.repository.entity.AppUser;
-import com.kopo.wemeet.repository.WemeetDataStore;
+import com.kopo.wemeet.service.support.UserAccountLookup;
 import com.kopo.wemeet.service.IFriendService;
 import com.kopo.wemeet.service.IHistoryService;
 import com.kopo.wemeet.service.IMeetingService;
@@ -25,7 +25,7 @@ public class WemeetViewService implements IWemeetViewService {
 
     private final ApiRecommendationService recommendationService;
     private final ApiAuthService authService;
-    private final WemeetDataStore store;
+    private final UserAccountLookup userAccountLookup;
     private final IFriendService friendService;
     private final IHistoryService historyService;
     private final IMeetingService meetingService;
@@ -45,7 +45,7 @@ public class WemeetViewService implements IWemeetViewService {
     public WemeetViewService(
             ApiRecommendationService recommendationService,
             ApiAuthService authService,
-            WemeetDataStore store,
+            UserAccountLookup userAccountLookup,
             IFriendService friendService,
             IHistoryService historyService,
             IMeetingService meetingService,
@@ -53,7 +53,7 @@ public class WemeetViewService implements IWemeetViewService {
     ) {
         this.recommendationService = recommendationService;
         this.authService = authService;
-        this.store = store;
+        this.userAccountLookup = userAccountLookup;
         this.friendService = friendService;
         this.historyService = historyService;
         this.meetingService = meetingService;
@@ -289,7 +289,7 @@ public class WemeetViewService implements IWemeetViewService {
     }
 
     private MeetingDTO.UpcomingMeeting toUpcomingMeeting(MeetingDTO.MeetingRecord meeting) {
-        String hostName = store.findById(meeting.hostUserId())
+        String hostName = userAccountLookup.findById(meeting.hostUserId())
                 .map(UserDTO.UserAccount::nickname)
                 .orElse("알 수 없음");
         boolean isToday = LocalDate.now().equals(meeting.meetingDate());

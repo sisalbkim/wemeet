@@ -8,6 +8,8 @@ public enum RecommendationMode {
 
     private final String label;
 
+    public static final String CENTER_NAME = "CENTER";
+
     RecommendationMode(String label) {
         this.label = label;
     }

@@ -4,7 +4,6 @@ import com.kopo.wemeet.dto.PlaceDTO;
 import com.kopo.wemeet.dto.RecommendationDTO;
 import com.kopo.wemeet.dto.RecommendationMode;
 import com.kopo.wemeet.dto.UserDTO;
-import com.kopo.wemeet.repository.WemeetDataStore;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IApiRecommendationService;
 import com.kopo.wemeet.service.IHistoryService;
@@ -24,7 +23,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     private final RecommendationLocationService locationService;
     private final RecommendationTravelService travelService;
     private final RecommendationCacheService recommendationCacheService;
-    private final NaverPlaceSearchService naverPlaceSearchService;
+    private final ApiNaverPlaceSearchService apiNaverPlaceSearchService;
     private final RecommendationResponseFactory responseFactory;
     private final IHistoryService historyService;
 
@@ -33,7 +32,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             RecommendationLocationService locationService,
             RecommendationTravelService travelService,
             RecommendationCacheService recommendationCacheService,
-            NaverPlaceSearchService naverPlaceSearchService,
+            ApiNaverPlaceSearchService apiNaverPlaceSearchService,
             RecommendationResponseFactory responseFactory,
             IHistoryService historyService
     ) {
@@ -41,7 +40,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
         this.locationService = locationService;
         this.travelService = travelService;
         this.recommendationCacheService = recommendationCacheService;
-        this.naverPlaceSearchService = naverPlaceSearchService;
+        this.apiNaverPlaceSearchService = apiNaverPlaceSearchService;
         this.responseFactory = responseFactory;
         this.historyService = historyService;
     }
@@ -147,7 +146,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
         );
         PlaceDTO.PlaceSearchResponse placeSearch;
         try {
-            placeSearch = naverPlaceSearchService.search(
+            placeSearch = apiNaverPlaceSearchService.search(
                     new PlaceDTO.PlaceSearchRequest(searchAnchor.query(), category, DEFAULT_SEARCH_DISPLAY)
             );
         } catch (ResponseStatusException exception) {
@@ -218,4 +217,6 @@ public class ApiRecommendationService implements IApiRecommendationService {
         return response;
     }
 }
+
+
 

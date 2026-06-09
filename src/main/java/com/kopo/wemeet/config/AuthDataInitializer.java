@@ -4,6 +4,7 @@ import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.repository.entity.FriendRelation;
 import com.kopo.wemeet.repository.AppUserRepository;
 import com.kopo.wemeet.repository.FriendRelationRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -18,15 +19,18 @@ public class AuthDataInitializer implements CommandLineRunner {
     private final AppUserRepository userRepository;
     private final FriendRelationRepository friendRelationRepository;
     private final PasswordEncoder passwordEncoder;
+    private final boolean optionalDemoFriendEnabled;
 
     public AuthDataInitializer(
             AppUserRepository userRepository,
             FriendRelationRepository friendRelationRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            @Value("${app.seed.demo-friend-enabled:false}") boolean optionalDemoFriendEnabled
     ) {
         this.userRepository = userRepository;
         this.friendRelationRepository = friendRelationRepository;
         this.passwordEncoder = passwordEncoder;
+        this.optionalDemoFriendEnabled = optionalDemoFriendEnabled;
     }
 
     @Override
@@ -54,6 +58,23 @@ public class AuthDataInitializer implements CommandLineRunner {
         }
 
         ensureDemoFriendRelations();
+        ensureOptionalDemoFriend();
+    }
+
+    private void ensureOptionalDemoFriend() {
+        if (!optionalDemoFriendEnabled || userRepository.existsByFriendCode("AAAAAA")) {
+            return;
+        }
+
+        userRepository.save(new AppUser(
+                "user-demo-aaaaaa",
+                "demo_friend_aaaaaa",
+                "테스트 친구",
+                "aaaaaa@wemeet.local",
+                passwordEncoder.encode("Passw0rd!"),
+                "AAAAAA",
+                "서울특별시 강남구 테헤란로 212"
+        ));
     }
 
     private void ensureDemoFriendRelations() {

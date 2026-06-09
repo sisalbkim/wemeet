@@ -19,25 +19,25 @@ import java.util.stream.Collectors;
 public class RecommendationTravelService {
     // 이동시간 계산, 장소 평가, 최종 후보 선정 로직을 담당한다.
 
-    private final OpenApiRoutingService openApiRoutingService;
-    private final NaverPlaceSearchService naverPlaceSearchService;
-    private final OdsayTransitRoutingService odsayTransitRoutingService;
-    private final TmapWalkingRoutingService tmapWalkingRoutingService;
+    private final ApiOpenRoutingService apiOpenRoutingService;
+    private final ApiNaverPlaceSearchService apiNaverPlaceSearchService;
+    private final ApiOdsayTransitRoutingService apiOdsayTransitRoutingService;
+    private final ApiTmapWalkingRoutingService apiTmapWalkingRoutingService;
     private final RecommendationLocationService locationService;
     private final RecommendationParticipantService participantService;
 
     public RecommendationTravelService(
-            OpenApiRoutingService openApiRoutingService,
-            NaverPlaceSearchService naverPlaceSearchService,
-            OdsayTransitRoutingService odsayTransitRoutingService,
-            TmapWalkingRoutingService tmapWalkingRoutingService,
+            ApiOpenRoutingService apiOpenRoutingService,
+            ApiNaverPlaceSearchService apiNaverPlaceSearchService,
+            ApiOdsayTransitRoutingService apiOdsayTransitRoutingService,
+            ApiTmapWalkingRoutingService apiTmapWalkingRoutingService,
             RecommendationLocationService locationService,
             RecommendationParticipantService participantService
     ) {
-        this.openApiRoutingService = openApiRoutingService;
-        this.naverPlaceSearchService = naverPlaceSearchService;
-        this.odsayTransitRoutingService = odsayTransitRoutingService;
-        this.tmapWalkingRoutingService = tmapWalkingRoutingService;
+        this.apiOpenRoutingService = apiOpenRoutingService;
+        this.apiNaverPlaceSearchService = apiNaverPlaceSearchService;
+        this.apiOdsayTransitRoutingService = apiOdsayTransitRoutingService;
+        this.apiTmapWalkingRoutingService = apiTmapWalkingRoutingService;
         this.locationService = locationService;
         this.participantService = participantService;
     }
@@ -191,8 +191,8 @@ public class RecommendationTravelService {
         for (int index = 0; index < participants.size(); index++) {
             RecommendationSupport.ParticipantProfile participant = participants.get(index);
             RecommendationSupport.GeoPoint origin = participantPoints.get(index);
-            Optional<NaverPlaceSearchService.RouteEstimate> travelRoute = Optional.ofNullable(
-                    naverPlaceSearchService.estimateTravelRoute(
+            Optional<ApiNaverPlaceSearchService.RouteEstimate> travelRoute = Optional.ofNullable(
+                    apiNaverPlaceSearchService.estimateTravelRoute(
                             participant.baseAddress(),
                             place.latitude(),
                             place.longitude()
@@ -254,34 +254,34 @@ public class RecommendationTravelService {
             RecommendationSupport.GeoPoint destination
     ) {
         List<RecommendationDTO.RoutePointResponse> straightPath = locationService.straightRoutePath(origin, destination);
-        Optional<TmapWalkingRoutingService.WalkingRouteEstimate> walkingRoute = tmapWalkingRoutingService.estimateWalkingRoute(
+        Optional<ApiTmapWalkingRoutingService.WalkingRouteEstimate> walkingRoute = apiTmapWalkingRoutingService.estimateWalkingRoute(
                 origin.latitude(),
                 origin.longitude(),
                 destination.latitude(),
                 destination.longitude()
         );
-        Optional<OpenApiRoutingService.RouteResult> fallbackWalkingRoute = walkingRoute.isPresent()
+        Optional<ApiOpenRoutingService.RouteResult> fallbackWalkingRoute = walkingRoute.isPresent()
                 ? Optional.empty()
-                : openApiRoutingService.route(
+                : apiOpenRoutingService.route(
                         origin.latitude(),
                         origin.longitude(),
                         destination.latitude(),
                         destination.longitude(),
-                        openApiRoutingServiceWalkingProfile()
+                        apiOpenRoutingServiceWalkingProfile()
                 );
-        Optional<OdsayTransitRoutingService.TransitRouteEstimate> transitRoute = odsayTransitRoutingService.estimateTransitRoute(
+        Optional<ApiOdsayTransitRoutingService.TransitRouteEstimate> transitRoute = apiOdsayTransitRoutingService.estimateTransitRoute(
                 origin.latitude(),
                 origin.longitude(),
                 destination.latitude(),
                 destination.longitude()
         );
-        int walkingMinutes = walkingRoute.map(TmapWalkingRoutingService.WalkingRouteEstimate::minutes)
-                .orElseGet(() -> fallbackWalkingRoute.map(OpenApiRoutingService.RouteResult::minutes)
+        int walkingMinutes = walkingRoute.map(ApiTmapWalkingRoutingService.WalkingRouteEstimate::minutes)
+                .orElseGet(() -> fallbackWalkingRoute.map(ApiOpenRoutingService.RouteResult::minutes)
                         .orElseGet(() -> estimateWalkingMinutes(origin, destination)));
         List<RecommendationDTO.RoutePointResponse> walkingPath = walkingRoute
-                .map(TmapWalkingRoutingService.WalkingRouteEstimate::routePath)
+                .map(ApiTmapWalkingRoutingService.WalkingRouteEstimate::routePath)
                 .orElseGet(() -> fallbackWalkingRoute
-                        .map(OpenApiRoutingService.RouteResult::path)
+                        .map(ApiOpenRoutingService.RouteResult::path)
                         .map(path -> locationService.toRecommendationRoutePathFromCoordinates(path, origin, destination))
                         .orElse(straightPath));
 
@@ -290,8 +290,8 @@ public class RecommendationTravelService {
         routeModes.add(new RecommendationDTO.RouteModeResponse(
                 "transit",
                 "대중교통",
-                transitRoute.map(OdsayTransitRoutingService.TransitRouteEstimate::minutes).orElse(0),
-                transitRoute.map(OdsayTransitRoutingService.TransitRouteEstimate::routePath).orElse(List.of()),
+                transitRoute.map(ApiOdsayTransitRoutingService.TransitRouteEstimate::minutes).orElse(0),
+                transitRoute.map(ApiOdsayTransitRoutingService.TransitRouteEstimate::routePath).orElse(List.of()),
                 transitRoute.isPresent()
         ));
         routeModes.add(new RecommendationDTO.RouteModeResponse("walk", "걷기", walkingMinutes, walkingPath, true));
@@ -464,7 +464,9 @@ public class RecommendationTravelService {
         return "";
     }
 
-    private String openApiRoutingServiceWalkingProfile() {
-        return openApiRoutingService == null ? "foot" : openApiRoutingService.walkingProfile();
+    private String apiOpenRoutingServiceWalkingProfile() {
+        return apiOpenRoutingService == null ? "foot" : apiOpenRoutingService.walkingProfile();
     }
 }
+
+

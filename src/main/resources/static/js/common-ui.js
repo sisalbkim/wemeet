@@ -333,6 +333,18 @@ document.addEventListener("DOMContentLoaded", () => {
     // 페이지 이동/폼 제출 시 로딩 오버레이를 보여 주는 공통 UI 처리다.
     const loadingOverlay = document.querySelector("#pageLoadingOverlay");
 
+    document.querySelectorAll("form[data-confirm-submit]").forEach((form) => {
+        form.addEventListener("submit", (event) => {
+            if (!(form instanceof HTMLFormElement)) {
+                return;
+            }
+            const message = form.dataset.confirmSubmit;
+            if (message && !window.confirm(message)) {
+                event.preventDefault();
+            }
+        });
+    });
+
     const mountLoadingOverlayToBody = () => {
         if (!loadingOverlay || loadingOverlay.parentElement === document.body) {
             return;

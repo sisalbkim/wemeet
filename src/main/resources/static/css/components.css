@@ -467,6 +467,12 @@
     min-height: auto;
 }
 
+.history-actions {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 12px;
+}
+
 .code-card {
     background: linear-gradient(135deg, rgba(47, 107, 255, 0.96), rgba(143, 61, 255, 0.9));
     color: #ffffff;

@@ -15,8 +15,8 @@ import java.util.stream.Collectors;
 public class RecommendationLocationService {
     // 좌표 계산, 검색 기준점 선택, 지도 경로용 기초 좌표 로직을 담당한다.
 
-    private final OpenApiRoutingService openApiRoutingService;
-    private final NaverPlaceSearchService naverPlaceSearchService;
+    private final ApiOpenRoutingService apiOpenRoutingService;
+    private final ApiNaverPlaceSearchService apiNaverPlaceSearchService;
     private final Map<String, RecommendationSupport.GeoPoint> zoneCenters = Map.of(
             "중구", new RecommendationSupport.GeoPoint(37.5636, 126.9866),
             "성수", new RecommendationSupport.GeoPoint(37.5446, 127.0557),
@@ -30,15 +30,15 @@ public class RecommendationLocationService {
     );
 
     public RecommendationLocationService(
-            OpenApiRoutingService openApiRoutingService,
-            NaverPlaceSearchService naverPlaceSearchService
+            ApiOpenRoutingService apiOpenRoutingService,
+            ApiNaverPlaceSearchService apiNaverPlaceSearchService
     ) {
-        this.openApiRoutingService = openApiRoutingService;
-        this.naverPlaceSearchService = naverPlaceSearchService;
+        this.apiOpenRoutingService = apiOpenRoutingService;
+        this.apiNaverPlaceSearchService = apiNaverPlaceSearchService;
     }
 
     public RecommendationSupport.GeoPoint resolveParticipantPoint(RecommendationSupport.ParticipantProfile participant) {
-        return openApiRoutingService.geocodeAddress(participant.baseAddress())
+        return apiOpenRoutingService.geocodeAddress(participant.baseAddress())
                 .map(point -> new RecommendationSupport.GeoPoint(point.latitude(), point.longitude()))
                 .orElseGet(() -> zoneCenters.getOrDefault(resolveZone(participant.baseAddress()), zoneCenters.get("기본")));
     }
@@ -81,7 +81,7 @@ public class RecommendationLocationService {
         }
 
         Optional<String> reverseGeocodedQuery = Optional.ofNullable(
-                naverPlaceSearchService.reverseGeocodeArea(midpointPoint.latitude(), midpointPoint.longitude())
+                apiNaverPlaceSearchService.reverseGeocodeArea(midpointPoint.latitude(), midpointPoint.longitude())
         ).orElse(Optional.empty());
         if (reverseGeocodedQuery.isPresent()) {
             return new RecommendationSupport.SearchAnchor(reverseGeocodedQuery.get(), midpointPoint);
@@ -153,7 +153,7 @@ public class RecommendationLocationService {
     }
 
     public List<RecommendationDTO.RoutePointResponse> toRecommendationRoutePathFromCoordinates(
-            List<OpenApiRoutingService.MapCoordinate> routePath,
+            List<ApiOpenRoutingService.MapCoordinate> routePath,
             RecommendationSupport.GeoPoint origin,
             RecommendationSupport.GeoPoint destination
     ) {
@@ -255,3 +255,5 @@ public class RecommendationLocationService {
         return "기본";
     }
 }
+
+

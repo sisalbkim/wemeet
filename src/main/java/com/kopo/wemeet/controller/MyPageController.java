@@ -21,6 +21,9 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
+import static com.kopo.wemeet.util.UiDefaults.DEFAULT_ROUTE_MODE;
+import static com.kopo.wemeet.util.UiDefaults.TAB_PROFILE;
+
 @Controller
 public class MyPageController {
     // 프로필, 계정 수정, 저장된 모임 결과 다시 보기를 담당하는 컨트롤러.
@@ -58,7 +61,7 @@ public class MyPageController {
                 viewService.getParticipatingMeetings(currentUser.getId()),
                 currentUser.getId()
         );
-        viewHelper.populateCommon(model, "profile", false);
+        viewHelper.populateCommon(model, TAB_PROFILE, false);
         model.addAttribute("profile", viewHelper.toProfile(
                 currentUser,
                 createdMeetings.size(),
@@ -73,7 +76,7 @@ public class MyPageController {
     @GetMapping("/profile/meetings/results")
     public String createdMeetingResults(
             @RequestParam String meetingId,
-            @RequestParam(defaultValue = "car") String routeMode,
+            @RequestParam(defaultValue = DEFAULT_ROUTE_MODE) String routeMode,
             Model model,
             HttpSession session
     ) {
@@ -87,7 +90,7 @@ public class MyPageController {
                 .filter(participantId -> !participantId.equals(currentUser.getId()))
                 .toList();
 
-        viewHelper.populateCommon(model, "profile", false);
+        viewHelper.populateCommon(model, TAB_PROFILE, false);
         model.addAttribute("profile", viewHelper.toProfile(currentUser));
         model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("guestAddress", "");
@@ -248,7 +251,7 @@ public class MyPageController {
     @GetMapping("/profile/verify-password")
     public String profilePasswordCheck(Model model, HttpSession session) {
         viewHelper.requireLoggedInUser(session);
-        viewHelper.populateCommon(model, "profile", false);
+        viewHelper.populateCommon(model, TAB_PROFILE, false);
         return "profile/password-check";
     }
 
@@ -279,7 +282,7 @@ public class MyPageController {
             return "redirect:/profile/verify-password";
         }
 
-        viewHelper.populateCommon(model, "profile", false);
+        viewHelper.populateCommon(model, TAB_PROFILE, false);
         model.addAttribute("profile", viewHelper.toProfile(currentUser));
         model.addAttribute("selectedProfileEditTab", "address".equalsIgnoreCase(editTab) ? "address" : "password");
         return "profile/edit";
@@ -292,7 +295,7 @@ public class MyPageController {
             return "redirect:/profile/verify-password";
         }
 
-        viewHelper.populateCommon(model, "profile", false);
+        viewHelper.populateCommon(model, TAB_PROFILE, false);
         model.addAttribute("profile", viewHelper.toProfile(currentUser));
         return "profile/delete-confirm";
     }
@@ -348,3 +351,4 @@ public class MyPageController {
         return "redirect:/login";
     }
 }
+

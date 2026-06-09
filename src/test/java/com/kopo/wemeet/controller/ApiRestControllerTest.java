@@ -2,7 +2,7 @@ package com.kopo.wemeet.controller;
 
 import com.kopo.wemeet.dto.*;
 
-import com.kopo.wemeet.service.impl.NaverPlaceSearchService;
+import com.kopo.wemeet.service.impl.ApiNaverPlaceSearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -37,7 +37,7 @@ class ApiRestControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private NaverPlaceSearchService naverPlaceSearchService;
+    private ApiNaverPlaceSearchService apiNaverPlaceSearchService;
 
     @Test
     void loginReturnsTokenAndMeEndpointWorks() throws Exception {
@@ -53,7 +53,7 @@ class ApiRestControllerTest {
     @Test
     void recommendationsEndpointReturnsBalancedVenueList() throws Exception {
         String token = loginAndGetToken("user123", "pass1234");
-        given(naverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 맛집"));
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 맛집"));
         String payload = objectMapper.writeValueAsString(Map.of(
                 "category", "맛집",
                 "participantIds", List.of("friend-lee", "friend-park")
@@ -80,7 +80,7 @@ class ApiRestControllerTest {
     @Test
     void placeSearchEndpointReturnsNaverCandidatesSortedForMapRendering() throws Exception {
         String token = loginAndGetToken("user123", "pass1234");
-        given(naverPlaceSearchService.search(any())).willReturn(new PlaceDTO.PlaceSearchResponse(
+        given(apiNaverPlaceSearchService.search(any())).willReturn(new PlaceDTO.PlaceSearchResponse(
                 "성수역 카페",
                 "카페",
                 "카페",
@@ -128,7 +128,7 @@ class ApiRestControllerTest {
 
     @Test
     void publicPlaceSearchEndpointWorksWithoutAuthentication() throws Exception {
-        given(naverPlaceSearchService.search(any())).willReturn(new PlaceDTO.PlaceSearchResponse(
+        given(apiNaverPlaceSearchService.search(any())).willReturn(new PlaceDTO.PlaceSearchResponse(
                 "성수역 카페",
                 "카페",
                 "카페",
@@ -169,7 +169,7 @@ class ApiRestControllerTest {
 
     @Test
     void publicRecommendationsEndpointWorksWithoutAuthentication() throws Exception {
-        given(naverPlaceSearchService.search(any())).willReturn(new PlaceDTO.PlaceSearchResponse(
+        given(apiNaverPlaceSearchService.search(any())).willReturn(new PlaceDTO.PlaceSearchResponse(
                 "가산로5길54-1 카페",
                 "카페",
                 "카페",
@@ -368,3 +368,5 @@ class ApiRestControllerTest {
         );
     }
 }
+
+

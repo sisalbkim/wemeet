@@ -26,6 +26,12 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static com.kopo.wemeet.util.UiDefaults.DEFAULT_CATEGORY;
+import static com.kopo.wemeet.util.UiDefaults.DEFAULT_RECOMMENDATION_MODE;
+import static com.kopo.wemeet.util.UiDefaults.DEFAULT_ROUTE_MODE;
+import static com.kopo.wemeet.util.UiDefaults.TAB_CREATE;
+import static com.kopo.wemeet.util.UiDefaults.TAB_HOME;
+import static com.kopo.wemeet.util.UiDefaults.TAB_NEARBY;
 
 @Controller
 public class MeetingViewController {
@@ -58,13 +64,13 @@ public class MeetingViewController {
 
     @GetMapping("/search/results")
     public String quickResults(
-            @RequestParam(defaultValue = "맛집") String category,
+            @RequestParam(defaultValue = DEFAULT_CATEGORY) String category,
             @RequestParam(required = false) List<String> friendIds,
-            @RequestParam(defaultValue = "CENTER") String mode,
+            @RequestParam(defaultValue = DEFAULT_RECOMMENDATION_MODE) String mode,
             @RequestParam(required = false) String anchorId,
             @RequestParam(defaultValue = "false") boolean guest,
             @RequestParam(required = false) String guestAddress,
-            @RequestParam(defaultValue = "car") String routeMode,
+            @RequestParam(defaultValue = DEFAULT_ROUTE_MODE) String routeMode,
             Model model,
             HttpSession session
     ) {
@@ -73,23 +79,23 @@ public class MeetingViewController {
             currentUser = viewHelper.requireLoggedInUser(session);
         }
         String normalizedRouteMode = viewHelper.normalizeRouteMode(routeMode);
-        populateRecommendationModel(model, guest ? "nearby" : "home", currentUser, category, friendIds, mode, anchorId, guest, guestAddress, normalizedRouteMode);
+        populateRecommendationModel(model, guest ? TAB_NEARBY : TAB_HOME, currentUser, category, friendIds, mode, anchorId, guest, guestAddress, normalizedRouteMode);
         model.addAttribute("selectedRouteMode", normalizedRouteMode);
         return "meeting/results";
     }
 
     @PostMapping("/meetings/preview")
     public String previewResults(
-            @RequestParam(defaultValue = "맛집") String category,
+            @RequestParam(defaultValue = DEFAULT_CATEGORY) String category,
             @RequestParam(required = false) List<String> friendIds,
-            @RequestParam(defaultValue = "CENTER") String mode,
+            @RequestParam(defaultValue = DEFAULT_RECOMMENDATION_MODE) String mode,
             @RequestParam(required = false) String anchorId,
             @RequestParam(defaultValue = "") String meetingName,
             @RequestParam(defaultValue = "") String meetingDescription,
             @RequestParam(defaultValue = "") String meetingDate,
             @RequestParam(defaultValue = "") String meetingHour,
             @RequestParam(defaultValue = "") String meetingMinute,
-            @RequestParam(defaultValue = "car") String routeMode,
+            @RequestParam(defaultValue = DEFAULT_ROUTE_MODE) String routeMode,
             Model model,
             HttpSession session
     ) {
@@ -97,7 +103,7 @@ public class MeetingViewController {
         String normalizedRouteMode = viewHelper.normalizeRouteMode(routeMode);
         RecommendationDTO.RecommendationBundle recommendation = populateRecommendationModel(
                 model,
-                "create",
+                TAB_CREATE,
                 currentUser,
                 category,
                 friendIds,
@@ -125,10 +131,10 @@ public class MeetingViewController {
             @RequestParam(defaultValue = "") String meetingTime,
             @RequestParam(defaultValue = "") String meetingPlaceName,
             @RequestParam(defaultValue = "") String meetingPlaceAddress,
-            @RequestParam(defaultValue = "맛집") String category,
-            @RequestParam(defaultValue = "CENTER") String recommendationMode,
+            @RequestParam(defaultValue = DEFAULT_CATEGORY) String category,
+            @RequestParam(defaultValue = DEFAULT_RECOMMENDATION_MODE) String recommendationMode,
             @RequestParam(defaultValue = "") String anchorId,
-            @RequestParam(defaultValue = "car") String routeMode,
+            @RequestParam(defaultValue = DEFAULT_ROUTE_MODE) String routeMode,
             @RequestParam(defaultValue = "") String meetingPreviewKey,
             @RequestParam(required = false) List<String> friendIds,
             Model model,
@@ -192,7 +198,7 @@ public class MeetingViewController {
             List<FriendDTO.FriendSummary> friends,
             List<String> preselectedFriendIds
     ) {
-        viewHelper.populateCommon(model, "create", false);
+        viewHelper.populateCommon(model, TAB_CREATE, false);
         List<FriendDTO.FriendSummary> favoriteFriends = friends.stream()
                 .filter(FriendDTO.FriendSummary::favorite)
                 .toList();
@@ -202,9 +208,9 @@ public class MeetingViewController {
         model.addAttribute("favoriteFriends", favoriteFriends);
         model.addAttribute("preselectedFriendIds", preselectedFriendIds);
         model.addAttribute("selectedCategory", "");
-        model.addAttribute("selectedMode", RecommendationMode.CENTER.name());
+        model.addAttribute("selectedMode", DEFAULT_RECOMMENDATION_MODE);
         model.addAttribute("selectedAnchorId", profile.id());
-        model.addAttribute("selectedRouteMode", "car");
+        model.addAttribute("selectedRouteMode", DEFAULT_ROUTE_MODE);
     }
 
     private RecommendationDTO.RecommendationBundle populateRecommendationModel(
@@ -262,7 +268,7 @@ public class MeetingViewController {
             String meetingPreviewKey,
             String errorMessage
     ) {
-        viewHelper.populateCommon(model, "create", false);
+        viewHelper.populateCommon(model, TAB_CREATE, false);
         model.addAttribute("profile", viewHelper.toProfile(currentUser));
         model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("guestAddress", "");
