@@ -8,6 +8,7 @@ import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.repository.entity.FriendRelation;
 import com.kopo.wemeet.repository.entity.FriendRelation.FriendStatus;
 import com.kopo.wemeet.service.IFriendService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,19 +23,12 @@ import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
+@RequiredArgsConstructor
 public class FriendService implements IFriendService {
     // 친구 목록 조회, 요청 생성, 승인/거절 흐름을 전담한다.
 
     private final AppUserRepository userRepository;
     private final FriendRelationRepository friendRelationRepository;
-
-    public FriendService(
-            AppUserRepository userRepository,
-            FriendRelationRepository friendRelationRepository
-    ) {
-        this.userRepository = userRepository;
-        this.friendRelationRepository = friendRelationRepository;
-    }
 
     @Transactional(readOnly = true)
     @Override

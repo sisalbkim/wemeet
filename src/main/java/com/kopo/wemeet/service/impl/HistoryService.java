@@ -6,6 +6,7 @@ import com.kopo.wemeet.repository.SearchHistoryRepository;
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.repository.entity.SearchHistory;
 import com.kopo.wemeet.service.IHistoryService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -16,19 +17,12 @@ import java.util.List;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
+@RequiredArgsConstructor
 public class HistoryService implements IHistoryService {
     // 검색 기록의 저장, 조회, 삭제를 담당한다.
 
     private final AppUserRepository userRepository;
     private final SearchHistoryRepository searchHistoryRepository;
-
-    public HistoryService(
-            AppUserRepository userRepository,
-            SearchHistoryRepository searchHistoryRepository
-    ) {
-        this.userRepository = userRepository;
-        this.searchHistoryRepository = searchHistoryRepository;
-    }
 
     @Transactional
     @Override

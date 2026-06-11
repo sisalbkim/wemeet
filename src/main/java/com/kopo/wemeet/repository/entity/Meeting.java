@@ -17,6 +17,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Entity
 @Table(name = "meeting")
@@ -118,6 +119,10 @@ public class Meeting {
         participants.add(new MeetingParticipant(this, user, role));
     }
 
+    public void addParticipant(AppUser user, String role, MeetingParticipant.InvitationStatus status) {
+        participants.add(new MeetingParticipant(this, user, role, status));
+    }
+
     public String getId() {
         return id;
     }
@@ -172,6 +177,12 @@ public class Meeting {
 
     public List<MeetingParticipant> getParticipants() {
         return Collections.unmodifiableList(participants);
+    }
+
+    public Optional<MeetingParticipant> findParticipant(String userId) {
+        return participants.stream()
+                .filter(participant -> participant.getUser().getId().equals(userId))
+                .findFirst();
     }
 
     public LocalDateTime getCreatedAt() {

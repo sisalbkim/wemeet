@@ -4,6 +4,7 @@ import com.kopo.wemeet.config.RememberMeProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class RememberMeJwtService {
     // 자동로그인용 JWT를 만들고 검증하며, 쿠키에 넣고 지우는 역할만 맡는다.
 
@@ -27,11 +29,6 @@ public class RememberMeJwtService {
 
     private final RememberMeProperties rememberMeProperties;
     private final ObjectMapper objectMapper;
-
-    public RememberMeJwtService(RememberMeProperties rememberMeProperties, ObjectMapper objectMapper) {
-        this.rememberMeProperties = rememberMeProperties;
-        this.objectMapper = objectMapper;
-    }
 
     public boolean isEnabled() {
         return !rememberMeProperties.getSecret().isBlank();

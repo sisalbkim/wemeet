@@ -10,6 +10,7 @@ import com.kopo.wemeet.service.IWemeetViewService;
 import com.kopo.wemeet.service.impl.ApiNaverPlaceSearchService;
 import com.kopo.wemeet.service.impl.NaverPlaceTagCatalog;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,6 +35,7 @@ import static com.kopo.wemeet.util.UiDefaults.TAB_HOME;
 import static com.kopo.wemeet.util.UiDefaults.TAB_NEARBY;
 
 @Controller
+@RequiredArgsConstructor
 public class MeetController {
     // 홈, 게스트 추천, 장소 검색 같은 메인 화면 진입점을 연결하는 컨트롤러.
 
@@ -43,22 +45,6 @@ public class MeetController {
     private final ApiNaverPlaceSearchService apiNaverPlaceSearchService;
     private final NaverPlaceTagCatalog naverPlaceTagCatalog;
     private final WemeetViewHelper viewHelper;
-
-    public MeetController(
-            IWemeetViewService viewService,
-            IApiAuthService authService,
-            IApiRecommendationService recommendationService,
-            ApiNaverPlaceSearchService apiNaverPlaceSearchService,
-            NaverPlaceTagCatalog naverPlaceTagCatalog,
-            WemeetViewHelper viewHelper
-    ) {
-        this.viewService = viewService;
-        this.authService = authService;
-        this.recommendationService = recommendationService;
-        this.apiNaverPlaceSearchService = apiNaverPlaceSearchService;
-        this.naverPlaceTagCatalog = naverPlaceTagCatalog;
-        this.viewHelper = viewHelper;
-    }
 
     @GetMapping("/")
     public String landing(Model model, HttpSession session) {

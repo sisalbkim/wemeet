@@ -345,6 +345,60 @@
     color: var(--muted);
 }
 
+.meeting-invitation-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.meeting-invitation-card__message {
+    color: var(--text);
+    font-size: 0.98rem;
+    font-weight: 800;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    word-break: keep-all;
+}
+
+.meeting-invitation-card__meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.meeting-invitation-card__meta span {
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    background: rgba(24, 32, 51, 0.04);
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.meeting-invitation-card__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.meeting-invitation-card__actions form,
+.meeting-invitation-card__actions button {
+    width: 100%;
+}
+
+.meeting-invitation-card__actions button {
+    min-height: 52px;
+    padding: 0 14px;
+    font-size: 0.95rem;
+    font-weight: 900;
+}
+
+.meeting-invitation-card__actions .secondary-button,
+.meeting-invitation-card__actions .danger-button {
+    display: flex;
+    width: 100%;
+}
+
 .meeting-card--details {
     display: block;
 }
@@ -562,6 +616,12 @@
     border-color: #ffd1d7;
     background: #fff;
     color: var(--danger);
+}
+
+.participant-pill__status {
+    margin-left: 6px;
+    color: var(--primary);
+    font-weight: 900;
 }
 
 .login-links {

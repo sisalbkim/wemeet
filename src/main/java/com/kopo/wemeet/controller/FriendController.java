@@ -8,6 +8,7 @@ import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IFriendService;
 import com.kopo.wemeet.service.IWemeetViewService;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 @Controller
+@RequiredArgsConstructor
 public class FriendController {
     // 친구 목록, 친구 요청, 친구 추가와 승인 흐름을 담당하는 컨트롤러.
 
@@ -33,18 +35,6 @@ public class FriendController {
     private final IApiAuthService authService;
     private final IFriendService friendService;
     private final WemeetViewHelper viewHelper;
-
-    public FriendController(
-            IWemeetViewService viewService,
-            IApiAuthService authService,
-            IFriendService friendService,
-            WemeetViewHelper viewHelper
-    ) {
-        this.viewService = viewService;
-        this.authService = authService;
-        this.friendService = friendService;
-        this.viewHelper = viewHelper;
-    }
 
     @GetMapping("/friends")
     public String friends(

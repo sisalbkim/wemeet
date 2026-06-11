@@ -11,6 +11,7 @@ import com.kopo.wemeet.service.impl.RememberMeJwtService;
 import com.kopo.wemeet.util.CmmUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
+@RequiredArgsConstructor
 public class AuthController {
     // 로그인, 회원가입, 비밀번호 찾기 같은 인증 화면 흐름을 처리하는 컨트롤러.
 
@@ -31,20 +33,6 @@ public class AuthController {
     private final WemeetViewHelper viewHelper;
     private final MailDeliveryService mailDeliveryService;
     private final RememberMeJwtService rememberMeJwtService;
-
-    public AuthController(
-            IWemeetViewService viewService,
-            IApiAuthService authService,
-            WemeetViewHelper viewHelper,
-            MailDeliveryService mailDeliveryService,
-            RememberMeJwtService rememberMeJwtService
-    ) {
-        this.viewService = viewService;
-        this.authService = authService;
-        this.viewHelper = viewHelper;
-        this.mailDeliveryService = mailDeliveryService;
-        this.rememberMeJwtService = rememberMeJwtService;
-    }
 
     @GetMapping({"/login", "/user/login"})
     public String login(

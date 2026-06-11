@@ -49,9 +49,17 @@
                 <span th:text="${recommendation.calculationMode}">더미 데이터 기반</span>
             </div>
             <div class="participant-row">
-                <span class="participant-pill" th:each="participant : ${recommendation.participants}"
+                <span class="participant-pill"
+                      th:if="${meetingParticipantStatuses == null or #lists.isEmpty(meetingParticipantStatuses)}"
+                      th:each="participant : ${recommendation.participants}"
                       th:text="${guestMode ? participant.addressHint : participant.name + ' · ' + participant.addressHint}">
                     김철수 · 명동 출발
+                </span>
+                <span class="participant-pill"
+                      th:if="${meetingParticipantStatuses != null and !#lists.isEmpty(meetingParticipantStatuses)}"
+                      th:each="participant : ${meetingParticipantStatuses}">
+                    <span th:text="${participant.name + ' · ' + participant.addressHint}">김철수 · 명동 출발</span>
+                    <strong class="participant-pill__status" th:text="${participant.statusLabel}">참여</strong>
                 </span>
             </div>
         </section>

@@ -9,6 +9,7 @@ import com.kopo.wemeet.service.IFriendService;
 import com.kopo.wemeet.service.IHistoryService;
 import com.kopo.wemeet.service.IMeetingService;
 import com.kopo.wemeet.service.IWemeetViewService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriUtils;
 
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Locale;
 
 @Service
+@RequiredArgsConstructor
 public class WemeetViewService implements IWemeetViewService {
     // 서비스 계층의 응답을 화면 전용 모델로 바꿔주는 어댑터 역할을 한다.
     // 컨트롤러가 템플릿 세부 구조를 너무 많이 알지 않게 하기 위해 분리했다.
@@ -41,24 +43,6 @@ public class WemeetViewService implements IWemeetViewService {
             new RecommendationDTO.CategoryChip("운동", "운동"),
             new RecommendationDTO.CategoryChip("기타", "기타")
     );
-
-    public WemeetViewService(
-            ApiRecommendationService recommendationService,
-            ApiAuthService authService,
-            UserAccountLookup userAccountLookup,
-            IFriendService friendService,
-            IHistoryService historyService,
-            IMeetingService meetingService,
-            RecommendationBundleMapper recommendationBundleMapper
-    ) {
-        this.recommendationService = recommendationService;
-        this.authService = authService;
-        this.userAccountLookup = userAccountLookup;
-        this.friendService = friendService;
-        this.historyService = historyService;
-        this.meetingService = meetingService;
-        this.recommendationBundleMapper = recommendationBundleMapper;
-    }
 
     @Override
     public UserDTO.UserProfile getGuestUser() {
@@ -159,7 +143,17 @@ public class WemeetViewService implements IWemeetViewService {
     public List<MeetingDTO.CreatedMeeting> getParticipatingMeetings(String userId) {
         return meetingService.listMeetingsForUser(userId).stream()
                 .filter(meeting -> !userId.equals(meeting.hostUserId()))
+                .filter(meeting -> meeting.participantStatuses().stream()
+                        .filter(participant -> participant.userId().equals(userId))
+                        .noneMatch(participant -> "PENDING".equals(participant.status()) || "DECLINED".equals(participant.status())))
                 .map(this::toCreatedMeeting)
+                .toList();
+    }
+
+    @Override
+    public List<MeetingDTO.MeetingInvitation> getMeetingInvitations(String userId) {
+        return meetingService.listPendingInvitationsForUser(userId).stream()
+                .map(this::toMeetingInvitation)
                 .toList();
     }
 
@@ -285,11 +279,27 @@ public class WemeetViewService implements IWemeetViewService {
                 meeting.category(),
                 meeting.meetingPlaceName() == null || meeting.meetingPlaceName().isBlank() ? "만날 지점 미정" : meeting.meetingPlaceName(),
                 meeting.meetingPlaceAddress() == null ? "" : meeting.meetingPlaceAddress(),
-                meeting.participantIds().size(),
+                (int) meeting.participantStatuses().stream()
+                        .filter(participant -> "ACCEPTED".equals(participant.status()))
+                        .count(),
                 meeting.meetingPlaceName() == null || meeting.meetingPlaceName().isBlank()
                         ? ""
                         : "https://map.naver.com/p/search/"
                         + UriUtils.encodePathSegment(meeting.meetingPlaceName().trim(), StandardCharsets.UTF_8)
+        );
+    }
+
+    private MeetingDTO.MeetingInvitation toMeetingInvitation(MeetingDTO.MeetingRecord meeting) {
+        String hostName = userAccountLookup.findById(meeting.hostUserId())
+                .map(UserDTO.UserAccount::nickname)
+                .orElse("알 수 없음");
+        return new MeetingDTO.MeetingInvitation(
+                meeting.id(),
+                meeting.title(),
+                hostName,
+                meeting.meetingDate().format(historyFormatter),
+                meeting.meetingTime() == null ? "시간 미정" : meeting.meetingTime().toString(),
+                meeting.meetingPlaceName() == null || meeting.meetingPlaceName().isBlank() ? "만날 지점 미정" : meeting.meetingPlaceName()
         );
     }
 

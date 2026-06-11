@@ -13,6 +13,7 @@ import com.kopo.wemeet.repository.SearchHistoryRepository;
 import com.kopo.wemeet.session.SessionTokenStore;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.impl.MailDeliveryService.MailSendResult;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,7 @@ import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Service
+@RequiredArgsConstructor
 public class ApiAuthService implements IApiAuthService {
     // 회원가입, 로그인, 비밀번호 재설정처럼 인증과 계정 관리에 관한 핵심 로직을 모아 둔 서비스다.
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
@@ -46,28 +48,6 @@ public class ApiAuthService implements IApiAuthService {
     private final PasswordEncoder passwordEncoder;
     private final SessionTokenStore sessionTokenStore;
     private final MailDeliveryService mailDeliveryService;
-//어노테이션 확인 자동로그인 확인 스프링 시큐리티 확인
-    public ApiAuthService(
-            AppUserRepository userRepository,
-            FriendRelationRepository friendRelationRepository,
-            SearchHistoryRepository searchHistoryRepository,
-            MeetingRepository meetingRepository,
-            MeetingParticipantRepository meetingParticipantRepository,
-            PasswordResetTokenRepository passwordResetTokenRepository,
-            PasswordEncoder passwordEncoder,
-            SessionTokenStore sessionTokenStore,
-            MailDeliveryService mailDeliveryService
-    ) {
-        this.userRepository = userRepository;
-        this.friendRelationRepository = friendRelationRepository;
-        this.searchHistoryRepository = searchHistoryRepository;
-        this.meetingRepository = meetingRepository;
-        this.meetingParticipantRepository = meetingParticipantRepository;
-        this.passwordResetTokenRepository = passwordResetTokenRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.sessionTokenStore = sessionTokenStore;
-        this.mailDeliveryService = mailDeliveryService;
-    }
 
     @Override
     public AuthDTO.AuthResponse signUp(AuthDTO.SignUpRequest request) {

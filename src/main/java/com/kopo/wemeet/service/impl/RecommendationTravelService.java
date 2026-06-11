@@ -3,6 +3,7 @@ package com.kopo.wemeet.service.impl;
 import com.kopo.wemeet.dto.PlaceDTO;
 import com.kopo.wemeet.dto.RecommendationDTO;
 import com.kopo.wemeet.dto.RecommendationMode;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class RecommendationTravelService {
     // 이동시간 계산, 장소 평가, 최종 후보 선정 로직을 담당한다.
 
@@ -25,22 +27,6 @@ public class RecommendationTravelService {
     private final ApiTmapWalkingRoutingService apiTmapWalkingRoutingService;
     private final RecommendationLocationService locationService;
     private final RecommendationParticipantService participantService;
-
-    public RecommendationTravelService(
-            ApiOpenRoutingService apiOpenRoutingService,
-            ApiNaverPlaceSearchService apiNaverPlaceSearchService,
-            ApiOdsayTransitRoutingService apiOdsayTransitRoutingService,
-            ApiTmapWalkingRoutingService apiTmapWalkingRoutingService,
-            RecommendationLocationService locationService,
-            RecommendationParticipantService participantService
-    ) {
-        this.apiOpenRoutingService = apiOpenRoutingService;
-        this.apiNaverPlaceSearchService = apiNaverPlaceSearchService;
-        this.apiOdsayTransitRoutingService = apiOdsayTransitRoutingService;
-        this.apiTmapWalkingRoutingService = apiTmapWalkingRoutingService;
-        this.locationService = locationService;
-        this.participantService = participantService;
-    }
 
     public List<PlaceDTO.PlaceCandidateResponse> narrowToNearbyPlaces(List<PlaceDTO.PlaceCandidateResponse> places) {
         if (places == null || places.isEmpty()) {

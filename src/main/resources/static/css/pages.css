@@ -812,6 +812,10 @@
         width: 100%;
     }
 
+    .meeting-invitation-card__meta {
+        grid-template-columns: 1fr;
+    }
+
     .hero-brand__full {
         width: min(100%, 232px);
     }

@@ -1,5 +1,6 @@
 package com.kopo.wemeet.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -8,14 +9,11 @@ import java.time.Duration;
 import java.util.function.Consumer;
 
 @Component
+@RequiredArgsConstructor
 public class OpenApiRestClientFactory {
     // 외부 API RestClient에 동일한 연결/응답 타임아웃 정책을 적용한다.
 
     private final OpenApiProperties properties;
-
-    public OpenApiRestClientFactory(OpenApiProperties properties) {
-        this.properties = properties;
-    }
 
     public RestClient create(String baseUrl) {
         return create(baseUrl, builder -> {

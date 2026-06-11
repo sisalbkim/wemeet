@@ -4,20 +4,18 @@ import com.kopo.wemeet.dto.PlaceDTO;
 import com.kopo.wemeet.dto.RecommendationDTO;
 import com.kopo.wemeet.dto.RecommendationMode;
 import com.kopo.wemeet.dto.UserDTO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class RecommendationResponseFactory {
     // 추천 계산 결과를 최종 응답 DTO로 조립한다.
 
     private final RecommendationLocationService locationService;
-
-    public RecommendationResponseFactory(RecommendationLocationService locationService) {
-        this.locationService = locationService;
-    }
 
     public RecommendationDTO.RecommendationResponse buildRecommendation(
             String category,

@@ -52,7 +52,29 @@ public final class MeetingDTO {
             LocalDateTime recommendationSnapshotExpiresAt,
             String hostUserId,
             List<String> participantIds,
+            List<MeetingParticipantStatus> participantStatuses,
             LocalDateTime createdAt
+    ) {
+    }
+
+    public record MeetingParticipantStatus(
+            String userId,
+            String name,
+            String addressHint,
+            String role,
+            String status,
+            String statusLabel,
+            String statusTone
+    ) {
+    }
+
+    public record MeetingInvitation(
+            String meetingId,
+            String title,
+            String hostName,
+            String dateLabel,
+            String timeLabel,
+            String meetingPlaceName
     ) {
     }
 

@@ -7,6 +7,7 @@ import com.kopo.wemeet.dto.UserDTO;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IApiRecommendationService;
 import com.kopo.wemeet.service.IHistoryService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class ApiRecommendationService implements IApiRecommendationService {
     // 참가자 목록과 추천 모드를 바탕으로 실제 장소 후보를 계산하는 오케스트레이션 서비스다.
     private static final int DEFAULT_SEARCH_DISPLAY = 5;
@@ -26,24 +28,6 @@ public class ApiRecommendationService implements IApiRecommendationService {
     private final ApiNaverPlaceSearchService apiNaverPlaceSearchService;
     private final RecommendationResponseFactory responseFactory;
     private final IHistoryService historyService;
-
-    public ApiRecommendationService(
-            RecommendationParticipantService participantService,
-            RecommendationLocationService locationService,
-            RecommendationTravelService travelService,
-            RecommendationCacheService recommendationCacheService,
-            ApiNaverPlaceSearchService apiNaverPlaceSearchService,
-            RecommendationResponseFactory responseFactory,
-            IHistoryService historyService
-    ) {
-        this.participantService = participantService;
-        this.locationService = locationService;
-        this.travelService = travelService;
-        this.recommendationCacheService = recommendationCacheService;
-        this.apiNaverPlaceSearchService = apiNaverPlaceSearchService;
-        this.responseFactory = responseFactory;
-        this.historyService = historyService;
-    }
 
     @Override
     public RecommendationDTO.CategoryResponse categories() {

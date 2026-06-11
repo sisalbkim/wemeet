@@ -3,6 +3,7 @@ package com.kopo.wemeet.service.impl;
 import com.kopo.wemeet.dto.PlaceDTO;
 import com.kopo.wemeet.dto.RecommendationDTO;
 import com.kopo.wemeet.dto.RecommendationMode;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashSet;
@@ -12,6 +13,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class RecommendationLocationService {
     // 좌표 계산, 검색 기준점 선택, 지도 경로용 기초 좌표 로직을 담당한다.
 
@@ -28,14 +30,6 @@ public class RecommendationLocationService {
             "왕십리", new RecommendationSupport.GeoPoint(37.5611, 127.0373),
             "기본", new RecommendationSupport.GeoPoint(37.5665, 126.9780)
     );
-
-    public RecommendationLocationService(
-            ApiOpenRoutingService apiOpenRoutingService,
-            ApiNaverPlaceSearchService apiNaverPlaceSearchService
-    ) {
-        this.apiOpenRoutingService = apiOpenRoutingService;
-        this.apiNaverPlaceSearchService = apiNaverPlaceSearchService;
-    }
 
     public RecommendationSupport.GeoPoint resolveParticipantPoint(RecommendationSupport.ParticipantProfile participant) {
         return apiOpenRoutingService.geocodeAddress(participant.baseAddress())

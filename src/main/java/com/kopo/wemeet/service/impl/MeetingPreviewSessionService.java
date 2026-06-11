@@ -2,6 +2,7 @@ package com.kopo.wemeet.service.impl;
 
 import com.kopo.wemeet.dto.RecommendationDTO;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
@@ -10,16 +11,13 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class MeetingPreviewSessionService {
     // 모임 생성 전 추천 결과 미리보기를 세션에 저장하고 복원한다.
 
     private static final String MEETING_PREVIEW_SNAPSHOTS = "MEETING_PREVIEW_SNAPSHOTS";
 
     private final ObjectMapper objectMapper;
-
-    public MeetingPreviewSessionService(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
 
     public String rememberPreview(HttpSession session, RecommendationDTO.RecommendationBundle recommendation) {
         if (session == null) {

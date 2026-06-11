@@ -7,7 +7,9 @@ import com.kopo.wemeet.repository.MeetingRepository;
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.repository.entity.Meeting;
 import com.kopo.wemeet.repository.entity.MeetingParticipant;
+import com.kopo.wemeet.repository.entity.MeetingParticipant.InvitationStatus;
 import com.kopo.wemeet.service.IMeetingService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -27,19 +29,12 @@ import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
+@RequiredArgsConstructor
 public class MeetingService implements IMeetingService {
     // 모임 저장과 조회 규칙을 모아두는 도메인 서비스다.
 
     private final AppUserRepository userRepository;
     private final MeetingRepository meetingRepository;
-
-    public MeetingService(
-            AppUserRepository userRepository,
-            MeetingRepository meetingRepository
-    ) {
-        this.userRepository = userRepository;
-        this.meetingRepository = meetingRepository;
-    }
 
     @Transactional
     @Override
@@ -135,7 +130,8 @@ public class MeetingService implements IMeetingService {
         );
         for (AppUser participant : participants) {
             String role = participant.getId().equals(host.getId()) ? "HOST" : "PARTICIPANT";
-            meeting.addParticipant(participant, role);
+            InvitationStatus status = participant.getId().equals(host.getId()) ? InvitationStatus.ACCEPTED : InvitationStatus.PENDING;
+            meeting.addParticipant(participant, role, status);
         }
 
         return toMeetingRecord(meetingRepository.save(meeting));
@@ -145,6 +141,21 @@ public class MeetingService implements IMeetingService {
     @Override
     public List<MeetingDTO.MeetingRecord> listMeetingsForUser(String userId) {
         return meetingRepository.findAllParticipatingByUserId(userId).stream()
+                .filter(meeting -> meeting.findParticipant(userId)
+                        .map(participant -> participant.getStatus() != InvitationStatus.DECLINED)
+                        .orElse(false))
+                .map(this::toMeetingRecord)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<MeetingDTO.MeetingRecord> listPendingInvitationsForUser(String userId) {
+        return meetingRepository.findAllParticipatingByUserId(userId).stream()
+                .filter(meeting -> !meeting.getHost().getId().equals(userId))
+                .filter(meeting -> meeting.findParticipant(userId)
+                        .map(participant -> participant.getStatus() == InvitationStatus.PENDING)
+                        .orElse(false))
                 .map(this::toMeetingRecord)
                 .toList();
     }
@@ -196,6 +207,26 @@ public class MeetingService implements IMeetingService {
         meetingRepository.delete(meeting);
     }
 
+    @Transactional
+    @Override
+    public void respondMeetingInvitation(String userId, String meetingId, boolean accept) {
+        if (meetingId == null || meetingId.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "meetingId is required");
+        }
+        Meeting meeting = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Meeting not found"));
+        MeetingParticipant participant = meeting.findParticipant(userId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Meeting invitation not found"));
+        if ("HOST".equals(participant.getRole())) {
+            throw new ResponseStatusException(BAD_REQUEST, "Host cannot respond to invitation");
+        }
+        if (accept) {
+            participant.accept();
+        } else {
+            participant.decline();
+        }
+    }
+
     @Transactional(readOnly = true)
     @Override
     public List<MeetingDTO.MeetingResponse> getApiMeetings(String userId) {
@@ -225,7 +256,9 @@ public class MeetingService implements IMeetingService {
 
     private MeetingDTO.MeetingResponse toMeetingResponse(MeetingDTO.MeetingRecord meeting) {
         AppUser host = requireUser(meeting.hostUserId());
-        List<UserDTO.UserResponse> participants = meeting.participantIds().stream()
+        List<UserDTO.UserResponse> participants = meeting.participantStatuses().stream()
+                .filter(participant -> !"DECLINED".equals(participant.status()))
+                .map(MeetingDTO.MeetingParticipantStatus::userId)
                 .map(this::requireUser)
                 .map(this::toUserResponse)
                 .toList();
@@ -280,12 +313,26 @@ public class MeetingService implements IMeetingService {
     }
 
     private MeetingDTO.MeetingRecord toMeetingRecord(Meeting meeting) {
-        List<String> participantIds = meeting.getParticipants().stream()
+        List<MeetingParticipant> sortedParticipants = meeting.getParticipants().stream()
                 .sorted(Comparator
                         .comparing((MeetingParticipant participant) -> !"HOST".equals(participant.getRole()))
                         .thenComparing(MeetingParticipant::getCreatedAt))
+                .toList();
+        List<String> participantIds = sortedParticipants.stream()
+                .filter(participant -> participant.getStatus() != InvitationStatus.DECLINED)
                 .map(participant -> participant.getUser().getId())
                 .collect(Collectors.toList());
+        List<MeetingDTO.MeetingParticipantStatus> participantStatuses = sortedParticipants.stream()
+                .map(participant -> new MeetingDTO.MeetingParticipantStatus(
+                        participant.getUser().getId(),
+                        participant.getUser().getNickname(),
+                        participant.getUser().getBaseAddress(),
+                        participant.getRole(),
+                        participant.getStatus().name(),
+                        statusLabel(participant.getStatus()),
+                        statusTone(participant.getStatus())
+                ))
+                .toList();
 
         return new MeetingDTO.MeetingRecord(
                 meeting.getId(),
@@ -302,7 +349,24 @@ public class MeetingService implements IMeetingService {
                 meeting.getRecommendationSnapshotExpiresAt(),
                 meeting.getHost().getId(),
                 participantIds,
+                participantStatuses,
                 meeting.getCreatedAt()
         );
+    }
+
+    private String statusLabel(InvitationStatus status) {
+        return switch (status) {
+            case ACCEPTED -> "참여";
+            case PENDING -> "수락 대기중";
+            case DECLINED -> "거절";
+        };
+    }
+
+    private String statusTone(InvitationStatus status) {
+        return switch (status) {
+            case ACCEPTED -> "active";
+            case PENDING -> "scheduled";
+            case DECLINED -> "error";
+        };
     }
 }

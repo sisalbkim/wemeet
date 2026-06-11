@@ -2,6 +2,8 @@ package com.kopo.wemeet.repository.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -22,6 +24,12 @@ import java.time.LocalDateTime;
 public class MeetingParticipant {
     // 특정 사용자가 어떤 모임에 어떤 역할로 참여하는지 나타내는 연결 엔티티다.
 
+    public enum InvitationStatus {
+        PENDING,
+        ACCEPTED,
+        DECLINED
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -37,6 +45,10 @@ public class MeetingParticipant {
     @Column(length = 20, nullable = false)
     private String role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    private InvitationStatus status = InvitationStatus.ACCEPTED;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -44,9 +56,14 @@ public class MeetingParticipant {
     }
 
     public MeetingParticipant(Meeting meeting, AppUser user, String role) {
+        this(meeting, user, role, InvitationStatus.ACCEPTED);
+    }
+
+    public MeetingParticipant(Meeting meeting, AppUser user, String role, InvitationStatus status) {
         this.meeting = meeting;
         this.user = user;
         this.role = role;
+        this.status = status;
     }
 
     @PrePersist
@@ -63,7 +80,19 @@ public class MeetingParticipant {
         return role;
     }
 
+    public InvitationStatus getStatus() {
+        return status;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public void accept() {
+        status = InvitationStatus.ACCEPTED;
+    }
+
+    public void decline() {
+        status = InvitationStatus.DECLINED;
     }
 }

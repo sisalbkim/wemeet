@@ -3,6 +3,7 @@ package com.kopo.wemeet.service.impl;
 import com.kopo.wemeet.dto.RecommendationMode;
 import com.kopo.wemeet.dto.UserDTO;
 import com.kopo.wemeet.service.support.UserAccountLookup;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
+@RequiredArgsConstructor
 public class RecommendationParticipantService {
     // 참가자 목록 정규화, 카테고리 검증, 캐시 키 생성을 담당한다.
 
@@ -20,10 +22,6 @@ public class RecommendationParticipantService {
     private static final List<String> CATEGORIES = List.of("맛집", "카페", "놀이", "문화", "운동", "기타");
 
     private final UserAccountLookup userAccountLookup;
-
-    public RecommendationParticipantService(UserAccountLookup userAccountLookup) {
-        this.userAccountLookup = userAccountLookup;
-    }
 
     public List<String> categories() {
         return CATEGORIES;

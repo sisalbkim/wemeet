@@ -10,6 +10,7 @@ import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IMeetingService;
 import com.kopo.wemeet.service.IWemeetViewService;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +26,7 @@ import static com.kopo.wemeet.util.UiDefaults.DEFAULT_ROUTE_MODE;
 import static com.kopo.wemeet.util.UiDefaults.TAB_PROFILE;
 
 @Controller
+@RequiredArgsConstructor
 public class MyPageController {
     // 프로필, 계정 수정, 저장된 모임 결과 다시 보기를 담당하는 컨트롤러.
 
@@ -35,20 +37,6 @@ public class MyPageController {
     private final WemeetViewHelper viewHelper;
     private final IMeetingService meetingService;
     private final ObjectMapper objectMapper;
-
-    public MyPageController(
-            IWemeetViewService viewService,
-            IApiAuthService authService,
-            WemeetViewHelper viewHelper,
-            IMeetingService meetingService,
-            ObjectMapper objectMapper
-    ) {
-        this.viewService = viewService;
-        this.authService = authService;
-        this.viewHelper = viewHelper;
-        this.meetingService = meetingService;
-        this.objectMapper = objectMapper;
-    }
 
     @GetMapping("/profile")
     public String profile(Model model, HttpSession session) {
@@ -68,6 +56,7 @@ public class MyPageController {
                 viewService.getFriends(currentUser.getId()).size(),
                 participatingMeetings.size()
         ));
+        model.addAttribute("meetingInvitations", viewService.getMeetingInvitations(currentUser.getId()));
         model.addAttribute("createdMeetings", createdMeetings);
         model.addAttribute("participatingMeetings", participatingMeetings);
         return "profile/index";
@@ -102,6 +91,7 @@ public class MyPageController {
         model.addAttribute("selectedMode", savedMode);
         model.addAttribute("selectedAnchorId", savedAnchorId);
         model.addAttribute("selectedFriendIds", selectedFriendIds);
+        model.addAttribute("meetingParticipantStatuses", meeting.participantStatuses());
         model.addAttribute("meetingCreationAvailable", false);
         String normalizedRouteMode = viewHelper.normalizeRouteMode(routeMode);
         model.addAttribute("selectedRouteMode", normalizedRouteMode);
@@ -126,6 +116,23 @@ public class MyPageController {
             ));
         }
         return "meeting/results";
+    }
+
+    @PostMapping("/profile/meetings/invitations/respond")
+    public String respondMeetingInvitation(
+            @RequestParam(defaultValue = "") String meetingId,
+            @RequestParam(defaultValue = "") String action,
+            HttpSession session,
+            RedirectAttributes redirectAttributes
+    ) {
+        AppUser currentUser = viewHelper.requireLoggedInUser(session);
+        boolean accept = "accept".equalsIgnoreCase(action);
+        meetingService.respondMeetingInvitation(currentUser.getId(), meetingId, accept);
+        redirectAttributes.addFlashAttribute(
+                "profileNotice",
+                accept ? "모임 초대를 수락했습니다." : "모임 초대를 거절했습니다."
+        );
+        return "redirect:/profile";
     }
 
     private RecommendationDTO.RecommendationBundle deserializeRecommendationSnapshot(MeetingDTO.MeetingRecord meeting) {

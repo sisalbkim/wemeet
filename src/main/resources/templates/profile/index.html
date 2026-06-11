@@ -37,6 +37,39 @@
             </div>
         </section>
 
+        <section class="panel" th:if="${meetingInvitations != null and !#lists.isEmpty(meetingInvitations)}">
+            <div class="section-heading">
+                <h2>받은 모임 초대</h2>
+                <span th:text="${#lists.size(meetingInvitations)} + '개'">1개</span>
+            </div>
+            <div class="card-stack">
+                <article class="meeting-card meeting-card--profile meeting-invitation-card" th:each="invitation : ${meetingInvitations}">
+                    <div class="meeting-card__header">
+                        <h3 th:text="${invitation.title}">주말 맛집 탐방</h3>
+                        <span class="status-pill status-pill--scheduled">수락 대기중</span>
+                    </div>
+                    <p class="meeting-card__place meeting-invitation-card__message" th:text="${'@' + invitation.hostName + ' 님이 모임에 초대하셨습니다. 참여하시겠습니까?'}">@김철수 님이 모임에 초대하셨습니다. 참여하시겠습니까?</p>
+                    <div class="meta-row meeting-invitation-card__meta">
+                        <span th:text="${invitation.dateLabel}">2026. 4. 20.</span>
+                        <span th:text="${invitation.timeLabel}">19:30</span>
+                        <span th:text="${invitation.meetingPlaceName}">어니언 성수</span>
+                    </div>
+                    <div class="profile-meeting-actions meeting-invitation-card__actions">
+                        <form method="post" th:action="@{/profile/meetings/invitations/respond}">
+                            <input type="hidden" name="meetingId" th:value="${invitation.meetingId}">
+                            <input type="hidden" name="action" value="accept">
+                            <button class="secondary-button secondary-button--compact" type="submit">참여</button>
+                        </form>
+                        <form method="post" th:action="@{/profile/meetings/invitations/respond}">
+                            <input type="hidden" name="meetingId" th:value="${invitation.meetingId}">
+                            <input type="hidden" name="action" value="decline">
+                            <button class="danger-button danger-button--compact" type="submit">거절</button>
+                        </form>
+                    </div>
+                </article>
+            </div>
+        </section>
+
         <section class="panel">
             <div class="section-heading">
                 <h2>계정 정보</h2>

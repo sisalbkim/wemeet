@@ -3,6 +3,7 @@ package com.kopo.wemeet.service.impl;
 import com.kopo.wemeet.config.AppMailProperties;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 
 @Service
+@RequiredArgsConstructor
 public class MailDeliveryService {
     // 인증코드와 임시 비밀번호 메일을 SMTP로 발송하고, 개발 환경에서는 preview fallback도 제공한다.
 
@@ -20,14 +22,6 @@ public class MailDeliveryService {
 
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
     private final AppMailProperties mailProperties;
-
-    public MailDeliveryService(
-            ObjectProvider<JavaMailSender> mailSenderProvider,
-            AppMailProperties mailProperties
-    ) {
-        this.mailSenderProvider = mailSenderProvider;
-        this.mailProperties = mailProperties;
-    }
 
     public MailSendResult sendSignupVerificationCode(String email, String code) {
         if (!mailProperties.isEnabled()) {

@@ -51,6 +51,8 @@ public interface IMeetingService {
 
     List<MeetingDTO.MeetingRecord> listMeetingsForUser(String userId);
 
+    List<MeetingDTO.MeetingRecord> listPendingInvitationsForUser(String userId);
+
     List<MeetingDTO.MeetingRecord> listMeetingsCreatedByUser(String userId);
 
     Optional<MeetingDTO.MeetingRecord> findMeetingCreatedByUser(String userId, String meetingId);
@@ -58,6 +60,8 @@ public interface IMeetingService {
     Optional<MeetingDTO.MeetingRecord> findMeetingForUser(String userId, String meetingId);
 
     void deleteMeetingCreatedByUser(String userId, String meetingId);
+
+    void respondMeetingInvitation(String userId, String meetingId, boolean accept);
 
     List<MeetingDTO.MeetingResponse> getApiMeetings(String userId);
 

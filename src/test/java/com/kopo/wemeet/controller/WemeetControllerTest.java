@@ -412,7 +412,7 @@ class WemeetControllerTest {
         String userId = userRepository.findByLoginId("profilejoined01").orElseThrow().getId();
         String hostId = userRepository.findByLoginId("user456").orElseThrow().getId();
 
-        meetingService.createMeeting(
+        String meetingId = meetingService.createMeeting(
                 hostId,
                 "친구가 만든 참여 모임",
                 "내가 참여자로 들어간 모임 설명",
@@ -422,12 +422,28 @@ class WemeetControllerTest {
                 "참여 모임 테스트 식당",
                 "서울특별시 종로구 참여로 11",
                 List.of(userId)
-        );
+        ).id();
 
         mockMvc.perform(get("/profile").session(session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("참여한 모임")))
+                .andExpect(content().string(containsString("받은 모임 초대")))
+                .andExpect(content().string(containsString("@이영희 님이 모임에 초대하셨습니다. 참여하시겠습니까?")))
                 .andExpect(content().string(containsString("친구가 만든 참여 모임")))
+                .andExpect(content().string(containsString("수락 대기중")))
+                .andExpect(content().string(containsString("참여")))
+                .andExpect(content().string(containsString("거절")));
+
+        mockMvc.perform(post("/profile/meetings/invitations/respond")
+                        .session(session)
+                        .param("meetingId", meetingId)
+                        .param("action", "accept"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/profile"));
+
+        mockMvc.perform(get("/profile").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("모임 초대를 수락했습니다.")))
+                .andExpect(content().string(containsString("참여한 모임")))
                 .andExpect(content().string(containsString("내가 참여자로 들어간 모임 설명")))
                 .andExpect(content().string(containsString("참여 모임 테스트 식당")))
                 .andExpect(content().string(containsString("네이버 지도에서 보기")))

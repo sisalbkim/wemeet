@@ -8,6 +8,7 @@ import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IHistoryService;
 import com.kopo.wemeet.service.IWemeetViewService;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.List;
 
 @Controller
+@RequiredArgsConstructor
 public class HistoryController {
     // 사용자 검색 기록 조회와 삭제 화면 흐름을 처리하는 컨트롤러.
 
@@ -27,18 +29,6 @@ public class HistoryController {
     private final IApiAuthService authService;
     private final IHistoryService historyService;
     private final WemeetViewHelper viewHelper;
-
-    public HistoryController(
-            IWemeetViewService viewService,
-            IApiAuthService authService,
-            IHistoryService historyService,
-            WemeetViewHelper viewHelper
-    ) {
-        this.viewService = viewService;
-        this.authService = authService;
-        this.historyService = historyService;
-        this.viewHelper = viewHelper;
-    }
 
     @GetMapping("/history")
     public String history(

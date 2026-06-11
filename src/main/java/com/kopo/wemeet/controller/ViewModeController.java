@@ -2,18 +2,16 @@ package com.kopo.wemeet.controller;
 
 import com.kopo.wemeet.util.ViewModeSupport;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
+@RequiredArgsConstructor
 public class ViewModeController {
 
     private final ViewModeSupport viewModeSupport;
-
-    public ViewModeController(ViewModeSupport viewModeSupport) {
-        this.viewModeSupport = viewModeSupport;
-    }
 
     @GetMapping("/view-mode")
     public String updateViewMode(

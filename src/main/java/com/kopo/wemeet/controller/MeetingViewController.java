@@ -11,6 +11,7 @@ import com.kopo.wemeet.service.IWemeetViewService;
 import com.kopo.wemeet.service.impl.MeetingPreviewSessionService;
 import com.kopo.wemeet.util.WemeetViewHelper;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,6 +35,7 @@ import static com.kopo.wemeet.util.UiDefaults.TAB_HOME;
 import static com.kopo.wemeet.util.UiDefaults.TAB_NEARBY;
 
 @Controller
+@RequiredArgsConstructor
 public class MeetingViewController {
     // 모임 생성 화면과 추천 결과 미리보기 흐름을 담당한다.
 
@@ -41,18 +43,6 @@ public class MeetingViewController {
     private final IMeetingService meetingService;
     private final WemeetViewHelper viewHelper;
     private final MeetingPreviewSessionService meetingPreviewSessionService;
-
-    public MeetingViewController(
-            IWemeetViewService viewService,
-            IMeetingService meetingService,
-            WemeetViewHelper viewHelper,
-            MeetingPreviewSessionService meetingPreviewSessionService
-    ) {
-        this.viewService = viewService;
-        this.meetingService = meetingService;
-        this.viewHelper = viewHelper;
-        this.meetingPreviewSessionService = meetingPreviewSessionService;
-    }
 
     @GetMapping("/meetings/new")
     public String meetingForm(Model model, HttpSession session) {
