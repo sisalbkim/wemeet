@@ -126,6 +126,11 @@
                             <input type="hidden" name="keyword" th:value="${friendKeyword}">
                             <button class="favorite-button" th:classappend="${friend.favorite} ? ' is-active'" type="submit" data-friend-favorite-button th:text="${friend.favorite} ? '해제' : '즐겨찾기'">즐겨찾기</button>
                         </form>
+                        <form method="post" th:action="@{/friends/delete}">
+                            <input type="hidden" name="friendId" th:value="${friend.id}">
+                            <input type="hidden" name="keyword" th:value="${friendKeyword}">
+                            <button class="favorite-button favorite-button--danger" type="submit">삭제</button>
+                        </form>
                     </div>
                 </article>
             </div>

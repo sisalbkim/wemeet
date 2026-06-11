@@ -19,5 +19,7 @@ public interface IFriendService {
     UserDTO.UserAccount respondFriendRequest(String recipientUserId, String requesterUserId, boolean approve);
 
     void updateFriendFavorite(String userId, String friendId, boolean favorite);
+
+    void deleteFriend(String userId, String friendId);
 }
 

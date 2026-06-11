@@ -129,6 +129,20 @@ public class FriendService implements IFriendService {
         relation.changeFavorite(favorite);
     }
 
+    @Transactional
+    @Override
+    public void deleteFriend(String userId, String friendId) {
+        if (friendId == null || friendId.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "friendId is required");
+        }
+
+        FriendRelation relation = friendRelationRepository.findByUserIdAndFriendIdAndStatus(userId, friendId, FriendStatus.ACCEPTED)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Friend relation not found"));
+        String actualFriendId = relation.getFriend().getId();
+        friendRelationRepository.deleteByUserIdAndFriendId(userId, actualFriendId);
+        friendRelationRepository.deleteByUserIdAndFriendId(actualFriendId, userId);
+    }
+
     private AppUser requireUser(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found: " + userId));

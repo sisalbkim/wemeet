@@ -10,6 +10,7 @@ import com.kopo.wemeet.service.IWemeetViewService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -99,6 +100,26 @@ public class FriendController {
         return "redirect:/friends";
     }
 
+    @PostMapping("/friends/delete")
+    public String deleteFriend(
+            @RequestParam(defaultValue = "") String friendId,
+            @RequestParam(defaultValue = "") String keyword,
+            HttpSession session,
+            RedirectAttributes redirectAttributes
+    ) {
+        AppUser currentUser = viewHelper.requireLoggedInUser(session);
+        try {
+            viewService.deleteFriend(currentUser.getId(), friendId);
+            redirectAttributes.addFlashAttribute("friendNotice", "친구를 삭제했습니다.");
+        } catch (ResponseStatusException exception) {
+            redirectAttributes.addFlashAttribute("friendError", "친구를 삭제하지 못했습니다.");
+        }
+        if (keyword != null && !keyword.isBlank()) {
+            redirectAttributes.addAttribute("keyword", keyword.trim());
+        }
+        return "redirect:/friends";
+    }
+
     @PostMapping("/friends/request/respond")
     public String respondFriendRequest(
             @RequestParam(defaultValue = "") String requesterId,
@@ -138,6 +159,16 @@ public class FriendController {
     ) {
         AppUser requester = authService.requireUser(authorization);
         return authService.toUserResponse(friendService.addFriendByCode(requester.getId(), request.friendCode()));
+    }
+
+    @ResponseBody
+    @DeleteMapping("/api/friends")
+    public void apiDeleteFriend(
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody FriendDTO.FriendDeleteRequest request
+    ) {
+        AppUser requester = authService.requireUser(authorization);
+        friendService.deleteFriend(requester.getId(), request.friendId());
     }
 
     private void populateFriendsModel(

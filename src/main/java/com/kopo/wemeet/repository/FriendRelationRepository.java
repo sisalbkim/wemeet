@@ -24,5 +24,7 @@ public interface FriendRelationRepository extends JpaRepository<FriendRelation, 
 
     Optional<FriendRelation> findByUserIdAndFriendIdAndStatus(String userId, String friendId, FriendStatus status);
 
+    long deleteByUserIdAndFriendId(String userId, String friendId);
+
     long deleteByUserIdOrFriendId(String userId, String friendId);
 }

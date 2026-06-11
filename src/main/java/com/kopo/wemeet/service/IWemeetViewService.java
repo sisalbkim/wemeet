@@ -36,6 +36,8 @@ public interface IWemeetViewService {
 
     void updateFriendFavorite(String userId, String friendId, boolean favorite);
 
+    void deleteFriend(String userId, String friendId);
+
     List<HistoryDTO.SearchHistoryItem> getSearchHistory(String userId, String filter, String keyword);
 
     void clearSearchHistory(String userId);

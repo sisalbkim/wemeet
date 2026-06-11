@@ -175,6 +175,11 @@ public class WemeetViewService implements IWemeetViewService {
     }
 
     @Override
+    public void deleteFriend(String userId, String friendId) {
+        friendService.deleteFriend(userId, friendId);
+    }
+
+    @Override
     public UserDTO.UserResponse respondFriendRequest(String userId, String requesterId, boolean approve) {
         return authService.toUserResponse(friendService.respondFriendRequest(userId, requesterId, approve));
     }

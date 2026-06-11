@@ -558,6 +558,12 @@
     color: #126d50;
 }
 
+.favorite-button--danger {
+    border-color: #ffd1d7;
+    background: #fff;
+    color: var(--danger);
+}
+
 .login-links {
     display: flex;
     justify-content: center;

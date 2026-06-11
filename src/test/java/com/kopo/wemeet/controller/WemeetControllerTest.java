@@ -671,6 +671,35 @@ class WemeetControllerTest {
     }
 
     @Test
+    void registeredFriendCanBeDeletedFromFriendsPage() throws Exception {
+        MockHttpSession session = signupAndLogin("frienddelete01", "frienddelete01@wemeet.local");
+        addFriend(session, "frienddelete01", "FRIEND456");
+        String userId = userRepository.findByLoginId("frienddelete01").orElseThrow().getId();
+        String friendId = userRepository.findByLoginId("user456").orElseThrow().getId();
+
+        mockMvc.perform(get("/friends").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("이영희")))
+                .andExpect(content().string(containsString("/friends/delete")))
+                .andExpect(content().string(containsString("삭제")));
+
+        mockMvc.perform(post("/friends/delete")
+                        .session(session)
+                        .param("friendId", friendId))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/friends"));
+
+        mockMvc.perform(get("/friends").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("친구를 삭제했습니다.")))
+                .andExpect(content().string(not(containsString("이영희"))))
+                .andExpect(content().string(containsString("아직 추가된 친구가 없습니다.")));
+
+        assertTrue(friendService.listFriends(userId).stream().noneMatch(friend -> friend.id().equals(friendId)));
+        assertTrue(friendService.listFriends(friendId).stream().noneMatch(friend -> friend.id().equals(userId)));
+    }
+
+    @Test
     void meetingFormProvidesClientSideFriendSearch() throws Exception {
         MockHttpSession session = signupAndLogin("meetingfriendsearch01", "meetingfriendsearch01@wemeet.local");
         addFriend(session, "meetingfriendsearch01", "FRIEND456");

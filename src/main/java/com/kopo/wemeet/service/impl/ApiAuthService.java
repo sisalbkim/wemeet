@@ -46,7 +46,7 @@ public class ApiAuthService implements IApiAuthService {
     private final PasswordEncoder passwordEncoder;
     private final SessionTokenStore sessionTokenStore;
     private final MailDeliveryService mailDeliveryService;
-
+//어노테이션 확인 자동로그인 확인 스프링 시큐리티 확인
     public ApiAuthService(
             AppUserRepository userRepository,
             FriendRelationRepository friendRelationRepository,

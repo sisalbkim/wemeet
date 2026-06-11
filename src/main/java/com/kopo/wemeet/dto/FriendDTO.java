@@ -13,6 +13,11 @@ public final class FriendDTO {
     ) {
     }
 
+    public record FriendDeleteRequest(
+            String friendId
+    ) {
+    }
+
     public record FriendSummary(
             String id,
             String name,

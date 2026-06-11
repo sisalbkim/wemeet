@@ -41,10 +41,10 @@ public class RecommendationCacheService {
     public Optional<RecommendationDTO.RecommendationResponse> get(String cacheKey) {
         if (shouldUseRedis()) {
             try {
-                // Redis에는 JSON 문자열로 저장해 두었다가 다시 DTO로 복원한다.
+                // Redis에는 정의서의 PAYLOAD_JSON 구조로 저장해 두었다가 다시 DTO로 복원한다.
                 String payload = redisTemplate.opsForValue().get(CACHE_PREFIX + cacheKey);
                 if (payload != null && !payload.isBlank()) {
-                    return Optional.of(objectMapper.readValue(payload, RecommendationDTO.RecommendationResponse.class));
+                    return Optional.of(readRecommendation(payload));
                 }
             } catch (Exception exception) {
                 log.warn("Redis recommendation cache lookup failed, using fallback cache", exception);
@@ -65,8 +65,8 @@ public class RecommendationCacheService {
                 // TTL을 둬서 주소나 후보 데이터가 조금씩 바뀌더라도 캐시가 오래 고정되지 않게 한다.
                 redisTemplate.opsForValue().set(
                         CACHE_PREFIX + cacheKey,
-                        objectMapper.writeValueAsString(response),
-                        Duration.ofMinutes(redisProperties.getRecommendationTtlMinutes())
+                        objectMapper.writeValueAsString(new RedisRecommendationValue(response, recommendationTtlMinutes())),
+                        Duration.ofMinutes(recommendationTtlMinutes())
                 );
                 return;
             } catch (Exception exception) {
@@ -78,7 +78,7 @@ public class RecommendationCacheService {
                 cacheKey,
                 new CachedRecommendation(
                         response,
-                        Instant.now().plus(Duration.ofMinutes(redisProperties.getRecommendationTtlMinutes()))
+                        Instant.now().plus(Duration.ofMinutes(recommendationTtlMinutes()))
                 )
         );
     }
@@ -86,6 +86,28 @@ public class RecommendationCacheService {
     private boolean shouldUseRedis() {
         // Redis 설정이 켜져 있고 실제 템플릿 빈도 존재할 때만 Redis 사용.
         return redisProperties.isEnabled() && redisTemplate != null;
+    }
+
+    private RecommendationDTO.RecommendationResponse readRecommendation(String payload) throws Exception {
+        try {
+            RedisRecommendationValue cached = objectMapper.readValue(payload, RedisRecommendationValue.class);
+            if (cached.PAYLOAD_JSON() != null) {
+                return cached.PAYLOAD_JSON();
+            }
+        } catch (Exception ignored) {
+            // 기존 캐시 값은 RecommendationResponse 자체 JSON이므로 아래에서 다시 읽는다.
+        }
+        return objectMapper.readValue(payload, RecommendationDTO.RecommendationResponse.class);
+    }
+
+    private long recommendationTtlMinutes() {
+        return Math.max(redisProperties.getRecommendationTtlMinutes(), 1);
+    }
+
+    private record RedisRecommendationValue(
+            RecommendationDTO.RecommendationResponse PAYLOAD_JSON,
+            long TTL_MINUTES
+    ) {
     }
 
     private record CachedRecommendation(
