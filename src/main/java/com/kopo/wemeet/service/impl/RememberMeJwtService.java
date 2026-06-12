@@ -1,22 +1,22 @@
 package com.kopo.wemeet.service.impl;
 
 import com.kopo.wemeet.config.RememberMeProperties;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.Base64;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.Date;
 import java.util.Optional;
 
 @Service
@@ -24,11 +24,9 @@ import java.util.Optional;
 public class RememberMeJwtService {
     // 자동로그인용 JWT를 만들고 검증하며, 쿠키에 넣고 지우는 역할만 맡는다.
 
-    private static final String HMAC_ALGORITHM = "HmacSHA256";
     private static final String TOKEN_TYPE = "remember-me";
 
     private final RememberMeProperties rememberMeProperties;
-    private final ObjectMapper objectMapper;
 
     public boolean isEnabled() {
         return !rememberMeProperties.getSecret().isBlank();
@@ -84,24 +82,16 @@ public class RememberMeJwtService {
 
     private String createToken(String userId) {
         try {
-            long issuedAt = Instant.now().getEpochSecond();
-            long expiresAt = Instant.now().plusSeconds((long) Math.max(rememberMeProperties.getTtlDays(), 1) * 24 * 60 * 60).getEpochSecond();
+            Instant issuedAt = Instant.now();
+            Instant expiresAt = issuedAt.plusSeconds((long) Math.max(rememberMeProperties.getTtlDays(), 1) * 24 * 60 * 60);
 
-            Map<String, Object> header = Map.of(
-                    "alg", "HS256",
-                    "typ", "JWT"
-            );
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("sub", userId);
-            payload.put("typ", TOKEN_TYPE);
-            payload.put("iat", issuedAt);
-            payload.put("exp", expiresAt);
-
-            String encodedHeader = encode(objectMapper.writeValueAsBytes(header));
-            String encodedPayload = encode(objectMapper.writeValueAsBytes(payload));
-            String unsignedToken = encodedHeader + "." + encodedPayload;
-            String signature = encode(sign(unsignedToken));
-            return unsignedToken + "." + signature;
+            return Jwts.builder()
+                    .subject(userId)
+                    .claim("typ", TOKEN_TYPE)
+                    .issuedAt(Date.from(issuedAt))
+                    .expiration(Date.from(expiresAt))
+                    .signWith(signingKey())
+                    .compact();
         } catch (Exception exception) {
             throw new IllegalStateException("Failed to create remember-me JWT", exception);
         }
@@ -112,56 +102,34 @@ public class RememberMeJwtService {
             return Optional.empty();
         }
 
-        String[] parts = token.split("\\.");
-        if (parts.length != 3) {
-            return Optional.empty();
-        }
-
-        String unsignedToken = parts[0] + "." + parts[1];
-        byte[] providedSignature;
         try {
-            providedSignature = Base64.getUrlDecoder().decode(parts[2]);
-        } catch (IllegalArgumentException exception) {
-            return Optional.empty();
-        }
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
 
-        byte[] expectedSignature;
-        try {
-            expectedSignature = sign(unsignedToken);
-        } catch (Exception exception) {
-            return Optional.empty();
-        }
-
-        if (!MessageDigest.isEqual(providedSignature, expectedSignature)) {
-            return Optional.empty();
-        }
-
-        try {
-            JsonNode payload = objectMapper.readTree(Base64.getUrlDecoder().decode(parts[1]));
-            if (!TOKEN_TYPE.equals(payload.path("typ").asText())) {
-                return Optional.empty();
-            }
-            if (payload.path("exp").asLong(0L) <= Instant.now().getEpochSecond()) {
+            if (!TOKEN_TYPE.equals(claims.get("typ", String.class))) {
                 return Optional.empty();
             }
 
-            String userId = payload.path("sub").asText("");
-            if (userId.isBlank()) {
+            String userId = claims.getSubject();
+            if (userId == null || userId.isBlank()) {
                 return Optional.empty();
             }
             return Optional.of(userId);
-        } catch (Exception exception) {
+        } catch (JwtException | IllegalArgumentException exception) {
             return Optional.empty();
         }
     }
 
-    private byte[] sign(String unsignedToken) throws Exception {
-        Mac mac = Mac.getInstance(HMAC_ALGORITHM);
-        mac.init(new SecretKeySpec(rememberMeProperties.getSecret().getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM));
-        return mac.doFinal(unsignedToken.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private String encode(byte[] value) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(value);
+    private SecretKey signingKey() {
+        try {
+            byte[] keyBytes = MessageDigest.getInstance("SHA-256")
+                    .digest(rememberMeProperties.getSecret().getBytes(StandardCharsets.UTF_8));
+            return Keys.hmacShaKeyFor(keyBytes);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("Failed to create remember-me JWT signing key", exception);
+        }
     }
 }
