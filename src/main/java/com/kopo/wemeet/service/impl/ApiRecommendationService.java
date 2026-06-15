@@ -72,19 +72,21 @@ public class ApiRecommendationService implements IApiRecommendationService {
             boolean persistHistory
     ) {
         String category = participantService.normalizeCategory(request.category());
+        String detailKeyword = normalizeOptionalText(request.detailKeyword());
+        String searchKeyword = detailKeyword.isBlank() ? category : detailKeyword;
         RecommendationMode mode = RecommendationMode.from(request.mode());
         RecommendationSupport.RoutePreference routePreference = RecommendationSupport.RoutePreference.from(request.routeMode());
         List<RecommendationSupport.GeoPoint> participantPoints = locationService.resolveParticipantPoints(participants);
         RecommendationSupport.GeoPoint midpointPoint = locationService.calculateMidpoint(participantPoints);
         String anchorParticipantId = participantService.resolveAnchorParticipantId(mode, requesterId, request.anchorParticipantId(), participants);
         String cacheKey = participantService.buildCacheKey(RECOMMENDATION_CACHE_SCHEMA_VERSION, requesterId, category, participants)
-                + ":" + mode.name() + ":" + anchorParticipantId + ":" + routePreference.name();
+                + ":" + searchKeyword + ":" + mode.name() + ":" + anchorParticipantId + ":" + routePreference.name();
 
         if (mode != RecommendationMode.RANDOM) {
             Optional<RecommendationDTO.RecommendationResponse> cached = recommendationCacheService.get(cacheKey);
             if (cached.isPresent()) {
                 if (persistHistory) {
-                    historyService.appendHistory(requesterId, cached.get().midpoint().district() + " " + category, category);
+                    historyService.appendHistory(requesterId, cached.get().midpoint().district() + " " + searchKeyword, category);
                 }
                 return cached.get();
             }
@@ -93,6 +95,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
         RecommendationDTO.RecommendationResponse response = recommendWithNaverPlaces(
                 requesterId,
                 category,
+                detailKeyword,
                 mode,
                 participants,
                 participantResponses,
@@ -112,6 +115,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     private RecommendationDTO.RecommendationResponse recommendWithNaverPlaces(
             String requesterId,
             String category,
+            String detailKeyword,
             RecommendationMode mode,
             List<RecommendationSupport.ParticipantProfile> participants,
             List<UserDTO.UserResponse> participantResponses,
@@ -131,7 +135,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
         PlaceDTO.PlaceSearchResponse placeSearch;
         try {
             placeSearch = apiNaverPlaceSearchService.search(
-                    new PlaceDTO.PlaceSearchRequest(searchAnchor.query(), category, DEFAULT_SEARCH_DISPLAY)
+                    new PlaceDTO.PlaceSearchRequest(searchAnchor.query(), category, detailKeyword, DEFAULT_SEARCH_DISPLAY)
             );
         } catch (ResponseStatusException exception) {
             return responseFactory.buildUnavailableRecommendation(
@@ -199,6 +203,10 @@ public class ApiRecommendationService implements IApiRecommendationService {
         }
 
         return response;
+    }
+
+    private String normalizeOptionalText(String value) {
+        return value == null ? "" : value.trim();
     }
 }
 

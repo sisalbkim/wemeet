@@ -65,8 +65,9 @@ public class ApiNaverPlaceSearchService {
 
         String originQuery = requireText(request.originQuery(), "originQuery");
         String tag = requireText(request.tag(), "tag");
+        String effectiveTag = firstNonBlank(request.detailKeyword(), tag);
         int display = normalizeDisplay(request.display());
-        NaverPlaceTagCatalog.ResolvedTag resolvedTag = tagCatalog.resolve(tag);
+        NaverPlaceTagCatalog.ResolvedTag resolvedTag = tagCatalog.resolve(effectiveTag);
 
         ResolvedPlace origin = resolveOrigin(originQuery);
         String combinedQuery = originQuery + " " + resolvedTag.primaryQueryTerm();
@@ -89,7 +90,7 @@ public class ApiNaverPlaceSearchService {
         log.info(
                 "Naver place search tag mapping applied. originQuery={}, requestedTag={}, normalizedTag={}, appliedQueryTerms={}, observedCategories={}",
                 originQuery,
-                tag,
+                effectiveTag,
                 resolvedTag.normalizedTag(),
                 resolvedTag.queryTerms(),
                 observedCategories
@@ -97,7 +98,7 @@ public class ApiNaverPlaceSearchService {
 
         return new PlaceDTO.PlaceSearchResponse(
                 combinedQuery,
-                tag,
+                effectiveTag,
                 resolvedTag.normalizedTag(),
                 resolvedTag.queryTerms(),
                 observedCategories,

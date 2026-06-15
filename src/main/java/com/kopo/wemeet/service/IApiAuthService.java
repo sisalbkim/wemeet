@@ -3,6 +3,7 @@ package com.kopo.wemeet.service;
 import com.kopo.wemeet.dto.*;
 
 import com.kopo.wemeet.repository.entity.AppUser;
+import jakarta.servlet.http.HttpServletResponse;
 
 public interface IApiAuthService {
     // 인증/회원 정보를 다루는 서비스 계약이다.
@@ -12,6 +13,14 @@ public interface IApiAuthService {
     AuthDTO.AuthResponse login(AuthDTO.LoginRequest request);
 
     AuthDTO.AuthResponse createSessionForUser(String userId);
+
+    AuthDTO.AuthResponse refreshAccessToken(String refreshToken);
+
+    void revokeRefreshToken(String refreshToken);
+
+    void writeTokenCookies(HttpServletResponse response, AuthDTO.AuthResponse authResponse);
+
+    void clearTokenCookies(HttpServletResponse response);
 
     AuthDTO.PasswordResetResponse createPasswordResetToken(AuthDTO.PasswordResetRequest request);
 
@@ -39,6 +48,8 @@ public interface IApiAuthService {
 
     // 토큰에서 실제 사용자 엔티티를 찾아야 할 때 사용한다.
     AppUser requireUser(String authorizationHeader);
+
+    AppUser requireUser(String authorizationHeader, String accessTokenCookie);
 
     // 엔티티나 임시 저장소 객체를 API 응답 DTO로 통일해 변환한다.
     UserDTO.UserResponse toUserResponse(AppUser user);

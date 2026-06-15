@@ -3,6 +3,7 @@ package com.kopo.wemeet.controller;
 import com.kopo.wemeet.dto.*;
 
 import com.kopo.wemeet.service.impl.ApiNaverPlaceSearchService;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,11 +18,16 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -40,6 +46,17 @@ class ApiRestControllerTest {
     private ApiNaverPlaceSearchService apiNaverPlaceSearchService;
 
     @Test
+    void apiCorsAllowsCredentialsForConfiguredFrontendOrigins() throws Exception {
+        mockMvc.perform(options("/api/me")
+                        .header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "GET")
+                        .header("Access-Control-Request-Headers", "Authorization"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"))
+                .andExpect(header().string("Access-Control-Allow-Credentials", "true"));
+    }
+
+    @Test
     void loginReturnsTokenAndMeEndpointWorks() throws Exception {
         String token = loginAndGetToken("user123", "pass1234");
 
@@ -48,6 +65,188 @@ class ApiRestControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.loginId").value("user123"))
                 .andExpect(jsonPath("$.nickname").value("김철수"));
+    }
+
+    @Test
+    void bearerHeaderAllowsCaseInsensitiveSchemeAndExtraSpaces() throws Exception {
+        String token = loginAndGetToken("user123", "pass1234");
+
+        mockMvc.perform(get("/api/me")
+                        .header("Authorization", "  bearer   " + token + "  "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.loginId").value("user123"));
+    }
+
+    @Test
+    void loginSetsJwtCookiesAndCookieCanAuthenticateApiRequest() throws Exception {
+        MvcResult loginResult = loginAndGetResult("user123", "pass1234");
+
+        Cookie accessCookie = loginResult.getResponse().getCookie("WM_ACCESS_TOKEN");
+        Cookie refreshCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        assertNotNull(accessCookie);
+        assertNotNull(refreshCookie);
+        assertTrue(accessCookie.isHttpOnly());
+        assertTrue(refreshCookie.isHttpOnly());
+        assertEquals("/", accessCookie.getPath());
+        assertEquals("/", refreshCookie.getPath());
+
+        mockMvc.perform(get("/api/me").cookie(accessCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.loginId").value("user123"));
+    }
+
+    @Test
+    void accessCookieAuthenticatesProtectedApiGroups() throws Exception {
+        Cookie accessCookie = loginAndGetAccessCookie("user123", "pass1234");
+
+        mockMvc.perform(get("/api/friends").cookie(accessCookie))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/meetings").cookie(accessCookie))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/history").cookie(accessCookie))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void apiLogoutClearsJwtCookies() throws Exception {
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("로그아웃되었습니다."))
+                .andExpect(result -> {
+                    Cookie accessCookie = result.getResponse().getCookie("WM_ACCESS_TOKEN");
+                    Cookie refreshCookie = result.getResponse().getCookie("WM_REFRESH_TOKEN");
+                    assertNotNull(accessCookie);
+                    assertNotNull(refreshCookie);
+                    assertEquals(0, accessCookie.getMaxAge());
+                    assertEquals(0, refreshCookie.getMaxAge());
+                });
+    }
+
+    @Test
+    void refreshTokenIssuesNewAccessToken() throws Exception {
+        String loginPayload = objectMapper.writeValueAsString(Map.of(
+                "loginId", "user123",
+                "password", "pass1234"
+        ));
+
+        MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").exists())
+                .andExpect(jsonPath("$.refreshToken").exists())
+                .andReturn();
+
+        String accessToken = objectMapper.readTree(loginResult.getResponse().getContentAsString()).get("token").asText();
+        String refreshToken = objectMapper.readTree(loginResult.getResponse().getContentAsString()).get("refreshToken").asText();
+        assertTrue(accessToken.chars().filter(ch -> ch == '.').count() == 2);
+        assertTrue(refreshToken.chars().filter(ch -> ch == '.').count() == 2);
+
+        String refreshPayload = objectMapper.writeValueAsString(Map.of(
+                "refreshToken", refreshToken
+        ));
+
+        MvcResult refreshResult = mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refreshPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").exists())
+                .andExpect(jsonPath("$.refreshToken").exists())
+                .andReturn();
+
+        String refreshedAccessToken = objectMapper.readTree(refreshResult.getResponse().getContentAsString()).get("token").asText();
+        mockMvc.perform(get("/api/me")
+                        .header("Authorization", "Bearer " + refreshedAccessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.loginId").value("user123"));
+    }
+
+    @Test
+    void refreshEndpointCanUseRefreshCookieWithoutRequestBody() throws Exception {
+        String loginPayload = objectMapper.writeValueAsString(Map.of(
+                "loginId", "user123",
+                "password", "pass1234"
+        ));
+
+        MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginPayload))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Cookie refreshCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        assertNotNull(refreshCookie);
+
+        MvcResult refreshResult = mockMvc.perform(post("/api/auth/refresh").cookie(refreshCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").exists())
+                .andExpect(jsonPath("$.refreshToken").exists())
+                .andReturn();
+
+        Cookie refreshedAccessCookie = refreshResult.getResponse().getCookie("WM_ACCESS_TOKEN");
+        Cookie refreshedRefreshCookie = refreshResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        assertNotNull(refreshedAccessCookie);
+        assertNotNull(refreshedRefreshCookie);
+
+        mockMvc.perform(get("/api/me").cookie(refreshedAccessCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.loginId").value("user123"));
+    }
+
+    @Test
+    void refreshTokenCannotBeReusedAfterRotation() throws Exception {
+        MvcResult loginResult = loginAndGetResult("user123", "pass1234");
+        String refreshToken = objectMapper.readTree(loginResult.getResponse().getContentAsString()).get("refreshToken").asText();
+        String refreshPayload = objectMapper.writeValueAsString(Map.of(
+                "refreshToken", refreshToken
+        ));
+
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refreshPayload))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refreshPayload))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Invalid refresh token"));
+    }
+
+    @Test
+    void apiLogoutRevokesRefreshCookieToken() throws Exception {
+        MvcResult loginResult = loginAndGetResult("user123", "pass1234");
+        Cookie refreshCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        assertNotNull(refreshCookie);
+
+        mockMvc.perform(post("/api/auth/logout").cookie(refreshCookie))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/refresh").cookie(refreshCookie))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Invalid refresh token"));
+    }
+
+    @Test
+    void refreshEndpointRejectsMissingRefreshToken() throws Exception {
+        mockMvc.perform(post("/api/auth/refresh"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Invalid refresh token"));
+    }
+
+    @Test
+    void refreshEndpointRejectsAccessToken() throws Exception {
+        String token = loginAndGetToken("user123", "pass1234");
+        String payload = objectMapper.writeValueAsString(Map.of(
+                "refreshToken", token
+        ));
+
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -228,6 +427,8 @@ class ApiRestControllerTest {
                 .andExpect(jsonPath("$.user.loginId").value("newuser01"))
                 .andReturn();
 
+        assertNotNull(signUpResult.getResponse().getCookie("WM_ACCESS_TOKEN"));
+        assertNotNull(signUpResult.getResponse().getCookie("WM_REFRESH_TOKEN"));
         String token = objectMapper.readTree(signUpResult.getResponse().getContentAsString()).get("token").asText();
 
         String meetingPayload = objectMapper.writeValueAsString(Map.of(
@@ -326,6 +527,17 @@ class ApiRestControllerTest {
     }
 
     private String loginAndGetToken(String loginId, String password) throws Exception {
+        MvcResult result = loginAndGetResult(loginId, password);
+        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
+    }
+
+    private Cookie loginAndGetAccessCookie(String loginId, String password) throws Exception {
+        Cookie cookie = loginAndGetResult(loginId, password).getResponse().getCookie("WM_ACCESS_TOKEN");
+        assertNotNull(cookie);
+        return cookie;
+    }
+
+    private MvcResult loginAndGetResult(String loginId, String password) throws Exception {
         String payload = objectMapper.writeValueAsString(Map.of(
                 "loginId", loginId,
                 "password", password
@@ -337,8 +549,7 @@ class ApiRestControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").exists())
                 .andReturn();
-
-        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
+        return result;
     }
 
     private PlaceDTO.PlaceSearchResponse samplePlaceSearch(String originQuery, String address, String placeName) {

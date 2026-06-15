@@ -30,8 +30,19 @@
         <section class="panel">
             <div class="section-heading section-heading--stacked">
                 <h2>카테고리 바꾸기</h2>
-                <span>선택 인원은 그대로 두고 태그만 바꿉니다</span>
+                <span>상세 검색어를 입력하면 카테고리보다 우선 적용됩니다</span>
             </div>
+            <form class="search-form recommendation-search-form" method="get" th:action="@{/search/results}">
+                <input type="hidden" name="category" th:value="${selectedCategory}">
+                <input type="hidden" name="mode" th:value="${selectedMode}">
+                <input type="hidden" name="anchorId" th:value="${selectedAnchorId}">
+                <input type="hidden" name="routeMode" th:value="${selectedRouteMode}">
+                <input type="hidden" name="guest" th:value="${guestMode}">
+                <input type="hidden" name="guestAddress" th:if="${guestMode}" th:value="${guestAddress}">
+                <input type="hidden" name="friendIds" th:each="friendId : ${selectedFriendIds}" th:value="${friendId}">
+                <input class="text-input" type="search" name="detailKeyword" th:value="${detailKeyword}" placeholder="라멘, 삼겹살, 조용한 카페">
+                <button class="ghost-button" type="submit" data-loading-overlay>검색</button>
+            </form>
             <div class="chip-grid chip-grid--three-up">
                 <a class="filter-chip filter-chip--link" th:each="category : ${categories}"
                    th:href="@{/search/results(category=${category.label}, friendIds=${selectedFriendIds}, mode=${selectedMode}, anchorId=${selectedAnchorId}, routeMode=${selectedRouteMode}, guest=${guestMode}, guestAddress=${guestMode ? guestAddress : null})}"

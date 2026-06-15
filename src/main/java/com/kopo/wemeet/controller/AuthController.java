@@ -17,6 +17,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -207,22 +208,55 @@ public class AuthController {
     }
 
     @GetMapping({"/logout", "/user/logout"})
-    public String logout(HttpSession session, HttpServletResponse response) {
+    public String logout(
+            @CookieValue(name = "${app.auth.jwt.refresh-cookie-name:WM_REFRESH_TOKEN}", required = false) String refreshToken,
+            HttpSession session,
+            HttpServletResponse response
+    ) {
+        authService.revokeRefreshToken(refreshToken);
         rememberMeJwtService.clearRememberMeCookie(response);
+        authService.clearTokenCookies(response);
         session.invalidate();
         return "redirect:/";
     }
 
     @ResponseBody
     @PostMapping("/api/auth/signup")
-    public AuthDTO.AuthResponse apiSignUp(@RequestBody AuthDTO.SignUpRequest request) {
-        return authService.signUp(request);
+    public AuthDTO.AuthResponse apiSignUp(@RequestBody AuthDTO.SignUpRequest request, HttpServletResponse response) {
+        AuthDTO.AuthResponse authResponse = authService.signUp(request);
+        authService.writeTokenCookies(response, authResponse);
+        return authResponse;
     }
 
     @ResponseBody
     @PostMapping("/api/auth/login")
-    public AuthDTO.AuthResponse apiLogin(@RequestBody AuthDTO.LoginRequest request) {
-        return authService.login(request);
+    public AuthDTO.AuthResponse apiLogin(@RequestBody AuthDTO.LoginRequest request, HttpServletResponse response) {
+        AuthDTO.AuthResponse authResponse = authService.login(request);
+        authService.writeTokenCookies(response, authResponse);
+        return authResponse;
+    }
+
+    @ResponseBody
+    @PostMapping("/api/auth/refresh")
+    public AuthDTO.AuthResponse apiRefresh(
+            @RequestBody(required = false) AuthDTO.RefreshRequest request,
+            @CookieValue(name = "${app.auth.jwt.refresh-cookie-name:WM_REFRESH_TOKEN}", required = false) String refreshTokenCookie,
+            HttpServletResponse response
+    ) {
+        AuthDTO.AuthResponse authResponse = authService.refreshAccessToken(resolveRefreshToken(request, refreshTokenCookie));
+        authService.writeTokenCookies(response, authResponse);
+        return authResponse;
+    }
+
+    @ResponseBody
+    @PostMapping("/api/auth/logout")
+    public AuthDTO.PasswordResetResponse apiLogout(
+            @CookieValue(name = "${app.auth.jwt.refresh-cookie-name:WM_REFRESH_TOKEN}", required = false) String refreshToken,
+            HttpServletResponse response
+    ) {
+        authService.revokeRefreshToken(refreshToken);
+        authService.clearTokenCookies(response);
+        return new AuthDTO.PasswordResetResponse("로그아웃되었습니다.", null);
     }
 
     @ResponseBody
@@ -312,17 +346,21 @@ public class AuthController {
 
     @ResponseBody
     @GetMapping("/api/me")
-    public UserDTO.UserResponse apiMe(@RequestHeader("Authorization") String authorization) {
-        return authService.toUserResponse(authService.requireUser(authorization));
+    public UserDTO.UserResponse apiMe(
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken
+    ) {
+        return authService.toUserResponse(authService.requireUser(authorization, accessToken));
     }
 
     @ResponseBody
     @PostMapping("/api/me/address")
     public UserDTO.UserResponse apiUpdateAddress(
-            @RequestHeader("Authorization") String authorization,
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken,
             @RequestBody UserDTO.AddressUpdateRequest request
     ) {
-        AppUser requester = authService.requireUser(authorization);
+        AppUser requester = authService.requireUser(authorization, accessToken);
         return authService.updateBaseAddress(requester, request.baseAddress());
     }
 
@@ -342,6 +380,13 @@ public class AuthController {
     private String resolveUserIdInput(String userId, String legacyLoginId) {
         String normalizedUserId = CmmUtil.nvl(userId);
         return normalizedUserId.isBlank() ? CmmUtil.nvl(legacyLoginId) : normalizedUserId;
+    }
+
+    private String resolveRefreshToken(AuthDTO.RefreshRequest request, String refreshTokenCookie) {
+        if (request != null && request.refreshToken() != null && !request.refreshToken().isBlank()) {
+            return request.refreshToken();
+        }
+        return refreshTokenCookie;
     }
 
     private String buildTemporaryPasswordNotice(AuthDTO.PasswordResetResponse response) {

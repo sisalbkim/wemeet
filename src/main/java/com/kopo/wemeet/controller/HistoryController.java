@@ -13,6 +13,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -77,8 +78,11 @@ public class HistoryController {
 
     @ResponseBody
     @GetMapping("/api/history")
-    public List<HistoryDTO.SearchHistoryResponse> apiHistory(@RequestHeader("Authorization") String authorization) {
-        AppUser requester = authService.requireUser(authorization);
+    public List<HistoryDTO.SearchHistoryResponse> apiHistory(
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken
+    ) {
+        AppUser requester = authService.requireUser(authorization, accessToken);
         return historyService.listHistory(requester.getId()).stream()
                 .map(entry -> new HistoryDTO.SearchHistoryResponse(
                         entry.query(),

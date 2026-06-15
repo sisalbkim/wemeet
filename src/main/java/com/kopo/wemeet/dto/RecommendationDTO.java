@@ -10,16 +10,21 @@ public final class RecommendationDTO {
 
     public record RecommendationRequest(
             String category,
+            String detailKeyword,
             List<String> participantIds,
             String mode,
             String anchorParticipantId,
             String routeMode
     ) {
+        public RecommendationRequest(String category, List<String> participantIds, String mode, String anchorParticipantId, String routeMode) {
+            this(category, "", participantIds, mode, anchorParticipantId, routeMode);
+        }
     }
 
     public record GuestRecommendationRequest(
             String baseAddress,
             String category,
+            String detailKeyword,
             String mode,
             String anchorParticipantId,
             String routeMode

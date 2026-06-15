@@ -506,10 +506,12 @@ class WemeetControllerTest {
         MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
         Cookie rememberMeCookie = loginResult.getResponse().getCookie("WM_REMEMBER_ME");
         assertNotNull(rememberMeCookie);
+        Cookie accessCookie = new Cookie("WM_ACCESS_TOKEN", "access.jwt.value");
+        Cookie refreshCookie = new Cookie("WM_REFRESH_TOKEN", "refresh.jwt.value");
 
         MvcResult logoutResult = mockMvc.perform(get("/logout")
                         .session(session)
-                        .cookie(rememberMeCookie))
+                        .cookie(rememberMeCookie, accessCookie, refreshCookie))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
@@ -517,6 +519,12 @@ class WemeetControllerTest {
         Cookie clearedCookie = logoutResult.getResponse().getCookie("WM_REMEMBER_ME");
         assertNotNull(clearedCookie);
         assertEquals(0, clearedCookie.getMaxAge());
+        Cookie clearedAccessCookie = logoutResult.getResponse().getCookie("WM_ACCESS_TOKEN");
+        Cookie clearedRefreshCookie = logoutResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        assertNotNull(clearedAccessCookie);
+        assertNotNull(clearedRefreshCookie);
+        assertEquals(0, clearedAccessCookie.getMaxAge());
+        assertEquals(0, clearedRefreshCookie.getMaxAge());
     }
 
     @Test

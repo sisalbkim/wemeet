@@ -11,8 +11,12 @@ public final class PlaceDTO {
     public record PlaceSearchRequest(
             String originQuery,
             String tag,
+            String detailKeyword,
             Integer display
     ) {
+        public PlaceSearchRequest(String originQuery, String tag, Integer display) {
+            this(originQuery, tag, "", display);
+        }
     }
 
     public record PlaceSearchResponse(

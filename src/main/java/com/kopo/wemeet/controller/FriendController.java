@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -136,28 +137,33 @@ public class FriendController {
 
     @ResponseBody
     @GetMapping("/api/friends")
-    public List<UserDTO.UserResponse> apiFriends(@RequestHeader("Authorization") String authorization) {
-        AppUser requester = authService.requireUser(authorization);
+    public List<UserDTO.UserResponse> apiFriends(
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken
+    ) {
+        AppUser requester = authService.requireUser(authorization, accessToken);
         return friendService.listFriends(requester.getId()).stream().map(authService::toUserResponse).toList();
     }
 
     @ResponseBody
     @PostMapping("/api/friends")
     public UserDTO.UserResponse apiAddFriend(
-            @RequestHeader("Authorization") String authorization,
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken,
             @RequestBody FriendDTO.FriendAddRequest request
     ) {
-        AppUser requester = authService.requireUser(authorization);
+        AppUser requester = authService.requireUser(authorization, accessToken);
         return authService.toUserResponse(friendService.addFriendByCode(requester.getId(), request.friendCode()));
     }
 
     @ResponseBody
     @DeleteMapping("/api/friends")
     public void apiDeleteFriend(
-            @RequestHeader("Authorization") String authorization,
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken,
             @RequestBody FriendDTO.FriendDeleteRequest request
     ) {
-        AppUser requester = authService.requireUser(authorization);
+        AppUser requester = authService.requireUser(authorization, accessToken);
         friendService.deleteFriend(requester.getId(), request.friendId());
     }
 

@@ -210,6 +210,7 @@ public class WemeetViewService implements IWemeetViewService {
     public RecommendationDTO.RecommendationBundle buildRecommendation(
             String requesterId,
             String category,
+            String detailKeyword,
             List<String> selectedFriendIds,
             String mode,
             String anchorId,
@@ -218,7 +219,7 @@ public class WemeetViewService implements IWemeetViewService {
         // 추천 서비스 응답을 Thymeleaf 템플릿에서 쓰는 화면 전용 모델로 다시 묶는다.
         RecommendationDTO.RecommendationResponse response = recommendationService.recommend(
                 requesterId,
-                new RecommendationDTO.RecommendationRequest(normalizeCategory(category), selectedFriendIds, mode, anchorId, routeMode),
+                new RecommendationDTO.RecommendationRequest(normalizeCategory(category), normalizeOptionalText(detailKeyword), selectedFriendIds, mode, anchorId, routeMode),
                 authService
         );
 
@@ -229,6 +230,7 @@ public class WemeetViewService implements IWemeetViewService {
     public RecommendationDTO.RecommendationBundle buildGuestRecommendation(
             String baseAddress,
             String category,
+            String detailKeyword,
             String mode,
             String anchorId,
             String routeMode
@@ -245,7 +247,7 @@ public class WemeetViewService implements IWemeetViewService {
 
         RecommendationDTO.RecommendationResponse response = recommendationService.recommendForGuest(
                 guestUser,
-                new RecommendationDTO.RecommendationRequest(normalizeCategory(category), List.of(), mode, anchorId, routeMode)
+                new RecommendationDTO.RecommendationRequest(normalizeCategory(category), normalizeOptionalText(detailKeyword), List.of(), mode, anchorId, routeMode)
         );
 
         return recommendationBundleMapper.toBundle(response, "게스트");
@@ -257,6 +259,10 @@ public class WemeetViewService implements IWemeetViewService {
             return "맛집";
         }
         return category;
+    }
+
+    private String normalizeOptionalText(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private FriendDTO.FriendRequest toFriendRequest(FriendDTO.FriendRequestEntry request) {

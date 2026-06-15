@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.stereotype.Controller;
@@ -24,18 +25,22 @@ public class MeetingApiController {
 
     @ResponseBody
     @GetMapping("/api/meetings")
-    public List<MeetingDTO.MeetingResponse> apiMeetings(@RequestHeader("Authorization") String authorization) {
-        AppUser requester = authService.requireUser(authorization);
+    public List<MeetingDTO.MeetingResponse> apiMeetings(
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken
+    ) {
+        AppUser requester = authService.requireUser(authorization, accessToken);
         return meetingService.getApiMeetings(requester.getId());
     }
 
     @ResponseBody
     @PostMapping("/api/meetings")
     public MeetingDTO.MeetingResponse apiCreateMeeting(
-            @RequestHeader("Authorization") String authorization,
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken,
             @RequestBody MeetingDTO.MeetingCreateRequest request
     ) {
-        AppUser requester = authService.requireUser(authorization);
+        AppUser requester = authService.requireUser(authorization, accessToken);
         return meetingService.createApiMeeting(requester.getId(), request);
     }
 }

@@ -35,6 +35,14 @@
                         <span th:text="${category.label}">맛집</span>
                     </label>
                 </div>
+                <label class="field-stack" for="detailKeyword">
+                    <span class="field-label">상세 검색어</span>
+                    <input class="text-input"
+                           id="detailKeyword"
+                           name="detailKeyword"
+                           th:value="${detailKeyword}"
+                           placeholder="예: 라멘, 보드게임카페, 조용한 카페">
+                </label>
                 <p class="muted-note">선택한 카테고리를 기준으로 `한식`, `디저트`, `미술관` 같은 검색어로 자동 보정해 네이버에서 찾습니다.</p>
             </section>
 

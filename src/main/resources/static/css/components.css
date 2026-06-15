@@ -749,6 +749,20 @@
     gap: 10px;
 }
 
+.recommendation-search-form {
+    align-items: center;
+}
+
+.recommendation-search-form .text-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.recommendation-search-form .ghost-button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
 .inline-row,
 .helper-row {
     display: flex;

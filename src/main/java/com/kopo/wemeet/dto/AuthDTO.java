@@ -23,7 +23,16 @@ public final class AuthDTO {
 
     public record AuthResponse(
             String token,
+            String refreshToken,
             UserDTO.UserResponse user
+    ) {
+        public AuthResponse(String token, UserDTO.UserResponse user) {
+            this(token, null, user);
+        }
+    }
+
+    public record RefreshRequest(
+            String refreshToken
     ) {
     }
 

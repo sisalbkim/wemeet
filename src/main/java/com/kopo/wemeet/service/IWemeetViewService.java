@@ -49,6 +49,7 @@ public interface IWemeetViewService {
     RecommendationDTO.RecommendationBundle buildRecommendation(
             String requesterId,
             String category,
+            String detailKeyword,
             List<String> selectedFriendIds,
             String mode,
             String anchorId,
@@ -58,6 +59,7 @@ public interface IWemeetViewService {
     RecommendationDTO.RecommendationBundle buildGuestRecommendation(
             String baseAddress,
             String category,
+            String detailKeyword,
             String mode,
             String anchorId,
             String routeMode

@@ -10,9 +10,11 @@ import com.kopo.wemeet.repository.MeetingParticipantRepository;
 import com.kopo.wemeet.repository.MeetingRepository;
 import com.kopo.wemeet.repository.PasswordResetTokenRepository;
 import com.kopo.wemeet.repository.SearchHistoryRepository;
+import com.kopo.wemeet.session.RefreshTokenStore;
 import com.kopo.wemeet.session.SessionTokenStore;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.impl.MailDeliveryService.MailSendResult;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -47,7 +49,9 @@ public class ApiAuthService implements IApiAuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final SessionTokenStore sessionTokenStore;
+    private final RefreshTokenStore refreshTokenStore;
     private final MailDeliveryService mailDeliveryService;
+    private final JwtTokenService jwtTokenService;
 
     @Override
     public AuthDTO.AuthResponse signUp(AuthDTO.SignUpRequest request) {
@@ -72,8 +76,7 @@ public class ApiAuthService implements IApiAuthService {
         );
         userRepository.save(user);
 
-        String token = createSession(user.getId());
-        return new AuthDTO.AuthResponse(token, toUserResponse(user));
+        return createAuthResponse(user);
     }
 
     @Override
@@ -86,8 +89,7 @@ public class ApiAuthService implements IApiAuthService {
             throw new ResponseStatusException(UNAUTHORIZED, "Invalid credentials");
         }
 
-        String token = createSession(user.getId());
-        return new AuthDTO.AuthResponse(token, toUserResponse(user));
+        return createAuthResponse(user);
     }
 
     @Override
@@ -95,8 +97,40 @@ public class ApiAuthService implements IApiAuthService {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "user not found"));
 
-        String token = createSession(user.getId());
-        return new AuthDTO.AuthResponse(token, toUserResponse(user));
+        return createAuthResponse(user);
+    }
+
+    @Override
+    public AuthDTO.AuthResponse refreshAccessToken(String refreshToken) {
+        JwtTokenService.TokenDetails tokenDetails = jwtTokenService.resolveRefreshTokenDetails(refreshToken)
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Invalid refresh token"));
+        if (!refreshTokenStore.isValid(tokenDetails.tokenId(), tokenDetails.userId())) {
+            throw new ResponseStatusException(UNAUTHORIZED, "Invalid refresh token");
+        }
+        refreshTokenStore.revoke(tokenDetails.tokenId());
+        String userId = tokenDetails.userId();
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "User not found"));
+        return createAuthResponse(user);
+    }
+
+    @Override
+    public void revokeRefreshToken(String refreshToken) {
+        jwtTokenService.resolveRefreshTokenDetails(refreshToken)
+                .ifPresent(tokenDetails -> refreshTokenStore.revoke(tokenDetails.tokenId()));
+    }
+
+    @Override
+    public void writeTokenCookies(HttpServletResponse response, AuthDTO.AuthResponse authResponse) {
+        if (authResponse == null || authResponse.token() == null || authResponse.refreshToken() == null) {
+            return;
+        }
+        jwtTokenService.writeTokenCookies(response, authResponse.token(), authResponse.refreshToken());
+    }
+
+    @Override
+    public void clearTokenCookies(HttpServletResponse response) {
+        jwtTokenService.clearTokenCookies(response);
     }
 
     @Override
@@ -286,10 +320,23 @@ public class ApiAuthService implements IApiAuthService {
     @Override
     public AppUser requireUser(String authorizationHeader) {
         // REST API에서는 세션 대신 Bearer 토큰으로 사용자를 식별한다.
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+        return requireUser(authorizationHeader, null);
+    }
+
+    @Override
+    public AppUser requireUser(String authorizationHeader, String accessTokenCookie) {
+        String bearerToken = extractBearerToken(authorizationHeader);
+        String resolvedToken = bearerToken;
+        if (resolvedToken == null && accessTokenCookie != null && !accessTokenCookie.isBlank()) {
+            resolvedToken = accessTokenCookie.trim();
+        }
+        if (resolvedToken == null) {
             throw new ResponseStatusException(UNAUTHORIZED, "Authorization header must use Bearer token");
         }
-        String userId = sessionTokenStore.findUserId(authorizationHeader.substring(7)).orElse(null);
+        String token = resolvedToken;
+        String userId = jwtTokenService.resolveAccessTokenUserId(token)
+                .or(() -> sessionTokenStore.findUserId(token))
+                .orElse(null);
         if (userId == null) {
             throw new ResponseStatusException(UNAUTHORIZED, "Invalid access token");
         }
@@ -323,6 +370,21 @@ public class ApiAuthService implements IApiAuthService {
         );
     }
 
+    private String extractBearerToken(String authorizationHeader) {
+        if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            return null;
+        }
+
+        String trimmed = authorizationHeader.trim();
+        String bearerPrefix = "bearer ";
+        if (!trimmed.regionMatches(true, 0, bearerPrefix, 0, bearerPrefix.length())) {
+            return null;
+        }
+
+        String token = trimmed.substring(bearerPrefix.length()).trim();
+        return token.isBlank() ? null : token;
+    }
+
     private void validateSignupRequest(AuthDTO.SignUpRequest request) {
         // 수업용 예제에서는 필수값 검증을 서비스에서 먼저 처리한다.
         if (request.loginId() == null || request.loginId().isBlank()
@@ -345,6 +407,27 @@ public class ApiAuthService implements IApiAuthService {
         // 세션 저장 구현은 Redis 또는 메모리 fallback 중 현재 설정에 맞는 쪽이 선택된다.
         sessionTokenStore.store(token, userId);
         return token;
+    }
+
+    private AuthDTO.AuthResponse createAuthResponse(AppUser user) {
+        if (!jwtTokenService.isEnabled()) {
+            return new AuthDTO.AuthResponse(createSession(user.getId()), toUserResponse(user));
+        }
+        return new AuthDTO.AuthResponse(
+                jwtTokenService.createAccessToken(user.getId()),
+                registerRefreshToken(jwtTokenService.createRefreshToken(user.getId())),
+                toUserResponse(user)
+        );
+    }
+
+    private String registerRefreshToken(String refreshToken) {
+        jwtTokenService.resolveRefreshTokenDetails(refreshToken)
+                .ifPresent(tokenDetails -> refreshTokenStore.store(
+                        tokenDetails.tokenId(),
+                        tokenDetails.userId(),
+                        tokenDetails.expiresAt()
+                ));
+        return refreshToken;
     }
 
     private String generateFriendCode(String loginId) {

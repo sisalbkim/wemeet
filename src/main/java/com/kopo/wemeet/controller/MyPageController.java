@@ -109,6 +109,7 @@ public class MyPageController {
             model.addAttribute("recommendation", viewService.buildRecommendation(
                     currentUser.getId(),
                     meeting.category(),
+                    "",
                     selectedFriendIds,
                     savedMode,
                     savedAnchorId,

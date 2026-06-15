@@ -16,6 +16,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -95,6 +96,7 @@ public class MeetController {
     public String guestPreview(
             @RequestParam(defaultValue = "") String guestAddress,
             @RequestParam(defaultValue = DEFAULT_CATEGORY) String category,
+            @RequestParam(defaultValue = "") String detailKeyword,
             @RequestParam(defaultValue = DEFAULT_RECOMMENDATION_MODE) String mode,
             @RequestParam(defaultValue = DEFAULT_ROUTE_MODE) String routeMode,
             RedirectAttributes redirectAttributes
@@ -102,6 +104,7 @@ public class MeetController {
         redirectAttributes.addAttribute("guest", true);
         redirectAttributes.addAttribute("guestAddress", guestAddress);
         redirectAttributes.addAttribute("category", category);
+        redirectAttributes.addAttribute("detailKeyword", detailKeyword == null ? "" : detailKeyword.trim());
         redirectAttributes.addAttribute("mode", mode);
         redirectAttributes.addAttribute("routeMode", viewHelper.normalizeRouteMode(routeMode));
         return "redirect:/search/results";
@@ -122,20 +125,22 @@ public class MeetController {
     @ResponseBody
     @PostMapping("/api/recommendations")
     public RecommendationDTO.RecommendationResponse apiRecommendations(
-            @RequestHeader("Authorization") String authorization,
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken,
             @RequestBody RecommendationDTO.RecommendationRequest request
     ) {
-        AppUser requester = authService.requireUser(authorization);
+        AppUser requester = authService.requireUser(authorization, accessToken);
         return recommendationService.recommend(requester.getId(), request, authService);
     }
 
     @ResponseBody
     @PostMapping("/api/places/search")
     public PlaceDTO.PlaceSearchResponse apiSearchPlaces(
-            @RequestHeader("Authorization") String authorization,
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken,
             @RequestBody PlaceDTO.PlaceSearchRequest request
     ) {
-        authService.requireUser(authorization);
+        authService.requireUser(authorization, accessToken);
         return apiNaverPlaceSearchService.search(request);
     }
 
@@ -151,6 +156,7 @@ public class MeetController {
         UserDTO.UserResponse guestUser = createGuestUser(request.baseAddress());
         RecommendationDTO.RecommendationRequest recommendationRequest = new RecommendationDTO.RecommendationRequest(
                 request.category(),
+                request.detailKeyword(),
                 List.of(),
                 request.mode(),
                 request.anchorParticipantId(),
@@ -164,6 +170,7 @@ public class MeetController {
         model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("guestAddress", guestAddress);
         model.addAttribute("selectedCategory", category);
+        model.addAttribute("detailKeyword", "");
         model.addAttribute("selectedRouteMode", viewHelper.normalizeRouteMode(routeMode));
     }
 

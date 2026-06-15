@@ -55,6 +55,7 @@ public class MeetingViewController {
     @GetMapping("/search/results")
     public String quickResults(
             @RequestParam(defaultValue = DEFAULT_CATEGORY) String category,
+            @RequestParam(defaultValue = "") String detailKeyword,
             @RequestParam(required = false) List<String> friendIds,
             @RequestParam(defaultValue = DEFAULT_RECOMMENDATION_MODE) String mode,
             @RequestParam(required = false) String anchorId,
@@ -69,7 +70,7 @@ public class MeetingViewController {
             currentUser = viewHelper.requireLoggedInUser(session);
         }
         String normalizedRouteMode = viewHelper.normalizeRouteMode(routeMode);
-        populateRecommendationModel(model, guest ? TAB_NEARBY : TAB_HOME, currentUser, category, friendIds, mode, anchorId, guest, guestAddress, normalizedRouteMode);
+        populateRecommendationModel(model, guest ? TAB_NEARBY : TAB_HOME, currentUser, category, detailKeyword, friendIds, mode, anchorId, guest, guestAddress, normalizedRouteMode);
         model.addAttribute("selectedRouteMode", normalizedRouteMode);
         return "meeting/results";
     }
@@ -77,6 +78,7 @@ public class MeetingViewController {
     @PostMapping("/meetings/preview")
     public String previewResults(
             @RequestParam(defaultValue = DEFAULT_CATEGORY) String category,
+            @RequestParam(defaultValue = "") String detailKeyword,
             @RequestParam(required = false) List<String> friendIds,
             @RequestParam(defaultValue = DEFAULT_RECOMMENDATION_MODE) String mode,
             @RequestParam(required = false) String anchorId,
@@ -96,6 +98,7 @@ public class MeetingViewController {
                 TAB_CREATE,
                 currentUser,
                 category,
+                detailKeyword,
                 friendIds,
                 mode,
                 anchorId,
@@ -198,6 +201,7 @@ public class MeetingViewController {
         model.addAttribute("favoriteFriends", favoriteFriends);
         model.addAttribute("preselectedFriendIds", preselectedFriendIds);
         model.addAttribute("selectedCategory", "");
+        model.addAttribute("detailKeyword", "");
         model.addAttribute("selectedMode", DEFAULT_RECOMMENDATION_MODE);
         model.addAttribute("selectedAnchorId", profile.id());
         model.addAttribute("selectedRouteMode", DEFAULT_ROUTE_MODE);
@@ -208,6 +212,7 @@ public class MeetingViewController {
             String activeTab,
             AppUser currentUser,
             String category,
+            String detailKeyword,
             List<String> friendIds,
             String mode,
             String anchorId,
@@ -218,10 +223,11 @@ public class MeetingViewController {
         viewHelper.populateCommon(model, activeTab, guestMode);
         UserDTO.UserProfile guestProfile = guestMode ? viewService.getGuestUser(guestAddress) : null;
         RecommendationDTO.RecommendationBundle recommendation = guestMode
-                ? viewService.buildGuestRecommendation(guestProfile.baseAddress(), category, mode, anchorId, routeMode)
+                ? viewService.buildGuestRecommendation(guestProfile.baseAddress(), category, detailKeyword, mode, anchorId, routeMode)
                 : viewService.buildRecommendation(
                         currentUser.getId(),
                         category,
+                        detailKeyword,
                         friendIds,
                         mode,
                         anchorId,
@@ -231,6 +237,7 @@ public class MeetingViewController {
         model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("guestAddress", guestMode ? guestProfile.baseAddress() : "");
         model.addAttribute("selectedCategory", category);
+        model.addAttribute("detailKeyword", normalizeOptionalText(detailKeyword));
         model.addAttribute("selectedMode", RecommendationMode.from(mode).name());
         model.addAttribute("selectedAnchorId", anchorId == null || anchorId.isBlank()
                 ? (guestMode ? guestProfile.id() : currentUser.getId())
@@ -240,6 +247,10 @@ public class MeetingViewController {
         model.addAttribute("selectedRouteMode", routeMode);
         model.addAttribute("recommendation", recommendation);
         return recommendation;
+    }
+
+    private String normalizeOptionalText(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private String renderMeetingCreationError(
@@ -263,6 +274,7 @@ public class MeetingViewController {
         model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("guestAddress", "");
         model.addAttribute("selectedCategory", category);
+        model.addAttribute("detailKeyword", "");
         model.addAttribute("selectedMode", RecommendationMode.from(recommendationMode).name());
         model.addAttribute("selectedAnchorId", anchorId == null || anchorId.isBlank() ? currentUser.getId() : anchorId);
         model.addAttribute("selectedFriendIds", friendIds == null ? List.of() : friendIds);
