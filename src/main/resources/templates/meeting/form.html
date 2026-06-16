@@ -34,7 +34,7 @@
                 </div>
                 <label class="field-label" for="friendCode">친구 코드로 바로 추가</label>
                 <div class="inline-row">
-                    <input class="text-input" id="friendCode" name="friendCode" placeholder="예: @FRIEND456">
+                    <input class="text-input" id="friendCode" name="friendCode" placeholder="예: @친구코드">
                     <input type="hidden" name="redirectTo" value="/meetings/new">
                     <button class="ghost-button" type="submit" formaction="/friends/add" formmethod="post" formnovalidate>코드 추가</button>
                 </div>
@@ -54,7 +54,7 @@
                         <span class="avatar-badge" th:text="${#strings.substring(profile.name,0,1)}">김</span>
                         <span class="friend-selector__body">
                             <strong th:text="${profile.name + ' (나)'}">김철수 (나)</strong>
-                            <small th:text="${profile.handle}">@user123</small>
+                            <small th:text="${profile.handle}">@내친구코드</small>
                             <small th:text="${profile.baseAddress}">서울특별시 중구 명동길 74</small>
                         </span>
                     </label>

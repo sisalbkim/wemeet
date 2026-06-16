@@ -2,13 +2,17 @@ package com.kopo.wemeet.controller;
 
 import com.kopo.wemeet.dto.*;
 
+import com.kopo.wemeet.repository.AppUserRepository;
+import com.kopo.wemeet.repository.FriendRelationRepository;
 import com.kopo.wemeet.service.impl.ApiNaverPlaceSearchService;
 import jakarta.servlet.http.Cookie;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -19,6 +23,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -42,8 +47,22 @@ class ApiRestControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private AppUserRepository userRepository;
+
+    @Autowired
+    private FriendRelationRepository friendRelationRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @MockitoBean
     private ApiNaverPlaceSearchService apiNaverPlaceSearchService;
+
+    @BeforeEach
+    void setUpSeedData() {
+        TestSeedData.ensure(userRepository, friendRelationRepository, passwordEncoder);
+    }
 
     @Test
     void apiCorsAllowsCredentialsForConfiguredFrontendOrigins() throws Exception {
@@ -83,12 +102,16 @@ class ApiRestControllerTest {
 
         Cookie accessCookie = loginResult.getResponse().getCookie("WM_ACCESS_TOKEN");
         Cookie refreshCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        Cookie csrfCookie = loginResult.getResponse().getCookie("WM_CSRF_TOKEN");
         assertNotNull(accessCookie);
         assertNotNull(refreshCookie);
+        assertNotNull(csrfCookie);
         assertTrue(accessCookie.isHttpOnly());
         assertTrue(refreshCookie.isHttpOnly());
+        assertFalse(csrfCookie.isHttpOnly());
         assertEquals("/", accessCookie.getPath());
         assertEquals("/", refreshCookie.getPath());
+        assertEquals("/", csrfCookie.getPath());
 
         mockMvc.perform(get("/api/me").cookie(accessCookie))
                 .andExpect(status().isOk())
@@ -177,9 +200,13 @@ class ApiRestControllerTest {
                 .andReturn();
 
         Cookie refreshCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        Cookie csrfCookie = loginResult.getResponse().getCookie("WM_CSRF_TOKEN");
         assertNotNull(refreshCookie);
+        assertNotNull(csrfCookie);
 
-        MvcResult refreshResult = mockMvc.perform(post("/api/auth/refresh").cookie(refreshCookie))
+        MvcResult refreshResult = mockMvc.perform(post("/api/auth/refresh")
+                        .cookie(refreshCookie, csrfCookie)
+                        .header("X-CSRF-TOKEN", csrfCookie.getValue()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").exists())
                 .andExpect(jsonPath("$.refreshToken").exists())
@@ -189,10 +216,22 @@ class ApiRestControllerTest {
         Cookie refreshedRefreshCookie = refreshResult.getResponse().getCookie("WM_REFRESH_TOKEN");
         assertNotNull(refreshedAccessCookie);
         assertNotNull(refreshedRefreshCookie);
+        assertNotNull(refreshResult.getResponse().getCookie("WM_CSRF_TOKEN"));
 
         mockMvc.perform(get("/api/me").cookie(refreshedAccessCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.loginId").value("user123"));
+    }
+
+    @Test
+    void refreshEndpointRejectsRefreshCookieWithoutCsrfHeader() throws Exception {
+        MvcResult loginResult = loginAndGetResult("user123", "pass1234");
+        Cookie refreshCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        assertNotNull(refreshCookie);
+
+        mockMvc.perform(post("/api/auth/refresh").cookie(refreshCookie))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("Invalid CSRF token"));
     }
 
     @Test
@@ -219,12 +258,18 @@ class ApiRestControllerTest {
     void apiLogoutRevokesRefreshCookieToken() throws Exception {
         MvcResult loginResult = loginAndGetResult("user123", "pass1234");
         Cookie refreshCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        Cookie csrfCookie = loginResult.getResponse().getCookie("WM_CSRF_TOKEN");
         assertNotNull(refreshCookie);
+        assertNotNull(csrfCookie);
 
-        mockMvc.perform(post("/api/auth/logout").cookie(refreshCookie))
+        mockMvc.perform(post("/api/auth/logout")
+                        .cookie(refreshCookie, csrfCookie)
+                        .header("X-CSRF-TOKEN", csrfCookie.getValue()))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/auth/refresh").cookie(refreshCookie))
+        mockMvc.perform(post("/api/auth/refresh")
+                        .cookie(refreshCookie, csrfCookie)
+                        .header("X-CSRF-TOKEN", csrfCookie.getValue()))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("Invalid refresh token"));
     }
@@ -429,6 +474,7 @@ class ApiRestControllerTest {
 
         assertNotNull(signUpResult.getResponse().getCookie("WM_ACCESS_TOKEN"));
         assertNotNull(signUpResult.getResponse().getCookie("WM_REFRESH_TOKEN"));
+        assertNotNull(signUpResult.getResponse().getCookie("WM_CSRF_TOKEN"));
         String token = objectMapper.readTree(signUpResult.getResponse().getContentAsString()).get("token").asText();
 
         String meetingPayload = objectMapper.writeValueAsString(Map.of(

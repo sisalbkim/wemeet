@@ -22,7 +22,7 @@
             <div class="notice-banner notice-banner--error" th:if="${friendError}" th:text="${friendError}">친구 추가 실패</div>
             <div class="notice-banner" th:if="${friendNotice}" th:text="${friendNotice}">친구 추가 성공</div>
             <form class="form-stack" method="post" th:action="@{/friends/add}">
-                <input class="text-input" name="friendCode" placeholder="예: @FRIEND456" autocomplete="off">
+                <input class="text-input" name="friendCode" placeholder="예: @친구코드" autocomplete="off">
                 <input type="hidden" name="redirectTo" value="/friends">
                 <button class="primary-button" type="submit">친구 요청 보내기</button>
             </form>

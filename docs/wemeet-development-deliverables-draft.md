@@ -208,7 +208,7 @@
 - API 목록: `src/main/java/com/kopo/wemeet/controller/ApiRestController.java`
 - 회원/토큰 테이블: `src/main/java/com/kopo/wemeet/entity/AppUser.java`, `src/main/java/com/kopo/wemeet/entity/PasswordResetToken.java`
 - 친구/이력/모임 저장 구조: `src/main/java/com/kopo/wemeet/repository/WemeetDataStore.java`
-- Redis 키 구조: `src/main/java/com/kopo/wemeet/repository/RedisBackedSessionTokenStore.java`, `src/main/java/com/kopo/wemeet/service/impl/RecommendationCacheService.java`
+- Redis 키 구조: `src/main/java/com/kopo/wemeet/session/RefreshTokenStore.java`, `src/main/java/com/kopo/wemeet/service/impl/RecommendationCacheService.java`
 - 배포 구성: `compose.yaml`, `DEPLOY_AWS.md`
 
 ## 9. 제출 전 보정 권장사항

@@ -11,7 +11,6 @@ import com.kopo.wemeet.repository.MeetingRepository;
 import com.kopo.wemeet.repository.PasswordResetTokenRepository;
 import com.kopo.wemeet.repository.SearchHistoryRepository;
 import com.kopo.wemeet.session.RefreshTokenStore;
-import com.kopo.wemeet.session.SessionTokenStore;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.impl.MailDeliveryService.MailSendResult;
 import jakarta.servlet.http.HttpServletResponse;
@@ -48,7 +47,6 @@ public class ApiAuthService implements IApiAuthService {
     private final MeetingParticipantRepository meetingParticipantRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
-    private final SessionTokenStore sessionTokenStore;
     private final RefreshTokenStore refreshTokenStore;
     private final MailDeliveryService mailDeliveryService;
     private final JwtTokenService jwtTokenService;
@@ -93,14 +91,6 @@ public class ApiAuthService implements IApiAuthService {
     }
 
     @Override
-    public AuthDTO.AuthResponse createSessionForUser(String userId) {
-        AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "user not found"));
-
-        return createAuthResponse(user);
-    }
-
-    @Override
     public AuthDTO.AuthResponse refreshAccessToken(String refreshToken) {
         JwtTokenService.TokenDetails tokenDetails = jwtTokenService.resolveRefreshTokenDetails(refreshToken)
                 .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Invalid refresh token"));
@@ -122,10 +112,17 @@ public class ApiAuthService implements IApiAuthService {
 
     @Override
     public void writeTokenCookies(HttpServletResponse response, AuthDTO.AuthResponse authResponse) {
+        // API 로그인/회원가입은 기존 동작과 호환되도록 기본적으로 persistent 쿠키를 발급한다.
+        writeTokenCookies(response, authResponse, true);
+    }
+
+    @Override
+    public void writeTokenCookies(HttpServletResponse response, AuthDTO.AuthResponse authResponse, boolean persistent) {
         if (authResponse == null || authResponse.token() == null || authResponse.refreshToken() == null) {
             return;
         }
-        jwtTokenService.writeTokenCookies(response, authResponse.token(), authResponse.refreshToken());
+        // 화면 로그인은 autoLogin 값에 따라 persistent 여부를 넘기고, 실제 쿠키 생성은 JwtTokenService가 담당한다.
+        jwtTokenService.writeTokenCookies(response, authResponse.token(), authResponse.refreshToken(), persistent);
     }
 
     @Override
@@ -334,9 +331,7 @@ public class ApiAuthService implements IApiAuthService {
             throw new ResponseStatusException(UNAUTHORIZED, "Authorization header must use Bearer token");
         }
         String token = resolvedToken;
-        String userId = jwtTokenService.resolveAccessTokenUserId(token)
-                .or(() -> sessionTokenStore.findUserId(token))
-                .orElse(null);
+        String userId = jwtTokenService.resolveAccessTokenUserId(token).orElse(null);
         if (userId == null) {
             throw new ResponseStatusException(UNAUTHORIZED, "Invalid access token");
         }
@@ -402,17 +397,7 @@ public class ApiAuthService implements IApiAuthService {
         }
     }
 
-    private String createSession(String userId) {
-        String token = UUID.randomUUID().toString();
-        // 세션 저장 구현은 Redis 또는 메모리 fallback 중 현재 설정에 맞는 쪽이 선택된다.
-        sessionTokenStore.store(token, userId);
-        return token;
-    }
-
     private AuthDTO.AuthResponse createAuthResponse(AppUser user) {
-        if (!jwtTokenService.isEnabled()) {
-            return new AuthDTO.AuthResponse(createSession(user.getId()), toUserResponse(user));
-        }
         return new AuthDTO.AuthResponse(
                 jwtTokenService.createAccessToken(user.getId()),
                 registerRefreshToken(jwtTokenService.createRefreshToken(user.getId())),

@@ -12,13 +12,13 @@ public interface IApiAuthService {
 
     AuthDTO.AuthResponse login(AuthDTO.LoginRequest request);
 
-    AuthDTO.AuthResponse createSessionForUser(String userId);
-
     AuthDTO.AuthResponse refreshAccessToken(String refreshToken);
 
     void revokeRefreshToken(String refreshToken);
 
     void writeTokenCookies(HttpServletResponse response, AuthDTO.AuthResponse authResponse);
+
+    void writeTokenCookies(HttpServletResponse response, AuthDTO.AuthResponse authResponse, boolean persistent);
 
     void clearTokenCookies(HttpServletResponse response);
 

@@ -3,16 +3,19 @@ package com.kopo.wemeet.controller;
 import com.kopo.wemeet.dto.*;
 
 import com.kopo.wemeet.repository.AppUserRepository;
+import com.kopo.wemeet.repository.FriendRelationRepository;
 import jakarta.servlet.http.Cookie;
 import com.kopo.wemeet.service.IFriendService;
 import com.kopo.wemeet.service.IMeetingService;
 import com.kopo.wemeet.service.impl.ApiNaverPlaceSearchService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -56,6 +59,12 @@ class WemeetControllerTest {
     private AppUserRepository userRepository;
 
     @Autowired
+    private FriendRelationRepository friendRelationRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
     private IMeetingService meetingService;
 
     @Autowired
@@ -63,6 +72,11 @@ class WemeetControllerTest {
 
     @MockitoBean
     private ApiNaverPlaceSearchService apiNaverPlaceSearchService;
+
+    @BeforeEach
+    void setUpSeedData() {
+        TestSeedData.ensure(userRepository, friendRelationRepository, passwordEncoder);
+    }
 
     @Test
     void landingPageShowsGuestNavigation() throws Exception {
@@ -108,13 +122,13 @@ class WemeetControllerTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/find-password/verify")
-                        .param("loginId", "passwordflow01")
+                        .param("userId", "passwordflow01")
                         .param("email", "wrong@wemeet.local"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/find-password"));
 
         MvcResult verifyResult = mockMvc.perform(post("/find-password/verify")
-                        .param("loginId", "passwordflow01")
+                        .param("userId", "passwordflow01")
                         .param("email", "passwordflow01@wemeet.local"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"))
@@ -127,7 +141,7 @@ class WemeetControllerTest {
                 .andExpect(content().string(containsString("임시 비밀번호를 이메일로 전송했습니다.")));
 
         mockMvc.perform(post("/login")
-                        .param("loginId", "passwordflow01")
+                        .param("userId", "passwordflow01")
                         .param("password", temporaryPassword))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"));
@@ -229,7 +243,7 @@ class WemeetControllerTest {
         mockMvc.perform(post("/signup")
                         .session(verifiedSignupSession("tester01@wemeet.local"))
                         .param("nickname", "테스터")
-                        .param("loginId", "tester01")
+                        .param("userId", "tester01")
                         .param("email", "tester01@wemeet.local")
                         .param("password", "pass1234")
                         .param("confirmPassword", "pass1234")
@@ -243,7 +257,7 @@ class WemeetControllerTest {
         mockMvc.perform(post("/signup")
                         .session(verifiedSignupSession("homeuser01@wemeet.local"))
                         .param("nickname", "홈테스터")
-                        .param("loginId", "homeuser01")
+                        .param("userId", "homeuser01")
                         .param("email", "homeuser01@wemeet.local")
                         .param("password", "pass1234")
                         .param("confirmPassword", "pass1234")
@@ -251,24 +265,24 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection());
 
         MvcResult loginResult = mockMvc.perform(post("/login")
-                        .param("loginId", "homeuser01")
+                        .param("userId", "homeuser01")
                         .param("password", "pass1234"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
 
-        mockMvc.perform(get("/").session((org.springframework.mock.web.MockHttpSession) loginResult.getRequest().getSession(false)))
+        mockMvc.perform(get("/").cookie(loginResult.getResponse().getCookies()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("안녕하세요")))
                 .andExpect(content().string(containsString("홈테스터")));
     }
 
     @Test
-    void loginWithRememberMeSetsRememberMeCookie() throws Exception {
+    void loginWithoutAutoLoginSetsSessionJwtCookie() throws Exception {
         mockMvc.perform(post("/signup")
                         .session(verifiedSignupSession("rememberuser01@wemeet.local"))
                         .param("nickname", "리멤버테스터")
-                        .param("loginId", "rememberuser01")
+                        .param("userId", "rememberuser01")
                         .param("email", "rememberuser01@wemeet.local")
                         .param("password", "pass1234")
                         .param("confirmPassword", "pass1234")
@@ -276,26 +290,53 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection());
 
         MvcResult loginResult = mockMvc.perform(post("/login")
-                        .param("loginId", "rememberuser01")
-                        .param("password", "pass1234")
-                        .param("rememberMe", "true"))
+                        .param("userId", "rememberuser01")
+                        .param("password", "pass1234"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
 
-        Cookie rememberMeCookie = loginResult.getResponse().getCookie("WM_REMEMBER_ME");
-        assertNotNull(rememberMeCookie);
-        assertTrue(rememberMeCookie.isHttpOnly());
-        assertEquals("/", rememberMeCookie.getPath());
-        assertTrue(rememberMeCookie.getMaxAge() > 0);
+        Cookie accessTokenCookie = loginResult.getResponse().getCookie("WM_ACCESS_TOKEN");
+        assertNotNull(accessTokenCookie);
+        assertTrue(accessTokenCookie.isHttpOnly());
+        assertEquals("/", accessTokenCookie.getPath());
+        assertEquals(-1, accessTokenCookie.getMaxAge());
     }
 
     @Test
-    void rememberMeCookieRestoresLoginWithoutExistingSession() throws Exception {
+    void loginWithAutoLoginSetsPersistentJwtCookie() throws Exception {
+        mockMvc.perform(post("/signup")
+                        .session(verifiedSignupSession("autologinuser01@wemeet.local"))
+                        .param("nickname", "자동로그인테스터")
+                        .param("userId", "autologinuser01")
+                        .param("email", "autologinuser01@wemeet.local")
+                        .param("password", "pass1234")
+                        .param("confirmPassword", "pass1234")
+                        .param("baseAddress", "서울특별시 중구"))
+                .andExpect(status().is3xxRedirection());
+
+        MvcResult loginResult = mockMvc.perform(post("/login")
+                        .param("userId", "autologinuser01")
+                        .param("password", "pass1234")
+                        .param("autoLogin", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"))
+                .andReturn();
+
+        Cookie accessTokenCookie = loginResult.getResponse().getCookie("WM_ACCESS_TOKEN");
+        Cookie refreshTokenCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        assertNotNull(accessTokenCookie);
+        assertNotNull(refreshTokenCookie);
+        assertTrue(accessTokenCookie.getMaxAge() > 0);
+        assertTrue(refreshTokenCookie.getMaxAge() > accessTokenCookie.getMaxAge());
+    }
+
+    @Test
+    void accessCookieRestoresLoginWithoutExistingSession() throws Exception {
         mockMvc.perform(post("/signup")
                         .session(verifiedSignupSession("rememberrestore01@wemeet.local"))
-                        .param("nickname", "자동로그인테스터")
-                        .param("loginId", "rememberrestore01")
+                        .param("nickname", "쿠키로그인테스터")
+                        .param("userId", "rememberrestore01")
                         .param("email", "rememberrestore01@wemeet.local")
                         .param("password", "pass1234")
                         .param("confirmPassword", "pass1234")
@@ -303,25 +344,24 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection());
 
         MvcResult loginResult = mockMvc.perform(post("/login")
-                        .param("loginId", "rememberrestore01")
-                        .param("password", "pass1234")
-                        .param("rememberMe", "true"))
+                        .param("userId", "rememberrestore01")
+                        .param("password", "pass1234"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
 
-        Cookie rememberMeCookie = loginResult.getResponse().getCookie("WM_REMEMBER_ME");
-        assertNotNull(rememberMeCookie);
+        Cookie accessTokenCookie = loginResult.getResponse().getCookie("WM_ACCESS_TOKEN");
+        assertNotNull(accessTokenCookie);
 
-        mockMvc.perform(get("/").cookie(rememberMeCookie))
+        mockMvc.perform(get("/").cookie(accessTokenCookie))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("안녕하세요")))
-                .andExpect(content().string(containsString("자동로그인테스터")));
+                .andExpect(content().string(containsString("쿠키로그인테스터")));
     }
 
     @Test
     void homePageShowsActualUpcomingMeetingsForCurrentUser() throws Exception {
-        MockHttpSession session = signupAndLogin("homeagenda01", "homeagenda01@wemeet.local");
+        Cookie[] session = signupAndLogin("homeagenda01", "homeagenda01@wemeet.local");
         String userId = userRepository.findByLoginId("homeagenda01").orElseThrow().getId();
 
         meetingService.createMeeting(
@@ -336,7 +376,7 @@ class WemeetControllerTest {
                 List.of()
         );
 
-        mockMvc.perform(get("/").session(session))
+        mockMvc.perform(get("/").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("홈에 보이는 실제 모임")))
                 .andExpect(content().string(not(containsString("친구들과 보드게임"))));
@@ -347,7 +387,7 @@ class WemeetControllerTest {
         mockMvc.perform(post("/signup")
                         .session(verifiedSignupSession("profileuser01@wemeet.local"))
                         .param("nickname", "프로필테스터")
-                        .param("loginId", "profileuser01")
+                        .param("userId", "profileuser01")
                         .param("email", "profileuser01@wemeet.local")
                         .param("password", "pass1234")
                         .param("confirmPassword", "pass1234")
@@ -355,22 +395,24 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection());
 
         MvcResult loginResult = mockMvc.perform(post("/login")
-                        .param("loginId", "profileuser01")
+                        .param("userId", "profileuser01")
                         .param("password", "pass1234"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
 
-        org.springframework.mock.web.MockHttpSession session =
-                (org.springframework.mock.web.MockHttpSession) loginResult.getRequest().getSession(false);
+        Cookie[] session = loginResult.getResponse().getCookies();
 
-        mockMvc.perform(post("/profile/address")
-                        .session(session)
+        MvcResult addressResult = mockMvc.perform(post("/profile/address")
+                        .cookie(session)
                         .param("baseAddress", "서울특별시 강남구 테헤란로 123"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/profile"));
+                .andExpect(redirectedUrl("/profile"))
+                .andReturn();
 
-        mockMvc.perform(get("/profile").session(session))
+        mockMvc.perform(get("/profile")
+                        .session((MockHttpSession) addressResult.getRequest().getSession(false))
+                        .cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("서울특별시 강남구 테헤란로 123")))
                 .andExpect(content().string(containsString("기본 출발지 주소가 수정되었습니다.")));
@@ -378,7 +420,7 @@ class WemeetControllerTest {
 
     @Test
     void profilePageShowsMeetingsCreatedByCurrentUser() throws Exception {
-        MockHttpSession session = signupAndLogin("profilemeeting01", "profilemeeting01@wemeet.local");
+        Cookie[] session = signupAndLogin("profilemeeting01", "profilemeeting01@wemeet.local");
         String userId = userRepository.findByLoginId("profilemeeting01").orElseThrow().getId();
 
         meetingService.createMeeting(
@@ -393,7 +435,7 @@ class WemeetControllerTest {
                 List.of()
         );
 
-        mockMvc.perform(get("/profile").session(session))
+        mockMvc.perform(get("/profile").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("내가 생성한 모임")))
                 .andExpect(content().string(containsString("프로필에서 보이는 모임")))
@@ -408,7 +450,7 @@ class WemeetControllerTest {
 
     @Test
     void profilePageShowsMeetingsCurrentUserJoined() throws Exception {
-        MockHttpSession session = signupAndLogin("profilejoined01", "profilejoined01@wemeet.local");
+        Cookie[] session = signupAndLogin("profilejoined01", "profilejoined01@wemeet.local");
         String userId = userRepository.findByLoginId("profilejoined01").orElseThrow().getId();
         String hostId = userRepository.findByLoginId("user456").orElseThrow().getId();
 
@@ -424,7 +466,7 @@ class WemeetControllerTest {
                 List.of(userId)
         ).id();
 
-        mockMvc.perform(get("/profile").session(session))
+        mockMvc.perform(get("/profile").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("받은 모임 초대")))
                 .andExpect(content().string(containsString("@이영희 님이 모임에 초대하셨습니다. 참여하시겠습니까?")))
@@ -433,14 +475,17 @@ class WemeetControllerTest {
                 .andExpect(content().string(containsString("참여")))
                 .andExpect(content().string(containsString("거절")));
 
-        mockMvc.perform(post("/profile/meetings/invitations/respond")
-                        .session(session)
+        MvcResult invitationResult = mockMvc.perform(post("/profile/meetings/invitations/respond")
+                        .cookie(session)
                         .param("meetingId", meetingId)
                         .param("action", "accept"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/profile"));
+                .andExpect(redirectedUrl("/profile"))
+                .andReturn();
 
-        mockMvc.perform(get("/profile").session(session))
+        mockMvc.perform(get("/profile")
+                        .session((MockHttpSession) invitationResult.getRequest().getSession(false))
+                        .cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("모임 초대를 수락했습니다.")))
                 .andExpect(content().string(containsString("참여한 모임")))
@@ -457,7 +502,7 @@ class WemeetControllerTest {
         mockMvc.perform(post("/signup")
                         .session(verifiedSignupSession("logoutuser01@wemeet.local"))
                         .param("nickname", "로그아웃테스터")
-                        .param("loginId", "logoutuser01")
+                        .param("userId", "logoutuser01")
                         .param("email", "logoutuser01@wemeet.local")
                         .param("password", "pass1234")
                         .param("confirmPassword", "pass1234")
@@ -465,30 +510,29 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection());
 
         MvcResult loginResult = mockMvc.perform(post("/login")
-                        .param("loginId", "logoutuser01")
+                        .param("userId", "logoutuser01")
                         .param("password", "pass1234"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
 
-        org.springframework.mock.web.MockHttpSession session =
-                (org.springframework.mock.web.MockHttpSession) loginResult.getRequest().getSession(false);
+        Cookie[] session = loginResult.getResponse().getCookies();
 
-        mockMvc.perform(get("/logout").session(session))
+        mockMvc.perform(get("/logout").cookie(session))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"));
 
-        mockMvc.perform(get("/profile").session(session))
+        mockMvc.perform(get("/profile"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"));
     }
 
     @Test
-    void logoutClearsRememberMeCookie() throws Exception {
+    void logoutClearsJwtCookies() throws Exception {
         mockMvc.perform(post("/signup")
                         .session(verifiedSignupSession("logoutremember01@wemeet.local"))
                         .param("nickname", "로그아웃쿠키테스터")
-                        .param("loginId", "logoutremember01")
+                        .param("userId", "logoutremember01")
                         .param("email", "logoutremember01@wemeet.local")
                         .param("password", "pass1234")
                         .param("confirmPassword", "pass1234")
@@ -496,35 +540,36 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection());
 
         MvcResult loginResult = mockMvc.perform(post("/login")
-                        .param("loginId", "logoutremember01")
-                        .param("password", "pass1234")
-                        .param("rememberMe", "true"))
+                        .param("userId", "logoutremember01")
+                        .param("password", "pass1234"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
 
-        MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
-        Cookie rememberMeCookie = loginResult.getResponse().getCookie("WM_REMEMBER_ME");
-        assertNotNull(rememberMeCookie);
-        Cookie accessCookie = new Cookie("WM_ACCESS_TOKEN", "access.jwt.value");
-        Cookie refreshCookie = new Cookie("WM_REFRESH_TOKEN", "refresh.jwt.value");
+        Cookie[] session = loginResult.getResponse().getCookies();
+        Cookie accessCookie = loginResult.getResponse().getCookie("WM_ACCESS_TOKEN");
+        Cookie refreshCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        Cookie csrfCookie = loginResult.getResponse().getCookie("WM_CSRF_TOKEN");
+        assertNotNull(accessCookie);
+        assertNotNull(refreshCookie);
+        assertNotNull(csrfCookie);
 
         MvcResult logoutResult = mockMvc.perform(get("/logout")
-                        .session(session)
-                        .cookie(rememberMeCookie, accessCookie, refreshCookie))
+                        .cookie(session)
+                        .cookie(accessCookie, refreshCookie, csrfCookie))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
 
-        Cookie clearedCookie = logoutResult.getResponse().getCookie("WM_REMEMBER_ME");
-        assertNotNull(clearedCookie);
-        assertEquals(0, clearedCookie.getMaxAge());
         Cookie clearedAccessCookie = logoutResult.getResponse().getCookie("WM_ACCESS_TOKEN");
         Cookie clearedRefreshCookie = logoutResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        Cookie clearedCsrfCookie = logoutResult.getResponse().getCookie("WM_CSRF_TOKEN");
         assertNotNull(clearedAccessCookie);
         assertNotNull(clearedRefreshCookie);
+        assertNotNull(clearedCsrfCookie);
         assertEquals(0, clearedAccessCookie.getMaxAge());
         assertEquals(0, clearedRefreshCookie.getMaxAge());
+        assertEquals(0, clearedCsrfCookie.getMaxAge());
     }
 
     @Test
@@ -532,7 +577,7 @@ class WemeetControllerTest {
         mockMvc.perform(post("/signup")
                         .session(verifiedSignupSession("historyuser01@wemeet.local"))
                         .param("nickname", "히스토리테스터")
-                        .param("loginId", "historyuser01")
+                        .param("userId", "historyuser01")
                         .param("email", "historyuser01@wemeet.local")
                         .param("password", "pass1234")
                         .param("confirmPassword", "pass1234")
@@ -540,16 +585,15 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection());
 
         MvcResult loginResult = mockMvc.perform(post("/login")
-                        .param("loginId", "historyuser01")
+                        .param("userId", "historyuser01")
                         .param("password", "pass1234"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
 
-        org.springframework.mock.web.MockHttpSession session =
-                (org.springframework.mock.web.MockHttpSession) loginResult.getRequest().getSession(false);
+        Cookie[] session = loginResult.getResponse().getCookies();
 
-        mockMvc.perform(get("/history").session(session))
+        mockMvc.perform(get("/history").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("조건에 맞는 검색 기록이 없습니다.")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("강남 맛집"))));
@@ -560,7 +604,7 @@ class WemeetControllerTest {
         mockMvc.perform(post("/signup")
                         .session(verifiedSignupSession("friendadd01@wemeet.local"))
                         .param("nickname", "친구추가테스터")
-                        .param("loginId", "friendadd01")
+                        .param("userId", "friendadd01")
                         .param("email", "friendadd01@wemeet.local")
                         .param("password", "pass1234")
                         .param("confirmPassword", "pass1234")
@@ -568,40 +612,42 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection());
 
         MvcResult loginResult = mockMvc.perform(post("/login")
-                        .param("loginId", "friendadd01")
+                        .param("userId", "friendadd01")
                         .param("password", "pass1234"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
 
-        org.springframework.mock.web.MockHttpSession session =
-                (org.springframework.mock.web.MockHttpSession) loginResult.getRequest().getSession(false);
+        Cookie[] session = loginResult.getResponse().getCookies();
 
-        mockMvc.perform(post("/friends/add")
-                        .session(session)
+        MvcResult addFriendResult = mockMvc.perform(post("/friends/add")
+                        .cookie(session)
                         .param("friendCode", "FRIEND456")
                         .param("redirectTo", "/friends"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/friends"));
+                .andExpect(redirectedUrl("/friends"))
+                .andReturn();
 
-        mockMvc.perform(get("/friends").session(session))
+        mockMvc.perform(get("/friends")
+                        .session((MockHttpSession) addFriendResult.getRequest().getSession(false))
+                        .cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("수락 대기중")))
                 .andExpect(content().string(containsString("이영희")))
                 .andExpect(content().string(containsString("님에게 친구 요청을 보냈습니다.")))
                 .andExpect(content().string(not(containsString("data-friend-card"))));
 
-        MockHttpSession friendSession = login("user456", "pass1234");
+        Cookie[] friendSession = login("user456", "pass1234");
         String requesterId = userRepository.findByLoginId("friendadd01").orElseThrow().getId();
         mockMvc.perform(post("/friends/request/respond")
-                        .session(friendSession)
+                        .cookie(friendSession)
                         .param("requesterId", requesterId)
                         .param("action", "approve")
                         .param("redirectTo", "/friends"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/friends"));
 
-        mockMvc.perform(get("/friends").session(session))
+        mockMvc.perform(get("/friends").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("이영희")))
                 .andExpect(content().string(containsString("data-friend-card")));
@@ -609,9 +655,9 @@ class WemeetControllerTest {
 
     @Test
     void friendsPageDoesNotShowDemoFriendRequests() throws Exception {
-        MockHttpSession session = signupAndLogin("friendrequestempty01", "friendrequestempty01@wemeet.local");
+        Cookie[] session = signupAndLogin("friendrequestempty01", "friendrequestempty01@wemeet.local");
 
-        mockMvc.perform(get("/friends").session(session))
+        mockMvc.perform(get("/friends").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("최지우"))))
                 .andExpect(content().string(not(containsString("받은 친구 요청"))));
@@ -619,10 +665,10 @@ class WemeetControllerTest {
 
     @Test
     void friendsPageSearchesOnServer() throws Exception {
-        MockHttpSession session = signupAndLogin("friendsearch01", "friendsearch01@wemeet.local");
+        Cookie[] session = signupAndLogin("friendsearch01", "friendsearch01@wemeet.local");
         addFriend(session, "friendsearch01", "FRIEND456");
         addFriend(session, "friendsearch01", "FRIEND789");
-        mockMvc.perform(get("/friends").session(session))
+        mockMvc.perform(get("/friends").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("data-friend-card")))
                 .andExpect(content().string(containsString("박민수")))
@@ -630,7 +676,7 @@ class WemeetControllerTest {
                 .andExpect(content().string(containsString("서울특별시 마포구 공덕동")))
                 .andExpect(content().string(containsString("서울특별시 성동구 성수동1가")));
 
-        mockMvc.perform(get("/friends").session(session).param("keyword", "박민수"))
+        mockMvc.perform(get("/friends").cookie(session).param("keyword", "박민수"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("value=\"박민수\"")))
                 .andExpect(content().string(containsString("박민수")))
@@ -639,7 +685,7 @@ class WemeetControllerTest {
 
     @Test
     void friendsPageShowsTenFriendsPerPage() throws Exception {
-        MockHttpSession session = signupAndLogin("friendpage01", "friendpage01@wemeet.local");
+        Cookie[] session = signupAndLogin("friendpage01", "friendpage01@wemeet.local");
         for (String friendCode : List.of(
                 "FRIEND456",
                 "FRIEND789",
@@ -656,7 +702,7 @@ class WemeetControllerTest {
             addFriend(session, "friendpage01", friendCode);
         }
 
-        String firstPageHtml = mockMvc.perform(get("/friends").session(session))
+        String firstPageHtml = mockMvc.perform(get("/friends").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("내 친구 (11)")))
                 .andExpect(content().string(containsString("다음")))
@@ -666,25 +712,25 @@ class WemeetControllerTest {
 
         assertTrue(firstPageHtml.split("data-friend-card", -1).length - 1 <= 10);
 
-        mockMvc.perform(get("/friends").session(session).param("page", "2"))
+        mockMvc.perform(get("/friends").cookie(session).param("page", "2"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("이전")));
     }
 
     @Test
     void favoriteFriendsArePinnedToTop() throws Exception {
-        MockHttpSession session = signupAndLogin("friendfavorite01", "friendfavorite01@wemeet.local");
+        Cookie[] session = signupAndLogin("friendfavorite01", "friendfavorite01@wemeet.local");
         addFriend(session, "friendfavorite01", "FRIEND456");
         addFriend(session, "friendfavorite01", "FRIEND789");
 
         mockMvc.perform(post("/friends/favorite")
-                        .session(session)
+                        .cookie(session)
                         .param("friendId", "friend-lee")
                         .param("favorite", "true"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/friends"));
 
-        String html = mockMvc.perform(get("/friends").session(session))
+        String html = mockMvc.perform(get("/friends").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("즐겨찾기")))
                 .andReturn()
@@ -696,24 +742,27 @@ class WemeetControllerTest {
 
     @Test
     void registeredFriendCanBeDeletedFromFriendsPage() throws Exception {
-        MockHttpSession session = signupAndLogin("frienddelete01", "frienddelete01@wemeet.local");
+        Cookie[] session = signupAndLogin("frienddelete01", "frienddelete01@wemeet.local");
         addFriend(session, "frienddelete01", "FRIEND456");
         String userId = userRepository.findByLoginId("frienddelete01").orElseThrow().getId();
         String friendId = userRepository.findByLoginId("user456").orElseThrow().getId();
 
-        mockMvc.perform(get("/friends").session(session))
+        mockMvc.perform(get("/friends").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("이영희")))
                 .andExpect(content().string(containsString("/friends/delete")))
                 .andExpect(content().string(containsString("삭제")));
 
-        mockMvc.perform(post("/friends/delete")
-                        .session(session)
+        MvcResult deleteFriendResult = mockMvc.perform(post("/friends/delete")
+                        .cookie(session)
                         .param("friendId", friendId))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/friends"));
+                .andExpect(redirectedUrl("/friends"))
+                .andReturn();
 
-        mockMvc.perform(get("/friends").session(session))
+        mockMvc.perform(get("/friends")
+                        .session((MockHttpSession) deleteFriendResult.getRequest().getSession(false))
+                        .cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("친구를 삭제했습니다.")))
                 .andExpect(content().string(not(containsString("이영희"))))
@@ -725,16 +774,16 @@ class WemeetControllerTest {
 
     @Test
     void meetingFormProvidesClientSideFriendSearch() throws Exception {
-        MockHttpSession session = signupAndLogin("meetingfriendsearch01", "meetingfriendsearch01@wemeet.local");
+        Cookie[] session = signupAndLogin("meetingfriendsearch01", "meetingfriendsearch01@wemeet.local");
         addFriend(session, "meetingfriendsearch01", "FRIEND456");
         addFriend(session, "meetingfriendsearch01", "FRIEND789");
         mockMvc.perform(post("/friends/favorite")
-                        .session(session)
+                        .cookie(session)
                         .param("friendId", "friend-lee")
                         .param("favorite", "true"))
                 .andExpect(status().is3xxRedirection());
 
-        mockMvc.perform(get("/meetings/new").session(session))
+        mockMvc.perform(get("/meetings/new").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("data-friend-filter")))
                 .andExpect(content().string(containsString("data-friend-card")))
@@ -758,12 +807,12 @@ class WemeetControllerTest {
 
     @Test
     void meetingPreviewComposesTimeFromHourAndMinute() throws Exception {
-        MockHttpSession session = signupAndLogin("meetingtime01", "meetingtime01@wemeet.local");
+        Cookie[] session = signupAndLogin("meetingtime01", "meetingtime01@wemeet.local");
 
         given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
 
         mockMvc.perform(post("/meetings/preview")
-                        .session(session)
+                        .cookie(session)
                         .param("category", "카페")
                         .param("friendIds", "user-123")
                         .param("mode", "CENTER")
@@ -783,11 +832,11 @@ class WemeetControllerTest {
 
     @Test
     void loggedInRecommendationPageDoesNotShowMeetingSavePanelWithoutPreview() throws Exception {
-        MockHttpSession session = signupAndLogin("resultsave01", "resultsave01@wemeet.local");
+        Cookie[] session = signupAndLogin("resultsave01", "resultsave01@wemeet.local");
         given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
 
         mockMvc.perform(get("/search/results")
-                        .session(session)
+                        .cookie(session)
                         .param("category", "카페"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("중구 로컬 카페")))
@@ -796,12 +845,12 @@ class WemeetControllerTest {
 
     @Test
     void meetingCreateAddsMeetingToSelectedParticipants() throws Exception {
-        MockHttpSession session = signupAndLogin("meetingcreate01", "meetingcreate01@wemeet.local");
+        Cookie[] session = signupAndLogin("meetingcreate01", "meetingcreate01@wemeet.local");
         addFriend(session, "meetingcreate01", "FRIEND456");
         String friendId = userRepository.findByLoginId("user456").orElseThrow().getId();
 
         mockMvc.perform(post("/meetings")
-                        .session(session)
+                        .cookie(session)
                         .param("meetingName", "참여자에게 추가되는 모임")
                         .param("meetingDescription", "선택 인원과 함께 저장됩니다")
                         .param("meetingDate", "2026-05-12")
@@ -820,11 +869,11 @@ class WemeetControllerTest {
 
     @Test
     void meetingCreateWithBlankRequiredFieldsStaysOnResultsPage() throws Exception {
-        MockHttpSession session = signupAndLogin("meetingerror01", "meetingerror01@wemeet.local");
+        Cookie[] session = signupAndLogin("meetingerror01", "meetingerror01@wemeet.local");
         given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
 
-        String previewHtml = mockMvc.perform(post("/meetings/preview")
-                        .session(session)
+        MvcResult previewResult1 = mockMvc.perform(post("/meetings/preview")
+                        .cookie(session)
                         .param("category", "카페")
                         .param("mode", "CENTER")
                         .param("meetingName", "")
@@ -833,14 +882,15 @@ class WemeetControllerTest {
                         .param("meetingMinute", "30")
                         .param("routeMode", "walk"))
                 .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+                .andReturn();
+
+        String previewHtml = previewResult1.getResponse().getContentAsString();
 
         String previewKey = extractHiddenInputValue(previewHtml, "meetingPreviewKey");
 
         mockMvc.perform(post("/meetings")
-                        .session(session)
+                        .session((MockHttpSession) previewResult1.getRequest().getSession(false))
+                        .cookie(session)
                         .param("meetingName", "")
                         .param("meetingDescription", "결과 페이지에 남아야 합니다")
                         .param("meetingDate", "")
@@ -859,13 +909,13 @@ class WemeetControllerTest {
 
     @Test
     void meetingCreateStoresRecommendationSnapshotUntilSevenDaysAfterMeeting() throws Exception {
-        MockHttpSession session = signupAndLogin("meetingsnapshot01", "meetingsnapshot01@wemeet.local");
+        Cookie[] session = signupAndLogin("meetingsnapshot01", "meetingsnapshot01@wemeet.local");
         String userId = userRepository.findByLoginId("meetingsnapshot01").orElseThrow().getId();
 
         given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "저장된 추천 카페"));
 
-        String previewHtml = mockMvc.perform(post("/meetings/preview")
-                        .session(session)
+        MvcResult previewResult2 = mockMvc.perform(post("/meetings/preview")
+                        .cookie(session)
                         .param("category", "카페")
                         .param("mode", "CENTER")
                         .param("meetingName", "스냅샷 저장 모임")
@@ -874,15 +924,16 @@ class WemeetControllerTest {
                         .param("meetingMinute", "30")
                         .param("routeMode", "car"))
                 .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+                .andReturn();
+
+        String previewHtml = previewResult2.getResponse().getContentAsString();
 
         String previewKey = extractHiddenInputValue(previewHtml, "meetingPreviewKey");
         assertFalse(previewKey.isBlank());
 
         mockMvc.perform(post("/meetings")
-                        .session(session)
+                        .session((MockHttpSession) previewResult2.getRequest().getSession(false))
+                        .cookie(session)
                         .param("meetingName", "스냅샷 저장 모임")
                         .param("meetingDescription", "추천 결과를 같이 저장합니다")
                         .param("meetingDate", "2026-05-12")
@@ -907,7 +958,7 @@ class WemeetControllerTest {
 
     @Test
     void profileCanDeleteCreatedMeeting() throws Exception {
-        MockHttpSession session = signupAndLogin("meetingdelete01", "meetingdelete01@wemeet.local");
+        Cookie[] session = signupAndLogin("meetingdelete01", "meetingdelete01@wemeet.local");
         String userId = userRepository.findByLoginId("meetingdelete01").orElseThrow().getId();
         String meetingId = meetingService.createMeeting(
                 userId,
@@ -921,13 +972,16 @@ class WemeetControllerTest {
                 List.of()
         ).id();
 
-        mockMvc.perform(post("/profile/meetings/delete")
-                        .session(session)
+        MvcResult deleteMeetingResult = mockMvc.perform(post("/profile/meetings/delete")
+                        .cookie(session)
                         .param("meetingId", meetingId))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/profile"));
+                .andExpect(redirectedUrl("/profile"))
+                .andReturn();
 
-        mockMvc.perform(get("/profile").session(session))
+        mockMvc.perform(get("/profile")
+                        .session((MockHttpSession) deleteMeetingResult.getRequest().getSession(false))
+                        .cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("모임이 삭제되었습니다.")))
                 .andExpect(content().string(not(containsString("삭제될 모임"))));
@@ -935,10 +989,11 @@ class WemeetControllerTest {
 
     @Test
     void profileDeleteConfirmPageShowsConfirmationButtons() throws Exception {
-        MockHttpSession session = signupAndLogin("profiledeleteview01", "profiledeleteview01@wemeet.local");
-        session.setAttribute("PROFILE_EDIT_VERIFIED", true);
+        Cookie[] session = signupAndLogin("profiledeleteview01", "profiledeleteview01@wemeet.local");
+        MockHttpSession editSession = new MockHttpSession();
+        editSession.setAttribute("PROFILE_EDIT_VERIFIED", true);
 
-        mockMvc.perform(get("/profile/delete").session(session))
+        mockMvc.perform(get("/profile/delete").session(editSession).cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("정말로 탈퇴하시겠습니까?")))
                 .andExpect(content().string(containsString(">예<")))
@@ -947,8 +1002,9 @@ class WemeetControllerTest {
 
     @Test
     void profileDeleteRemovesUserAndRelatedData() throws Exception {
-        MockHttpSession session = signupAndLogin("accountdelete01", "accountdelete01@wemeet.local");
-        session.setAttribute("PROFILE_EDIT_VERIFIED", true);
+        Cookie[] session = signupAndLogin("accountdelete01", "accountdelete01@wemeet.local");
+        MockHttpSession editSession = new MockHttpSession();
+        editSession.setAttribute("PROFILE_EDIT_VERIFIED", true);
         String deletedUserId = userRepository.findByLoginId("accountdelete01").orElseThrow().getId();
         String otherUserId = userRepository.findByLoginId("user456").orElseThrow().getId();
 
@@ -978,7 +1034,7 @@ class WemeetControllerTest {
                 List.of(deletedUserId)
         ).id();
 
-        MvcResult deleteResult = mockMvc.perform(post("/profile/delete").session(session))
+        MvcResult deleteResult = mockMvc.perform(post("/profile/delete").session(editSession).cookie(session))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"))
                 .andReturn();
@@ -995,7 +1051,7 @@ class WemeetControllerTest {
 
     @Test
     void profileMeetingDetailCanOpenRecommendationResults() throws Exception {
-        MockHttpSession session = signupAndLogin("meetingresults01", "meetingresults01@wemeet.local");
+        Cookie[] session = signupAndLogin("meetingresults01", "meetingresults01@wemeet.local");
         addFriend(session, "meetingresults01", "FRIEND456");
         String userId = userRepository.findByLoginId("meetingresults01").orElseThrow().getId();
         String friendId = userRepository.findByLoginId("user456").orElseThrow().getId();
@@ -1014,7 +1070,7 @@ class WemeetControllerTest {
         given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
 
         mockMvc.perform(get("/profile/meetings/results")
-                        .session(session)
+                        .cookie(session)
                         .param("meetingId", meetingId)
                         .param("routeMode", "walk"))
                 .andExpect(status().isOk())
@@ -1028,13 +1084,13 @@ class WemeetControllerTest {
 
     @Test
     void profileMeetingDetailUsesSavedRecommendationSnapshotWhenAvailable() throws Exception {
-        MockHttpSession session = signupAndLogin("savedresult01", "savedresult01@wemeet.local");
+        Cookie[] session = signupAndLogin("savedresult01", "savedresult01@wemeet.local");
         String userId = userRepository.findByLoginId("savedresult01").orElseThrow().getId();
 
         given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "저장된 결과 카페"));
 
-        String previewHtml = mockMvc.perform(post("/meetings/preview")
-                        .session(session)
+        MvcResult previewResult3 = mockMvc.perform(post("/meetings/preview")
+                        .cookie(session)
                         .param("category", "카페")
                         .param("mode", "CENTER")
                         .param("meetingName", "저장 결과 확인 모임")
@@ -1043,14 +1099,15 @@ class WemeetControllerTest {
                         .param("meetingMinute", "00")
                         .param("routeMode", "walk"))
                 .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+                .andReturn();
+
+        String previewHtml = previewResult3.getResponse().getContentAsString();
 
         String previewKey = extractHiddenInputValue(previewHtml, "meetingPreviewKey");
 
         mockMvc.perform(post("/meetings")
-                        .session(session)
+                        .session((MockHttpSession) previewResult3.getRequest().getSession(false))
+                        .cookie(session)
                         .param("meetingName", "저장 결과 확인 모임")
                         .param("meetingDescription", "저장본을 다시 본다")
                         .param("meetingDate", "2026-06-12")
@@ -1073,7 +1130,7 @@ class WemeetControllerTest {
         given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "바뀐 최신 카페"));
 
         mockMvc.perform(get("/profile/meetings/results")
-                        .session(session)
+                        .cookie(session)
                         .param("meetingId", meetingId)
                         .param("routeMode", "walk"))
                 .andExpect(status().isOk())
@@ -1084,13 +1141,13 @@ class WemeetControllerTest {
 
     @Test
     void profileMeetingNaverMapLinkUsesSavedRouteWhenSnapshotExists() throws Exception {
-        MockHttpSession session = signupAndLogin("savedroute01", "savedroute01@wemeet.local");
+        Cookie[] session = signupAndLogin("savedroute01", "savedroute01@wemeet.local");
         String userId = userRepository.findByLoginId("savedroute01").orElseThrow().getId();
 
         given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "저장된 결과 카페"));
 
-        String previewHtml = mockMvc.perform(post("/meetings/preview")
-                        .session(session)
+        MvcResult previewResult4 = mockMvc.perform(post("/meetings/preview")
+                        .cookie(session)
                         .param("category", "카페")
                         .param("mode", "CENTER")
                         .param("meetingName", "지도 링크 확인 모임")
@@ -1099,14 +1156,15 @@ class WemeetControllerTest {
                         .param("meetingMinute", "30")
                         .param("routeMode", "car"))
                 .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+                .andReturn();
+
+        String previewHtml = previewResult4.getResponse().getContentAsString();
 
         String previewKey = extractHiddenInputValue(previewHtml, "meetingPreviewKey");
 
         mockMvc.perform(post("/meetings")
-                        .session(session)
+                        .session((MockHttpSession) previewResult4.getRequest().getSession(false))
+                        .cookie(session)
                         .param("meetingName", "지도 링크 확인 모임")
                         .param("meetingDescription", "프로필 링크 확인")
                         .param("meetingDate", "2026-06-15")
@@ -1120,7 +1178,7 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/profile"));
 
-        String profileHtml = mockMvc.perform(get("/profile").session(session))
+        String profileHtml = mockMvc.perform(get("/profile").cookie(session))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -1139,7 +1197,7 @@ class WemeetControllerTest {
 
     @Test
     void participantCanOpenRecommendationResultsFromProfile() throws Exception {
-        MockHttpSession session = signupAndLogin("participantresults01", "participantresults01@wemeet.local");
+        Cookie[] session = signupAndLogin("participantresults01", "participantresults01@wemeet.local");
         String participantUserId = userRepository.findByLoginId("participantresults01").orElseThrow().getId();
         String hostUserId = userRepository.findByLoginId("user456").orElseThrow().getId();
         String meetingId = meetingService.createMeeting(
@@ -1157,7 +1215,7 @@ class WemeetControllerTest {
         given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
 
         mockMvc.perform(get("/profile/meetings/results")
-                        .session(session)
+                        .cookie(session)
                         .param("meetingId", meetingId)
                         .param("routeMode", "car"))
                 .andExpect(status().isOk())
@@ -1172,11 +1230,11 @@ class WemeetControllerTest {
         return session;
     }
 
-    private MockHttpSession signupAndLogin(String loginId, String email) throws Exception {
+    private Cookie[] signupAndLogin(String loginId, String email) throws Exception {
         mockMvc.perform(post("/signup")
                         .session(verifiedSignupSession(email))
                         .param("nickname", loginId + "닉네임")
-                        .param("loginId", loginId)
+                        .param("userId", loginId)
                         .param("email", email)
                         .param("password", "pass1234")
                         .param("confirmPassword", "pass1234")
@@ -1186,29 +1244,29 @@ class WemeetControllerTest {
         return login(loginId, "pass1234");
     }
 
-    private MockHttpSession login(String loginId, String password) throws Exception {
+    private Cookie[] login(String loginId, String password) throws Exception {
         MvcResult loginResult = mockMvc.perform(post("/login")
-                        .param("loginId", loginId)
+                        .param("userId", loginId)
                         .param("password", password))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
 
-        return (MockHttpSession) loginResult.getRequest().getSession(false);
+        return loginResult.getResponse().getCookies();
     }
 
-    private void addFriend(MockHttpSession session, String requesterLoginId, String friendCode) throws Exception {
+    private void addFriend(Cookie[] session, String requesterLoginId, String friendCode) throws Exception {
         mockMvc.perform(post("/friends/add")
-                        .session(session)
+                        .cookie(session)
                         .param("friendCode", friendCode)
                         .param("redirectTo", "/friends"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/friends"));
 
-        MockHttpSession recipientSession = login(loginIdForFriendCode(friendCode), passwordForFriendCode(friendCode));
+        Cookie[] recipientSession = login(loginIdForFriendCode(friendCode), passwordForFriendCode(friendCode));
         String requesterId = userRepository.findByLoginId(requesterLoginId).orElseThrow().getId();
         mockMvc.perform(post("/friends/request/respond")
-                        .session(recipientSession)
+                        .cookie(recipientSession)
                         .param("requesterId", requesterId)
                         .param("action", "approve")
                         .param("redirectTo", "/friends"))
@@ -1228,7 +1286,7 @@ class WemeetControllerTest {
             case "FRIENDYS" -> "yoonseo";
             case "FRIENDDY" -> "kangdoyun";
             case "FRIENDJS" -> "hanjisoo";
-            case "AAAAAA" -> "demo_friend_aaaaaa";
+            case "AAAAAA" -> "test_friend_aaaaaa";
             default -> throw new IllegalArgumentException("Unknown friend code: " + friendCode);
         };
     }
@@ -1278,6 +1336,8 @@ class WemeetControllerTest {
         );
     }
 }
+
+
 
 
 

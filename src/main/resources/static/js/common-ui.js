@@ -449,7 +449,7 @@ document.addEventListener("DOMContentLoaded", () => {
         syncAnchorState();
     }
 
-    // 데모 화면의 코드/토큰 값을 버튼 한 번으로 복사할 수 있게 한다.
+    // 화면에 표시된 코드 값을 버튼 한 번으로 복사할 수 있게 한다.
     document.querySelectorAll("[data-copy-target]").forEach((button) => {
         button.addEventListener("click", async () => {
             const target = document.querySelector(button.dataset.copyTarget);

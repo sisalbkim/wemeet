@@ -5,10 +5,14 @@ import com.kopo.wemeet.config.NaverMapProperties;
 import com.kopo.wemeet.dto.UserDTO;
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.Model;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Locale;
@@ -26,17 +30,20 @@ public class WemeetViewHelper {
     private final NaverMapProperties naverMapProperties;
     private final OpenApiProperties openApiProperties;
     private final boolean forceTransitVisible;
+    private final String accessCookieName;
 
     public WemeetViewHelper(
             IApiAuthService authService,
             NaverMapProperties naverMapProperties,
             OpenApiProperties openApiProperties,
-            @Value("${app.ui.force-transit-visible:false}") boolean forceTransitVisible
+            @Value("${app.ui.force-transit-visible:false}") boolean forceTransitVisible,
+            @Value("${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}") String accessCookieName
     ) {
         this.authService = authService;
         this.naverMapProperties = naverMapProperties;
         this.openApiProperties = openApiProperties;
         this.forceTransitVisible = forceTransitVisible;
+        this.accessCookieName = accessCookieName;
     }
 
     public void populateCommon(Model model, String activeTab, boolean guestMode) {
@@ -68,11 +75,7 @@ public class WemeetViewHelper {
     }
 
     public AppUser findLoggedInUser(HttpSession session) {
-        if (session == null) {
-            return null;
-        }
-
-        String token = (String) session.getAttribute("AUTH_TOKEN");
+        String token = findAccessTokenCookie();
         if (token == null || token.isBlank()) {
             return null;
         }
@@ -81,7 +84,9 @@ public class WemeetViewHelper {
             return authService.requireUser("Bearer " + token);
         } catch (ResponseStatusException exception) {
             if (exception.getStatusCode().value() == 401) {
-                session.invalidate();
+                if (session != null) {
+                    session.invalidate();
+                }
                 return null;
             }
             throw exception;
@@ -112,5 +117,23 @@ public class WemeetViewHelper {
                 friendCount,
                 joinedMeetings
         );
+    }
+
+    private String findAccessTokenCookie() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return null;
+        }
+        HttpServletRequest request = attributes.getRequest();
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        }
+        for (Cookie cookie : cookies) {
+            if (accessCookieName.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+        return null;
     }
 }

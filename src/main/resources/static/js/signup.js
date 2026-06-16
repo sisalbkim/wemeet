@@ -88,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 const userId = currentUserId();
                 try {
-                    const response = await fetch(`/user/getUserIdExists?userId=${encodeURIComponent(userId)}`);
+                    const response = await fetch(`/api/auth/user-id/available?userId=${encodeURIComponent(userId)}`);
                     const result = await response.json();
                     if (result.available) {
                         verifiedUserId = userId.toLowerCase();

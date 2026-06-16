@@ -7,7 +7,6 @@ import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IWemeetViewService;
 import com.kopo.wemeet.service.impl.MailDeliveryService;
-import com.kopo.wemeet.service.impl.RememberMeJwtService;
 import com.kopo.wemeet.util.CmmUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -33,9 +32,8 @@ public class AuthController {
     private final IApiAuthService authService;
     private final WemeetViewHelper viewHelper;
     private final MailDeliveryService mailDeliveryService;
-    private final RememberMeJwtService rememberMeJwtService;
 
-    @GetMapping({"/login", "/user/login"})
+    @GetMapping("/login")
     public String login(
             @RequestParam(defaultValue = "false") boolean registered,
             @RequestParam(defaultValue = "false") boolean error,
@@ -48,29 +46,37 @@ public class AuthController {
         return "auth/login";
     }
 
-    @GetMapping({"/signup", "/user/userRegForm"})
+    @PostMapping("/login")
+    public String loginSubmit(
+            @RequestParam(name = "userId", defaultValue = "") String userId,
+            @RequestParam(defaultValue = "") String password,
+            @RequestParam(defaultValue = "false") boolean autoLogin,
+            HttpServletResponse response
+    ) {
+        String normalizedUserId = CmmUtil.nvl(userId);
+        AuthDTO.AuthResponse loginResult = authService.login(new AuthDTO.LoginRequest(normalizedUserId, password));
+
+        /*
+         * 로그인 성공 후 세션에 AUTH_TOKEN/USER_ID를 저장하지 않는다.
+         * Access/Refresh Token을 HttpOnly 쿠키로 내려주고, 이후 요청은 Access Token 쿠키로 인증한다.
+         *
+         * autoLogin=true  -> 브라우저를 닫아도 유지되는 persistent cookie
+         * autoLogin=false -> 브라우저 세션 동안만 유지되는 session cookie
+         */
+        authService.writeTokenCookies(response, loginResult, autoLogin);
+        return "redirect:/";
+    }
+
+    @GetMapping("/signup")
     public String signup(Model model, HttpSession session) {
         populateSignupModel(model, session);
         return "auth/signup";
     }
 
-    @GetMapping({"/find-id", "/user/findId"})
-    public String findId(Model model) {
-        populateFindIdModel(model);
-        return "auth/find-id";
-    }
-
-    @GetMapping({"/find-password", "/user/findPassword"})
-    public String findPassword(Model model) {
-        populateFindPasswordModel(model);
-        return "auth/find-password";
-    }
-
-    @PostMapping({"/signup", "/user/insertUserInfo"})
+    @PostMapping("/signup")
     public String signupSubmit(
             @RequestParam(defaultValue = "") String nickname,
             @RequestParam(name = "userId", defaultValue = "") String userId,
-            @RequestParam(name = "loginId", defaultValue = "") String legacyLoginId,
             @RequestParam(defaultValue = "") String email,
             @RequestParam(defaultValue = "") String password,
             @RequestParam(defaultValue = "") String confirmPassword,
@@ -78,7 +84,7 @@ public class AuthController {
             HttpSession session,
             RedirectAttributes redirectAttributes
     ) {
-        String normalizedUserId = resolveUserIdInput(userId, legacyLoginId);
+        String normalizedUserId = CmmUtil.nvl(userId);
         String normalizedEmail = CmmUtil.nvl(email);
 
         if (!password.equals(confirmPassword)) {
@@ -131,29 +137,25 @@ public class AuthController {
         return "redirect:/login";
     }
 
-    @PostMapping({"/login", "/user/loginProc"})
-    public String loginSubmit(
-            @RequestParam(name = "userId", defaultValue = "") String userId,
-            @RequestParam(name = "loginId", defaultValue = "") String legacyLoginId,
-            @RequestParam(defaultValue = "") String password,
-            @RequestParam(defaultValue = "false") boolean rememberMe,
-            HttpSession session,
-            HttpServletResponse response
+    @ResponseBody
+    @GetMapping("/api/auth/user-id/available")
+    public AuthDTO.LoginIdAvailabilityResponse userLoginIdAvailable(
+            @RequestParam(name = "userId", defaultValue = "") String userId
     ) {
-        String normalizedUserId = resolveUserIdInput(userId, legacyLoginId);
-        AuthDTO.AuthResponse loginResult = authService.login(new AuthDTO.LoginRequest(normalizedUserId, password));
-        session.setAttribute("AUTH_TOKEN", loginResult.token());
-        session.setAttribute("USER_ID", loginResult.user().id());
-        session.setAttribute("USER_NICKNAME", loginResult.user().nickname());
-        if (rememberMe) {
-            rememberMeJwtService.writeRememberMeCookie(response, loginResult.user().id());
-        } else {
-            rememberMeJwtService.clearRememberMeCookie(response);
-        }
-        return "redirect:/";
+        boolean available = authService.isLoginIdAvailable(CmmUtil.nvl(userId));
+        return new AuthDTO.LoginIdAvailabilityResponse(
+                available,
+                available ? "사용 가능한 아이디입니다." : "이미 사용 중인 아이디입니다."
+        );
     }
 
-    @PostMapping({"/find-id", "/user/findIdProc"})
+    @GetMapping("/find-id")
+    public String findId(Model model) {
+        populateFindIdModel(model);
+        return "auth/find-id";
+    }
+
+    @PostMapping("/find-id")
     public String findIdSubmit(
             @RequestParam(defaultValue = "") String name,
             @RequestParam(defaultValue = "") String email,
@@ -178,14 +180,19 @@ public class AuthController {
             return "redirect:/find-id";
     }
 
-    @PostMapping({"/find-password/verify", "/user/findPassword/verify"})
+    @GetMapping("/find-password")
+    public String findPassword(Model model) {
+        populateFindPasswordModel(model);
+        return "auth/find-password";
+    }
+
+    @PostMapping("/find-password/verify")
     public String findPasswordVerify(
             @RequestParam(name = "userId", defaultValue = "") String userId,
-            @RequestParam(name = "loginId", defaultValue = "") String legacyLoginId,
             @RequestParam(defaultValue = "") String email,
             RedirectAttributes redirectAttributes
     ) {
-        String normalizedUserId = resolveUserIdInput(userId, legacyLoginId);
+        String normalizedUserId = CmmUtil.nvl(userId);
         String normalizedEmail = CmmUtil.nvl(email);
         try {
             AuthDTO.PasswordResetResponse response = authService.issueTemporaryPassword(normalizedUserId, normalizedEmail);
@@ -207,16 +214,17 @@ public class AuthController {
         }
     }
 
-    @GetMapping({"/logout", "/user/logout"})
+    @GetMapping("/logout")
     public String logout(
             @CookieValue(name = "${app.auth.jwt.refresh-cookie-name:WM_REFRESH_TOKEN}", required = false) String refreshToken,
             HttpSession session,
             HttpServletResponse response
     ) {
         authService.revokeRefreshToken(refreshToken);
-        rememberMeJwtService.clearRememberMeCookie(response);
         authService.clearTokenCookies(response);
-        session.invalidate();
+        if (session != null) {
+            session.invalidate();
+        }
         return "redirect:/";
     }
 
@@ -278,19 +286,6 @@ public class AuthController {
         return new AuthDTO.EmailAvailabilityResponse(
                 available,
                 available ? "사용 가능한 이메일입니다." : "이미 사용 중인 이메일입니다."
-        );
-    }
-
-    @ResponseBody
-    @GetMapping("/user/getUserIdExists")
-    public AuthDTO.LoginIdAvailabilityResponse userLoginIdAvailable(
-            @RequestParam(name = "userId", defaultValue = "") String userId,
-            @RequestParam(name = "loginId", defaultValue = "") String legacyLoginId
-    ) {
-        boolean available = authService.isLoginIdAvailable(resolveUserIdInput(userId, legacyLoginId));
-        return new AuthDTO.LoginIdAvailabilityResponse(
-                available,
-                available ? "사용 가능한 아이디입니다." : "이미 사용 중인 아이디입니다."
         );
     }
 
@@ -375,11 +370,6 @@ public class AuthController {
 
     private void populateFindIdModel(Model model) {
         viewHelper.populateCommon(model, "login", true);
-    }
-
-    private String resolveUserIdInput(String userId, String legacyLoginId) {
-        String normalizedUserId = CmmUtil.nvl(userId);
-        return normalizedUserId.isBlank() ? CmmUtil.nvl(legacyLoginId) : normalizedUserId;
     }
 
     private String resolveRefreshToken(AuthDTO.RefreshRequest request, String refreshTokenCookie) {
