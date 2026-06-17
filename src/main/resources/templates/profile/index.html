@@ -81,7 +81,7 @@
                 </article>
                 <article class="info-item info-item--accent">
                     <span class="info-item__label">집 주소 (기본 출발지)</span>
-                    <strong th:text="${profile.baseAddress}">서울특별시 중구 명동길 74</strong>
+                    <strong th:text="${#strings.isEmpty(profile.baseAddress) ? '아직 주소를 지정하지 않았습니다' : profile.baseAddress}">서울특별시 중구 명동길 74</strong>
                 </article>
                 <article class="info-item">
                     <span class="info-item__label">비밀번호</span>

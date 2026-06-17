@@ -55,7 +55,7 @@
                         <span class="friend-selector__body">
                             <strong th:text="${profile.name + ' (나)'}">김철수 (나)</strong>
                             <small th:text="${profile.handle}">@내친구코드</small>
-                            <small th:text="${profile.baseAddress}">서울특별시 중구 명동길 74</small>
+                            <small th:text="${#strings.isEmpty(profile.baseAddress) ? '아직 주소를 지정하지 않았습니다' : profile.baseAddress}">서울특별시 중구 명동길 74</small>
                         </span>
                     </label>
                     <label class="friend-selector" th:each="friend : ${favoriteFriends}" data-friend-card th:attr="data-friend-name=${friend.name},data-friend-address=${friend.addressHint}">
@@ -67,7 +67,7 @@
                                 <span class="mini-tag" th:if="${friend.favorite}">즐겨찾기</span>
                             </span>
                             <small th:text="${friend.handle}">@user456</small>
-                            <small th:text="${friend.addressHint}">성수동 출발</small>
+                            <small th:text="${#strings.isEmpty(friend.addressHint) ? '주소 미지정' : friend.addressHint}">성수동 출발</small>
                         </span>
                     </label>
                 </div>
@@ -206,9 +206,10 @@
             <section class="panel">
                 <div class="section-heading">
                     <h2>출발지 기준</h2>
-                    <span>내 기본 주소: <strong th:text="${profile.baseAddress}">서울특별시 중구 명동길 74</strong></span>
+                    <span>내 기본 주소: <strong th:text="${#strings.isEmpty(profile.baseAddress) ? '아직 주소를 지정하지 않았습니다' : profile.baseAddress}">서울특별시 중구 명동길 74</strong></span>
                 </div>
-                <p class="muted-note">현재는 프로필에 등록한 기본 출발지를 사용하는 흐름으로 연결해두었습니다.</p>
+                <p class="muted-note" th:if="${!baseAddressMissing}">현재는 프로필에 등록한 기본 출발지를 사용하는 흐름으로 연결해두었습니다.</p>
+                <p class="notice-banner" th:if="${baseAddressMissing}">내 주소가 미지정이라 추천 계산에서는 제외됩니다. 주소가 설정된 친구를 선택하면 추천 결과를 볼 수 있습니다.</p>
             </section>
 
             <div class="submit-row">
@@ -242,7 +243,7 @@
                                 <span class="mini-tag" th:if="${friend.favorite}">즐겨찾기</span>
                             </div>
                             <span th:text="${friend.handle}">@user456</span>
-                            <small th:text="${friend.addressHint}">성수동 출발</small>
+                            <small th:text="${#strings.isEmpty(friend.addressHint) ? '주소 미지정' : friend.addressHint}">성수동 출발</small>
                         </div>
                     </article>
                 </div>

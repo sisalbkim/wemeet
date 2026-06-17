@@ -27,7 +27,8 @@ public class RecommendationResponseFactory {
             String anchorParticipantId,
             PlaceDTO.PlaceSearchResponse placeSearch,
             RecommendationSupport.SearchAnchor searchAnchor,
-            List<RecommendationSupport.VenueEvaluation> selectedEvaluations
+            List<RecommendationSupport.VenueEvaluation> selectedEvaluations,
+            List<UserDTO.UserResponse> excludedParticipantResponses
     ) {
         List<RecommendationDTO.VenueResponse> venues = selectedEvaluations.stream()
                 .map(RecommendationSupport.VenueEvaluation::response)
@@ -54,7 +55,8 @@ public class RecommendationResponseFactory {
                 midpoint,
                 venues,
                 buildMapPoints(participants, participantPoints, midpointPoint, venues, mode, anchorParticipantId),
-                calculationModeLabel(mode, usedFallbackRouting)
+                calculationModeLabel(mode, usedFallbackRouting),
+                excludedParticipantResponses
         );
     }
 
@@ -67,7 +69,8 @@ public class RecommendationResponseFactory {
             RecommendationMode mode,
             String anchorParticipantId,
             PlaceDTO.PlaceSearchResponse placeSearch,
-            RecommendationSupport.SearchAnchor searchAnchor
+            RecommendationSupport.SearchAnchor searchAnchor,
+            List<UserDTO.UserResponse> excludedParticipantResponses
     ) {
         RecommendationSupport.GeoPoint referencePoint = mode == RecommendationMode.ANCHOR
                 ? locationService.resolveAnchorPoint(anchorParticipantId, participants, participantPoints)
@@ -87,7 +90,8 @@ public class RecommendationResponseFactory {
                 ),
                 List.of(),
                 buildMapPoints(participants, participantPoints, midpointPoint, List.of(), mode, anchorParticipantId),
-                calculationModeLabel(mode, false)
+                calculationModeLabel(mode, false),
+                excludedParticipantResponses
         );
     }
 
@@ -99,7 +103,8 @@ public class RecommendationResponseFactory {
             RecommendationSupport.GeoPoint midpointPoint,
             RecommendationMode mode,
             String anchorParticipantId,
-            RecommendationSupport.SearchAnchor searchAnchor
+            RecommendationSupport.SearchAnchor searchAnchor,
+            List<UserDTO.UserResponse> excludedParticipantResponses
     ) {
         RecommendationSupport.GeoPoint referencePoint = mode == RecommendationMode.ANCHOR
                 ? locationService.resolveAnchorPoint(anchorParticipantId, participants, participantPoints)
@@ -119,7 +124,8 @@ public class RecommendationResponseFactory {
                 ),
                 List.of(),
                 buildMapPoints(participants, participantPoints, midpointPoint, List.of(), mode, anchorParticipantId),
-                calculationModeLabel(mode, true)
+                calculationModeLabel(mode, true),
+                excludedParticipantResponses
         );
     }
 

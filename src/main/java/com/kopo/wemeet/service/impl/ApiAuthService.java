@@ -13,6 +13,7 @@ import com.kopo.wemeet.repository.SearchHistoryRepository;
 import com.kopo.wemeet.session.RefreshTokenStore;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.impl.MailDeliveryService.MailSendResult;
+import com.kopo.wemeet.util.CmmUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -54,7 +55,7 @@ public class ApiAuthService implements IApiAuthService {
     @Override
     public AuthDTO.AuthResponse signUp(AuthDTO.SignUpRequest request) {
         // 회원가입은 입력값 검증 -> 중복 확인 -> 사용자 저장 -> 세션 발급 순서로 진행한다.
-        validateSignupRequest(request);
+        validateSignupRequest(request); //문제 있으면 여기서 예외 발생
 
         if (userRepository.existsByLoginId(request.loginId())) {
             throw new ResponseStatusException(CONFLICT, "loginId already exists");
@@ -70,7 +71,7 @@ public class ApiAuthService implements IApiAuthService {
                 request.email(),
                 passwordEncoder.encode(request.password()),
                 generateFriendCode(request.loginId()),
-                request.baseAddress() == null || request.baseAddress().isBlank() ? "서울특별시 중구 명동길 74" : request.baseAddress()
+                CmmUtil.nvl(request.baseAddress()).trim()
         );
         userRepository.save(user);
 

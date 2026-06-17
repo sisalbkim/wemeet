@@ -73,6 +73,11 @@
                     <strong class="participant-pill__status" th:text="${participant.statusLabel}">참여</strong>
                 </span>
             </div>
+            <div class="notice-banner" th:if="${recommendation.excludedParticipants != null and !#lists.isEmpty(recommendation.excludedParticipants)}">
+                <strong>주소 미지정 인원은 추천 계산에서 제외했습니다.</strong>
+                <span th:each="participant, participantStat : ${recommendation.excludedParticipants}"
+                      th:text="${(participantStat.first ? ' ' : ', ') + participant.name}">이영희</span>
+            </div>
         </section>
 
         <section class="panel">

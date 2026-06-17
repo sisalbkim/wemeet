@@ -63,14 +63,23 @@ public class MeetingViewController {
             @RequestParam(required = false) String guestAddress,
             @RequestParam(defaultValue = DEFAULT_ROUTE_MODE) String routeMode,
             Model model,
-            HttpSession session
+            HttpSession session,
+            RedirectAttributes redirectAttributes
     ) {
         AppUser currentUser = null;
         if (!guest) {
             currentUser = viewHelper.requireLoggedInUser(session);
         }
         String normalizedRouteMode = viewHelper.normalizeRouteMode(routeMode);
-        populateRecommendationModel(model, guest ? TAB_NEARBY : TAB_HOME, currentUser, category, detailKeyword, friendIds, mode, anchorId, guest, guestAddress, normalizedRouteMode);
+        try {
+            populateRecommendationModel(model, guest ? TAB_NEARBY : TAB_HOME, currentUser, category, detailKeyword, friendIds, mode, anchorId, guest, guestAddress, normalizedRouteMode);
+        } catch (ResponseStatusException exception) {
+            if (!guest && exception.getStatusCode().isSameCodeAs(BAD_REQUEST)) {
+                redirectAttributes.addFlashAttribute("profileNotice", "주소가 설정된 인원이 없어 추천 결과를 만들 수 없습니다.");
+                return "redirect:/profile";
+            }
+            throw exception;
+        }
         model.addAttribute("selectedRouteMode", normalizedRouteMode);
         return "meeting/results";
     }
@@ -89,23 +98,33 @@ public class MeetingViewController {
             @RequestParam(defaultValue = "") String meetingMinute,
             @RequestParam(defaultValue = DEFAULT_ROUTE_MODE) String routeMode,
             Model model,
-            HttpSession session
+            HttpSession session,
+            RedirectAttributes redirectAttributes
     ) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
         String normalizedRouteMode = viewHelper.normalizeRouteMode(routeMode);
-        RecommendationDTO.RecommendationBundle recommendation = populateRecommendationModel(
-                model,
-                TAB_CREATE,
-                currentUser,
-                category,
-                detailKeyword,
-                friendIds,
-                mode,
-                anchorId,
-                false,
-                null,
-                normalizedRouteMode
-        );
+        RecommendationDTO.RecommendationBundle recommendation;
+        try {
+            recommendation = populateRecommendationModel(
+                    model,
+                    TAB_CREATE,
+                    currentUser,
+                    category,
+                    detailKeyword,
+                    friendIds,
+                    mode,
+                    anchorId,
+                    false,
+                    null,
+                    normalizedRouteMode
+            );
+        } catch (ResponseStatusException exception) {
+            if (exception.getStatusCode().isSameCodeAs(BAD_REQUEST)) {
+                redirectAttributes.addFlashAttribute("meetingCreateError", "주소가 설정된 인원이 없어 추천 장소를 볼 수 없습니다.");
+                return "redirect:/meetings/new";
+            }
+            throw exception;
+        }
         model.addAttribute("meetingName", meetingName);
         model.addAttribute("meetingDescription", meetingDescription);
         model.addAttribute("meetingDate", meetingDate);
@@ -205,6 +224,7 @@ public class MeetingViewController {
         model.addAttribute("selectedMode", DEFAULT_RECOMMENDATION_MODE);
         model.addAttribute("selectedAnchorId", profile.id());
         model.addAttribute("selectedRouteMode", DEFAULT_ROUTE_MODE);
+        model.addAttribute("baseAddressMissing", profile.baseAddress() == null || profile.baseAddress().isBlank());
     }
 
     private RecommendationDTO.RecommendationBundle populateRecommendationModel(

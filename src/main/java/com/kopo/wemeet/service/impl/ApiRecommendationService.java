@@ -14,6 +14,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Optional;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+
 @Service
 @RequiredArgsConstructor
 public class ApiRecommendationService implements IApiRecommendationService {
@@ -40,12 +42,23 @@ public class ApiRecommendationService implements IApiRecommendationService {
             IApiAuthService authService
     ) {
         List<UserDTO.UserAccount> participantAccounts = participantService.resolveParticipants(requesterId, request.participantIds());
-        List<RecommendationSupport.ParticipantProfile> participants = participantService.toParticipantProfiles(participantAccounts);
-        List<UserDTO.UserResponse> participantResponses = participantAccounts.stream()
+        List<UserDTO.UserAccount> calculableAccounts = participantAccounts.stream()
+                .filter(participant -> hasBaseAddress(participant.baseAddress()))
+                .toList();
+        List<UserDTO.UserResponse> excludedParticipantResponses = participantAccounts.stream()
+                .filter(participant -> !hasBaseAddress(participant.baseAddress()))
+                .map(authService::toUserResponse)
+                .toList();
+        if (calculableAccounts.isEmpty()) {
+            throw new ResponseStatusException(BAD_REQUEST, "at least one participant baseAddress is required");
+        }
+
+        List<RecommendationSupport.ParticipantProfile> participants = participantService.toParticipantProfiles(calculableAccounts);
+        List<UserDTO.UserResponse> participantResponses = calculableAccounts.stream()
                 .map(authService::toUserResponse)
                 .toList();
 
-        return recommendInternal(requesterId, request, participants, participantResponses, true);
+        return recommendInternal(requesterId, request, participants, participantResponses, excludedParticipantResponses, true);
     }
 
     @Override
@@ -61,7 +74,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 )
         );
 
-        return recommendInternal(guestUser.id(), request, participants, List.of(guestUser), false);
+        return recommendInternal(guestUser.id(), request, participants, List.of(guestUser), List.of(), false);
     }
 
     private RecommendationDTO.RecommendationResponse recommendInternal(
@@ -69,6 +82,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             RecommendationDTO.RecommendationRequest request,
             List<RecommendationSupport.ParticipantProfile> participants,
             List<UserDTO.UserResponse> participantResponses,
+            List<UserDTO.UserResponse> excludedParticipantResponses,
             boolean persistHistory
     ) {
         String category = participantService.normalizeCategory(request.category());
@@ -79,8 +93,12 @@ public class ApiRecommendationService implements IApiRecommendationService {
         List<RecommendationSupport.GeoPoint> participantPoints = locationService.resolveParticipantPoints(participants);
         RecommendationSupport.GeoPoint midpointPoint = locationService.calculateMidpoint(participantPoints);
         String anchorParticipantId = participantService.resolveAnchorParticipantId(mode, requesterId, request.anchorParticipantId(), participants);
+        String excludedParticipantKey = excludedParticipantResponses.stream()
+                .map(UserDTO.UserResponse::id)
+                .sorted()
+                .reduce("", (left, right) -> left.isBlank() ? right : left + "," + right);
         String cacheKey = participantService.buildCacheKey(RECOMMENDATION_CACHE_SCHEMA_VERSION, requesterId, category, participants)
-                + ":" + searchKeyword + ":" + mode.name() + ":" + anchorParticipantId + ":" + routePreference.name();
+                + ":" + searchKeyword + ":" + mode.name() + ":" + anchorParticipantId + ":" + routePreference.name() + ":" + excludedParticipantKey;
 
         if (mode != RecommendationMode.RANDOM) {
             Optional<RecommendationDTO.RecommendationResponse> cached = recommendationCacheService.get(cacheKey);
@@ -103,6 +121,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 midpointPoint,
                 anchorParticipantId,
                 routePreference,
+                excludedParticipantResponses,
                 persistHistory
         );
 
@@ -123,6 +142,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
             RecommendationSupport.GeoPoint midpointPoint,
             String anchorParticipantId,
             RecommendationSupport.RoutePreference routePreference,
+            List<UserDTO.UserResponse> excludedParticipantResponses,
             boolean persistHistory
     ) {
         RecommendationSupport.SearchAnchor searchAnchor = locationService.resolveSearchAnchor(
@@ -146,7 +166,8 @@ public class ApiRecommendationService implements IApiRecommendationService {
                     midpointPoint,
                     mode,
                     anchorParticipantId,
-                    searchAnchor
+                    searchAnchor,
+                    excludedParticipantResponses
             );
         }
 
@@ -176,7 +197,8 @@ public class ApiRecommendationService implements IApiRecommendationService {
                     mode,
                     anchorParticipantId,
                     placeSearch,
-                    searchAnchor
+                    searchAnchor,
+                    excludedParticipantResponses
             );
         }
 
@@ -195,7 +217,8 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 anchorParticipantId,
                 placeSearch,
                 searchAnchor,
-                selectedEvaluations
+                selectedEvaluations,
+                excludedParticipantResponses
         );
 
         if (persistHistory) {
@@ -207,6 +230,10 @@ public class ApiRecommendationService implements IApiRecommendationService {
 
     private String normalizeOptionalText(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private boolean hasBaseAddress(String baseAddress) {
+        return baseAddress != null && !baseAddress.isBlank();
     }
 }
 

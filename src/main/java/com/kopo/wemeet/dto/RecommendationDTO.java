@@ -37,7 +37,8 @@ public final class RecommendationDTO {
             MidpointResponse midpoint,
             List<VenueResponse> venues,
             List<MapPointResponse> mapPoints,
-            String calculationMode
+            String calculationMode,
+            List<UserDTO.UserResponse> excludedParticipants
     ) {
     }
 
@@ -188,7 +189,8 @@ public final class RecommendationDTO {
             MidpointSummary midpoint,
             List<VenueOption> venues,
             List<MapPoint> mapPoints,
-            String calculationMode
+            String calculationMode,
+            List<FriendDTO.FriendSummary> excludedParticipants
     ) {
     }
 }

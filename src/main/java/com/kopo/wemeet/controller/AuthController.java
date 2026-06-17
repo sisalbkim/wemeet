@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.function.Function;
+
 @Controller
 @RequiredArgsConstructor
 public class AuthController {
@@ -87,23 +89,22 @@ public class AuthController {
         String normalizedUserId = CmmUtil.nvl(userId);
         String normalizedEmail = CmmUtil.nvl(email);
 
-        if (!password.equals(confirmPassword)) {
-            redirectAttributes.addFlashAttribute("signupError", "비밀번호 확인이 일치하지 않습니다.");
+        Function<String, String> redirectSignupError = message -> {
+            redirectAttributes.addFlashAttribute("signupError", message);
             redirectAttributes.addFlashAttribute("signupNickname", nickname);
             redirectAttributes.addFlashAttribute("signupUserId", normalizedUserId);
             redirectAttributes.addFlashAttribute("signupEmail", normalizedEmail);
             redirectAttributes.addFlashAttribute("signupBaseAddress", baseAddress);
             return "redirect:/signup";
+        };
+
+        if (!password.equals(confirmPassword)) {
+            return redirectSignupError.apply("비밀번호 확인이 일치하지 않습니다.");
         }
 
         String verifiedEmail = (String) session.getAttribute("SIGNUP_VERIFIED_EMAIL");
         if (verifiedEmail == null || !verifiedEmail.equalsIgnoreCase(normalizedEmail)) {
-            redirectAttributes.addFlashAttribute("signupError", "이메일 중복확인과 이메일 인증을 먼저 완료해주세요.");
-            redirectAttributes.addFlashAttribute("signupNickname", nickname);
-            redirectAttributes.addFlashAttribute("signupUserId", normalizedUserId);
-            redirectAttributes.addFlashAttribute("signupEmail", normalizedEmail);
-            redirectAttributes.addFlashAttribute("signupBaseAddress", baseAddress);
-            return "redirect:/signup";
+            return redirectSignupError.apply("이메일 중복확인과 이메일 인증을 먼저 완료해주세요.");
         }
 
         try {
@@ -115,17 +116,12 @@ public class AuthController {
                     baseAddress
             ));
         } catch (ResponseStatusException exception) {
-            redirectAttributes.addFlashAttribute("signupError", switch (exception.getReason()) {
+            return redirectSignupError.apply(switch (exception.getReason()) {
                 case "email already exists" -> "이미 사용 중인 이메일입니다.";
                 case "loginId already exists" -> "이미 사용 중인 아이디입니다.";
                 case "nickname, loginId, password, and email are required" -> "필수 입력값을 모두 작성해주세요.";
                 default -> exception.getReason();
             });
-            redirectAttributes.addFlashAttribute("signupNickname", nickname);
-            redirectAttributes.addFlashAttribute("signupUserId", normalizedUserId);
-            redirectAttributes.addFlashAttribute("signupEmail", normalizedEmail);
-            redirectAttributes.addFlashAttribute("signupBaseAddress", baseAddress);
-            return "redirect:/signup";
         }
 
         session.removeAttribute("SIGNUP_VERIFICATION_EMAIL");

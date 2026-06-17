@@ -25,6 +25,17 @@ public class RecommendationBundleMapper {
                 ))
                 .toList();
 
+        List<FriendDTO.FriendSummary> excludedParticipants = response.excludedParticipants().stream()
+                .map(participant -> new FriendDTO.FriendSummary(
+                        participant.id(),
+                        participant.nickname(),
+                        "@" + participant.friendCode(),
+                        participant.baseAddress(),
+                        "주소 미지정으로 계산 제외",
+                        false
+                ))
+                .toList();
+
         List<RecommendationDTO.VenueOption> venues = response.venues().stream()
                 .map(venue -> new RecommendationDTO.VenueOption(
                         venue.name(),
@@ -75,7 +86,8 @@ public class RecommendationBundleMapper {
                                 point.selected()
                         ))
                         .toList(),
-                response.calculationMode()
+                response.calculationMode(),
+                excludedParticipants
         );
     }
 }
