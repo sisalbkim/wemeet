@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * ApiOdsayTransitRoutingService는 도메인 규칙과 외부 연동 흐름을 조합해 실제 비즈니스 처리를 수행합니다.
+ */
 @Service
 public class ApiOdsayTransitRoutingService {
     // ODSAY API를 호출해 대중교통 이동시간과 경로를 계산하는 서비스다.

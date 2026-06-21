@@ -6,6 +6,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+/**
+ * ApiHealthController는 화면 요청과 API 요청을 받아 서비스 계층으로 위임하는 MVC 컨트롤러입니다.
+ */
 @RestController
 @RequestMapping("/api")
 public class ApiHealthController {

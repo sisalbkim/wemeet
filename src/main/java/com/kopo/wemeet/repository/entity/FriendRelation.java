@@ -21,6 +21,9 @@ import java.time.LocalDateTime;
         name = "friend_relation",
         uniqueConstraints = @UniqueConstraint(name = "uk_friend_relation_user_friend", columnNames = {"user_id", "friend_user_id"})
 )
+/**
+ * FriendRelation는 데이터베이스 테이블과 매핑되는 JPA 엔티티입니다.
+ */
 public class FriendRelation {
     // 사용자와 친구 사이의 단방향 관계 또는 친구 요청 한 건을 저장한다.
     // 승인 전에는 요청자 -> 수신자 PENDING 한 행만 두고, 승인 시 양방향 ACCEPTED 행으로 확정한다.

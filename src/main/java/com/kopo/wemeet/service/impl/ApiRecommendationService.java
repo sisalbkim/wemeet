@@ -16,12 +16,15 @@ import java.util.Optional;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
+/**
+ * ApiRecommendationService는 도메인 규칙과 외부 연동 흐름을 조합해 실제 비즈니스 처리를 수행합니다.
+ */
 @Service
 @RequiredArgsConstructor
 public class ApiRecommendationService implements IApiRecommendationService {
     // 참가자 목록과 추천 모드를 바탕으로 실제 장소 후보를 계산하는 오케스트레이션 서비스다.
     private static final int DEFAULT_SEARCH_DISPLAY = 5;
-    private static final String RECOMMENDATION_CACHE_SCHEMA_VERSION = "tmap-walk-route-v3";
+    private static final String RECOMMENDATION_CACHE_SCHEMA_VERSION = "tmap-walk-route-v4";
 
     private final RecommendationParticipantService participantService;
     private final RecommendationLocationService locationService;
@@ -41,7 +44,9 @@ public class ApiRecommendationService implements IApiRecommendationService {
             RecommendationDTO.RecommendationRequest request,
             IApiAuthService authService
     ) {
-        List<UserDTO.UserAccount> participantAccounts = participantService.resolveParticipants(requesterId, request.participantIds());
+        List<UserDTO.UserAccount> participantAccounts = participantService.resolveParticipants(requesterId, request.participantIds()).stream()
+                .map(participant -> applyTemporaryRequesterOrigin(participant, requesterId, request.originAddress()))
+                .toList();
         List<UserDTO.UserAccount> calculableAccounts = participantAccounts.stream()
                 .filter(participant -> hasBaseAddress(participant.baseAddress()))
                 .toList();
@@ -234,6 +239,26 @@ public class ApiRecommendationService implements IApiRecommendationService {
 
     private boolean hasBaseAddress(String baseAddress) {
         return baseAddress != null && !baseAddress.isBlank();
+    }
+
+    private UserDTO.UserAccount applyTemporaryRequesterOrigin(
+            UserDTO.UserAccount participant,
+            String requesterId,
+            String originAddress
+    ) {
+        if (!participant.id().equals(requesterId) || hasBaseAddress(participant.baseAddress()) || !hasBaseAddress(originAddress)) {
+            return participant;
+        }
+        return new UserDTO.UserAccount(
+                participant.id(),
+                participant.nickname(),
+                participant.loginId(),
+                participant.password(),
+                participant.friendCode(),
+                originAddress.trim(),
+                participant.joinedOn(),
+                participant.favorite()
+        );
     }
 }
 

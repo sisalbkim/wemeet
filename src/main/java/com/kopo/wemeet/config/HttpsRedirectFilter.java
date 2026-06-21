@@ -11,6 +11,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Locale;
 
+/**
+ * HttpsRedirectFilter는 애플리케이션 실행에 필요한 Spring 설정과 보안/외부 연동 옵션을 구성합니다.
+ */
 @Component
 public class HttpsRedirectFilter extends OncePerRequestFilter {
     // 운영 환경에서 HTTP 요청을 HTTPS로 강제 전환할 때 사용하는 필터다.

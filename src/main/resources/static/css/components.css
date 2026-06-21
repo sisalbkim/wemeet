@@ -127,6 +127,31 @@
     max-width: none;
 }
 
+.origin-summary {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.origin-summary__label {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.origin-summary strong {
+    color: var(--text);
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.origin-search-field {
+    display: block;
+    margin-top: 16px;
+}
+
 
 .section-heading--map {
     margin-bottom: 12px;
@@ -650,6 +675,64 @@
     border-color: rgba(255, 76, 94, 0.22);
     background: rgba(255, 76, 94, 0.08);
     color: #9c2432;
+}
+
+.signup-success-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+
+.signup-success-modal[hidden] {
+    display: none;
+}
+
+.signup-success-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.44);
+    backdrop-filter: blur(4px);
+}
+
+.signup-success-modal__card {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: min(420px, calc(100vw - 32px));
+    padding: 28px;
+    border: 1px solid rgba(19, 185, 131, 0.22);
+    border-radius: 26px;
+    background:
+            radial-gradient(circle at 18% 0%, rgba(19, 185, 131, 0.16), transparent 36%),
+            #ffffff;
+    box-shadow: 0 26px 70px rgba(15, 23, 42, 0.26);
+}
+
+.signup-success-modal__eyebrow {
+    margin: 0;
+    color: var(--primary);
+    font-size: 0.86rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+}
+
+.signup-success-modal h2,
+.signup-success-modal p {
+    margin: 0;
+}
+
+.signup-success-modal h2 {
+    font-size: 1.45rem;
+    line-height: 1.35;
+}
+
+.signup-success-modal p:not(.signup-success-modal__eyebrow) {
+    color: var(--muted);
 }
 
 .friend-card time {

@@ -2,6 +2,9 @@ package com.kopo.wemeet.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * OpenApiProperties는 애플리케이션 실행에 필요한 Spring 설정과 보안/외부 연동 옵션을 구성합니다.
+ */
 @ConfigurationProperties(prefix = "app.openapi")
 public class OpenApiProperties {
     // 외부 지도 API 호출에 필요한 설정값을 application.properties에서 바인딩한다.

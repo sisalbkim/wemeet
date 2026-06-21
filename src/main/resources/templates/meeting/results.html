@@ -39,13 +39,14 @@
                 <input type="hidden" name="routeMode" th:value="${selectedRouteMode}">
                 <input type="hidden" name="guest" th:value="${guestMode}">
                 <input type="hidden" name="guestAddress" th:if="${guestMode}" th:value="${guestAddress}">
+                <input type="hidden" name="originAddress" th:if="${!guestMode}" th:value="${originAddress}">
                 <input type="hidden" name="friendIds" th:each="friendId : ${selectedFriendIds}" th:value="${friendId}">
                 <input class="text-input" type="search" name="detailKeyword" th:value="${detailKeyword}" placeholder="라멘, 삼겹살, 조용한 카페">
                 <button class="ghost-button" type="submit" data-loading-overlay>검색</button>
             </form>
             <div class="chip-grid chip-grid--three-up">
                 <a class="filter-chip filter-chip--link" th:each="category : ${categories}"
-                   th:href="@{/search/results(category=${category.label}, friendIds=${selectedFriendIds}, mode=${selectedMode}, anchorId=${selectedAnchorId}, routeMode=${selectedRouteMode}, guest=${guestMode}, guestAddress=${guestMode ? guestAddress : null})}"
+                   th:href="@{/search/results(category=${category.label}, friendIds=${selectedFriendIds}, mode=${selectedMode}, anchorId=${selectedAnchorId}, routeMode=${selectedRouteMode}, guest=${guestMode}, guestAddress=${guestMode ? guestAddress : null}, originAddress=${guestMode ? null : originAddress})}"
                    data-loading-overlay
                    th:classappend="${selectedCategory == category.label} ? ' is-active'"
                    th:text="${category.label}">

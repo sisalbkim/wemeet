@@ -21,6 +21,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * ApiNaverPlaceSearchService는 도메인 규칙과 외부 연동 흐름을 조합해 실제 비즈니스 처리를 수행합니다.
+ */
 @Service
 public class ApiNaverPlaceSearchService {
     // 네이버 지역검색과 지도 길찾기를 묶어서 장소 후보 조회와 거리 정렬을 담당한다.

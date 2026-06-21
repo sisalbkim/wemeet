@@ -9,6 +9,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Map;
 
+/**
+ * GlobalViewExceptionHandler는 화면 요청과 API 요청을 받아 서비스 계층으로 위임하는 MVC 컨트롤러입니다.
+ */
 @ControllerAdvice
 public class GlobalViewExceptionHandler {
     // 화면 요청에서 생긴 예외를 사용자용 에러 화면이나 리다이렉트로 정리한.

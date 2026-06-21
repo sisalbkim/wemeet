@@ -4,7 +4,9 @@ import com.kopo.wemeet.dto.*;
 
 import com.kopo.wemeet.repository.AppUserRepository;
 import com.kopo.wemeet.repository.FriendRelationRepository;
+import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.impl.ApiNaverPlaceSearchService;
+import com.kopo.wemeet.service.impl.JwtTokenService;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,10 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -56,6 +55,9 @@ class ApiRestControllerTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JwtTokenService jwtTokenService;
+
     @MockitoBean
     private ApiNaverPlaceSearchService apiNaverPlaceSearchService;
 
@@ -66,56 +68,13 @@ class ApiRestControllerTest {
 
     @Test
     void apiCorsAllowsCredentialsForConfiguredFrontendOrigins() throws Exception {
-        mockMvc.perform(options("/api/me")
+        mockMvc.perform(options("/api/meetings")
                         .header("Origin", "http://localhost:5173")
                         .header("Access-Control-Request-Method", "GET")
                         .header("Access-Control-Request-Headers", "Authorization"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"))
                 .andExpect(header().string("Access-Control-Allow-Credentials", "true"));
-    }
-
-    @Test
-    void loginReturnsTokenAndMeEndpointWorks() throws Exception {
-        String token = loginAndGetToken("user123", "pass1234");
-
-        mockMvc.perform(get("/api/me")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.loginId").value("user123"))
-                .andExpect(jsonPath("$.nickname").value("김철수"));
-    }
-
-    @Test
-    void bearerHeaderAllowsCaseInsensitiveSchemeAndExtraSpaces() throws Exception {
-        String token = loginAndGetToken("user123", "pass1234");
-
-        mockMvc.perform(get("/api/me")
-                        .header("Authorization", "  bearer   " + token + "  "))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.loginId").value("user123"));
-    }
-
-    @Test
-    void loginSetsJwtCookiesAndCookieCanAuthenticateApiRequest() throws Exception {
-        MvcResult loginResult = loginAndGetResult("user123", "pass1234");
-
-        Cookie accessCookie = loginResult.getResponse().getCookie("WM_ACCESS_TOKEN");
-        Cookie refreshCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
-        Cookie csrfCookie = loginResult.getResponse().getCookie("WM_CSRF_TOKEN");
-        assertNotNull(accessCookie);
-        assertNotNull(refreshCookie);
-        assertNotNull(csrfCookie);
-        assertTrue(accessCookie.isHttpOnly());
-        assertTrue(refreshCookie.isHttpOnly());
-        assertFalse(csrfCookie.isHttpOnly());
-        assertEquals("/", accessCookie.getPath());
-        assertEquals("/", refreshCookie.getPath());
-        assertEquals("/", csrfCookie.getPath());
-
-        mockMvc.perform(get("/api/me").cookie(accessCookie))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.loginId").value("user123"));
     }
 
     @Test
@@ -133,170 +92,8 @@ class ApiRestControllerTest {
     }
 
     @Test
-    void apiLogoutClearsJwtCookies() throws Exception {
-        mockMvc.perform(post("/api/auth/logout"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("로그아웃되었습니다."))
-                .andExpect(result -> {
-                    Cookie accessCookie = result.getResponse().getCookie("WM_ACCESS_TOKEN");
-                    Cookie refreshCookie = result.getResponse().getCookie("WM_REFRESH_TOKEN");
-                    assertNotNull(accessCookie);
-                    assertNotNull(refreshCookie);
-                    assertEquals(0, accessCookie.getMaxAge());
-                    assertEquals(0, refreshCookie.getMaxAge());
-                });
-    }
-
-    @Test
-    void refreshTokenIssuesNewAccessToken() throws Exception {
-        String loginPayload = objectMapper.writeValueAsString(Map.of(
-                "loginId", "user123",
-                "password", "pass1234"
-        ));
-
-        MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(loginPayload))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.refreshToken").exists())
-                .andReturn();
-
-        String accessToken = objectMapper.readTree(loginResult.getResponse().getContentAsString()).get("token").asText();
-        String refreshToken = objectMapper.readTree(loginResult.getResponse().getContentAsString()).get("refreshToken").asText();
-        assertTrue(accessToken.chars().filter(ch -> ch == '.').count() == 2);
-        assertTrue(refreshToken.chars().filter(ch -> ch == '.').count() == 2);
-
-        String refreshPayload = objectMapper.writeValueAsString(Map.of(
-                "refreshToken", refreshToken
-        ));
-
-        MvcResult refreshResult = mockMvc.perform(post("/api/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(refreshPayload))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.refreshToken").exists())
-                .andReturn();
-
-        String refreshedAccessToken = objectMapper.readTree(refreshResult.getResponse().getContentAsString()).get("token").asText();
-        mockMvc.perform(get("/api/me")
-                        .header("Authorization", "Bearer " + refreshedAccessToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.loginId").value("user123"));
-    }
-
-    @Test
-    void refreshEndpointCanUseRefreshCookieWithoutRequestBody() throws Exception {
-        String loginPayload = objectMapper.writeValueAsString(Map.of(
-                "loginId", "user123",
-                "password", "pass1234"
-        ));
-
-        MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(loginPayload))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        Cookie refreshCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
-        Cookie csrfCookie = loginResult.getResponse().getCookie("WM_CSRF_TOKEN");
-        assertNotNull(refreshCookie);
-        assertNotNull(csrfCookie);
-
-        MvcResult refreshResult = mockMvc.perform(post("/api/auth/refresh")
-                        .cookie(refreshCookie, csrfCookie)
-                        .header("X-CSRF-TOKEN", csrfCookie.getValue()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.refreshToken").exists())
-                .andReturn();
-
-        Cookie refreshedAccessCookie = refreshResult.getResponse().getCookie("WM_ACCESS_TOKEN");
-        Cookie refreshedRefreshCookie = refreshResult.getResponse().getCookie("WM_REFRESH_TOKEN");
-        assertNotNull(refreshedAccessCookie);
-        assertNotNull(refreshedRefreshCookie);
-        assertNotNull(refreshResult.getResponse().getCookie("WM_CSRF_TOKEN"));
-
-        mockMvc.perform(get("/api/me").cookie(refreshedAccessCookie))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.loginId").value("user123"));
-    }
-
-    @Test
-    void refreshEndpointRejectsRefreshCookieWithoutCsrfHeader() throws Exception {
-        MvcResult loginResult = loginAndGetResult("user123", "pass1234");
-        Cookie refreshCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
-        assertNotNull(refreshCookie);
-
-        mockMvc.perform(post("/api/auth/refresh").cookie(refreshCookie))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error").value("Invalid CSRF token"));
-    }
-
-    @Test
-    void refreshTokenCannotBeReusedAfterRotation() throws Exception {
-        MvcResult loginResult = loginAndGetResult("user123", "pass1234");
-        String refreshToken = objectMapper.readTree(loginResult.getResponse().getContentAsString()).get("refreshToken").asText();
-        String refreshPayload = objectMapper.writeValueAsString(Map.of(
-                "refreshToken", refreshToken
-        ));
-
-        mockMvc.perform(post("/api/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(refreshPayload))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/api/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(refreshPayload))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Invalid refresh token"));
-    }
-
-    @Test
-    void apiLogoutRevokesRefreshCookieToken() throws Exception {
-        MvcResult loginResult = loginAndGetResult("user123", "pass1234");
-        Cookie refreshCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
-        Cookie csrfCookie = loginResult.getResponse().getCookie("WM_CSRF_TOKEN");
-        assertNotNull(refreshCookie);
-        assertNotNull(csrfCookie);
-
-        mockMvc.perform(post("/api/auth/logout")
-                        .cookie(refreshCookie, csrfCookie)
-                        .header("X-CSRF-TOKEN", csrfCookie.getValue()))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/api/auth/refresh")
-                        .cookie(refreshCookie, csrfCookie)
-                        .header("X-CSRF-TOKEN", csrfCookie.getValue()))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Invalid refresh token"));
-    }
-
-    @Test
-    void refreshEndpointRejectsMissingRefreshToken() throws Exception {
-        mockMvc.perform(post("/api/auth/refresh"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Invalid refresh token"));
-    }
-
-    @Test
-    void refreshEndpointRejectsAccessToken() throws Exception {
-        String token = loginAndGetToken("user123", "pass1234");
-        String payload = objectMapper.writeValueAsString(Map.of(
-                "refreshToken", token
-        ));
-
-        mockMvc.perform(post("/api/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(payload))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
     void recommendationsEndpointReturnsBalancedVenueList() throws Exception {
-        String token = loginAndGetToken("user123", "pass1234");
+        String token = accessTokenFor("user123");
         given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 맛집"));
         String payload = objectMapper.writeValueAsString(Map.of(
                 "category", "맛집",
@@ -323,7 +120,7 @@ class ApiRestControllerTest {
 
     @Test
     void placeSearchEndpointReturnsNaverCandidatesSortedForMapRendering() throws Exception {
-        String token = loginAndGetToken("user123", "pass1234");
+        String token = accessTokenFor("user123");
         given(apiNaverPlaceSearchService.search(any())).willReturn(new PlaceDTO.PlaceSearchResponse(
                 "성수역 카페",
                 "카페",
@@ -456,26 +253,20 @@ class ApiRestControllerTest {
     }
 
     @Test
-    void signupAndMeetingCreationWork() throws Exception {
-        String signUpPayload = objectMapper.writeValueAsString(Map.of(
-                "nickname", "새유저",
-                "loginId", "newuser01",
-                "password", "pass1234",
-                "email", "newuser01@wemeet.local",
-                "baseAddress", "서울특별시 영등포구 여의도동"
-        ));
+    void loginAndMeetingCreationWorkForExistingUser() throws Exception {
+        if (!userRepository.existsByLoginId("newuser01")) {
+            userRepository.save(new AppUser(
+                    "api-newuser01",
+                    "newuser01",
+                    "새유저",
+                    "newuser01@wemeet.local",
+                    passwordEncoder.encode("pass1234"),
+                    "NEWUSER01",
+                    "서울특별시 영등포구 여의도동"
+            ));
+        }
 
-        MvcResult signUpResult = mockMvc.perform(post("/api/auth/signup")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(signUpPayload))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.user.loginId").value("newuser01"))
-                .andReturn();
-
-        assertNotNull(signUpResult.getResponse().getCookie("WM_ACCESS_TOKEN"));
-        assertNotNull(signUpResult.getResponse().getCookie("WM_REFRESH_TOKEN"));
-        assertNotNull(signUpResult.getResponse().getCookie("WM_CSRF_TOKEN"));
-        String token = objectMapper.readTree(signUpResult.getResponse().getContentAsString()).get("token").asText();
+        String token = accessTokenFor("newuser01");
 
         String meetingPayload = objectMapper.writeValueAsString(Map.of(
                 "title", "첫 모임",
@@ -512,69 +303,10 @@ class ApiRestControllerTest {
                 .andExpect(jsonPath("$.message").value(containsString("화면용 인증코드")));
     }
 
-    @Test
-    void passwordResetFlowWorks() throws Exception {
-        String resetRequestPayload = objectMapper.writeValueAsString(Map.of(
-                "email", "user123@wemeet.local"
-        ));
-
-        MvcResult resetRequestResult = mockMvc.perform(post("/api/auth/password/reset-request")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(resetRequestPayload))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resetTokenPreview").exists())
-                .andReturn();
-
-        String resetToken = objectMapper.readTree(resetRequestResult.getResponse().getContentAsString())
-                .get("resetTokenPreview")
-                .asText();
-
-        String confirmPayload = objectMapper.writeValueAsString(Map.of(
-                "token", resetToken,
-                "newPassword", "changedPass123!"
-        ));
-
-        mockMvc.perform(post("/api/auth/password/reset-confirm")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(confirmPayload))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("비밀번호가 변경되었습니다."));
-
-        String loginPayload = objectMapper.writeValueAsString(Map.of(
-                "loginId", "user123",
-                "password", "changedPass123!"
-        ));
-
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(loginPayload))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").exists());
-    }
-
-    @Test
-    void meAddressUpdateEndpointUpdatesBaseAddress() throws Exception {
-        String token = loginAndGetToken("user123", "pass1234");
-        String payload = objectMapper.writeValueAsString(Map.of(
-                "baseAddress", "서울특별시 송파구 올림픽로 300"
-        ));
-
-        mockMvc.perform(post("/api/me/address")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(payload))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.baseAddress").value("서울특별시 송파구 올림픽로 300"));
-
-        mockMvc.perform(get("/api/me")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.baseAddress").value("서울특별시 송파구 올림픽로 300"));
-    }
-
-    private String loginAndGetToken(String loginId, String password) throws Exception {
-        MvcResult result = loginAndGetResult(loginId, password);
-        return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
+    private String accessTokenFor(String loginId) {
+        AppUser user = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new IllegalStateException("Missing test user: " + loginId));
+        return jwtTokenService.createAccessToken(user.getId());
     }
 
     private Cookie loginAndGetAccessCookie(String loginId, String password) throws Exception {
@@ -584,16 +316,10 @@ class ApiRestControllerTest {
     }
 
     private MvcResult loginAndGetResult(String loginId, String password) throws Exception {
-        String payload = objectMapper.writeValueAsString(Map.of(
-                "loginId", loginId,
-                "password", password
-        ));
-
-        MvcResult result = mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(payload))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").exists())
+        MvcResult result = mockMvc.perform(post("/login")
+                        .param("userId", loginId)
+                        .param("password", password))
+                .andExpect(status().is3xxRedirection())
                 .andReturn();
         return result;
     }

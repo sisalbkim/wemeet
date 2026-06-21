@@ -3,7 +3,6 @@ package com.kopo.wemeet.service.impl;
 import com.kopo.wemeet.dto.*;
 
 import com.kopo.wemeet.repository.entity.AppUser;
-import com.kopo.wemeet.repository.entity.PasswordResetToken;
 import com.kopo.wemeet.repository.AppUserRepository;
 import com.kopo.wemeet.repository.FriendRelationRepository;
 import com.kopo.wemeet.repository.MeetingParticipantRepository;
@@ -21,10 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.LocalDateTime;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -35,6 +30,9 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
+/**
+ * ApiAuthService는 도메인 규칙과 외부 연동 흐름을 조합해 실제 비즈니스 처리를 수행합니다.
+ */
 @Service
 @RequiredArgsConstructor
 public class ApiAuthService implements IApiAuthService {
@@ -53,8 +51,8 @@ public class ApiAuthService implements IApiAuthService {
     private final JwtTokenService jwtTokenService;
 
     @Override
-    public AuthDTO.AuthResponse signUp(AuthDTO.SignUpRequest request) {
-        // 회원가입은 입력값 검증 -> 중복 확인 -> 사용자 저장 -> 세션 발급 순서로 진행한다.
+    public void signUp(AuthDTO.SignUpRequest request) {
+        // 회원가입은 입력값 검증 -> 중복 확인 -> 사용자 저장 순서로 진행한다.
         validateSignupRequest(request); //문제 있으면 여기서 예외 발생
 
         if (userRepository.existsByLoginId(request.loginId())) {
@@ -74,8 +72,6 @@ public class ApiAuthService implements IApiAuthService {
                 CmmUtil.nvl(request.baseAddress()).trim()
         );
         userRepository.save(user);
-
-        return createAuthResponse(user);
     }
 
     @Override
@@ -92,28 +88,15 @@ public class ApiAuthService implements IApiAuthService {
     }
 
     @Override
-    public AuthDTO.AuthResponse refreshAccessToken(String refreshToken) {
-        JwtTokenService.TokenDetails tokenDetails = jwtTokenService.resolveRefreshTokenDetails(refreshToken)
-                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Invalid refresh token"));
-        if (!refreshTokenStore.isValid(tokenDetails.tokenId(), tokenDetails.userId())) {
-            throw new ResponseStatusException(UNAUTHORIZED, "Invalid refresh token");
-        }
-        refreshTokenStore.revoke(tokenDetails.tokenId());
-        String userId = tokenDetails.userId();
-        AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "User not found"));
-        return createAuthResponse(user);
-    }
-
-    @Override
     public void revokeRefreshToken(String refreshToken) {
+        // 로그아웃 시 저장된 Refresh Token을 더 이상 쓸 수 없게 폐기한다.
         jwtTokenService.resolveRefreshTokenDetails(refreshToken)
                 .ifPresent(tokenDetails -> refreshTokenStore.revoke(tokenDetails.tokenId()));
     }
 
     @Override
     public void writeTokenCookies(HttpServletResponse response, AuthDTO.AuthResponse authResponse) {
-        // API 로그인/회원가입은 기존 동작과 호환되도록 기본적으로 persistent 쿠키를 발급한다.
+        // 기본 호출은 브라우저를 닫아도 유지되는 로그인 쿠키를 발급한다.
         writeTokenCookies(response, authResponse, true);
     }
 
@@ -128,65 +111,13 @@ public class ApiAuthService implements IApiAuthService {
 
     @Override
     public void clearTokenCookies(HttpServletResponse response) {
+        // 로그아웃 시 브라우저에 저장된 Access/Refresh/CSRF 쿠키를 삭제한다.
         jwtTokenService.clearTokenCookies(response);
     }
 
     @Override
-    public AuthDTO.PasswordResetResponse createPasswordResetToken(AuthDTO.PasswordResetRequest request) {
-        // 비밀번호 재설정은 토큰 저장 후 메일 또는 명시적 dev preview 경로로만 전달한다.
-        if (request.email() == null || request.email().isBlank()) {
-            throw new ResponseStatusException(BAD_REQUEST, "email is required");
-        }
-        validateEmailFormat(request.email());
-
-        AppUser user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "email not found"));
-
-        String rawToken = UUID.randomUUID().toString().replace("-", "");
-        String tokenHash = hashToken(rawToken);
-
-        PasswordResetToken token = new PasswordResetToken(
-                user,
-                tokenHash,
-                LocalDateTime.now().plusMinutes(30)
-        );
-        passwordResetTokenRepository.save(token);
-
-        MailSendResult mailSendResult = mailDeliveryService.sendPasswordResetToken(user.getEmail(), rawToken);
-        if (!mailSendResult.sent()) {
-            throw new ResponseStatusException(SERVICE_UNAVAILABLE, mailSendResult.message());
-        }
-
-        return new AuthDTO.PasswordResetResponse(
-                mailSendResult.message(),
-                mailSendResult.previewCode()
-        );
-    }
-
-    @Transactional
-    @Override
-    public AuthDTO.PasswordResetResponse resetPassword(AuthDTO.PasswordResetConfirmRequest request) {
-        // 사용 가능하고 만료되지 않은 토큰만 조회해서 비밀번호를 바꾼다.
-        if (request.token() == null || request.token().isBlank() || request.newPassword() == null || request.newPassword().isBlank()) {
-            throw new ResponseStatusException(BAD_REQUEST, "token and newPassword are required");
-        }
-
-        PasswordResetToken token = passwordResetTokenRepository
-                .findByTokenHashAndUsedFalseAndExpiresAtAfter(hashToken(request.token()), LocalDateTime.now())
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "valid reset token not found"));
-
-        AppUser user = token.getUser();
-        user.changePasswordHash(passwordEncoder.encode(request.newPassword()));
-        token.markUsed();
-
-        userRepository.save(user);
-        passwordResetTokenRepository.save(token);
-
-        return new AuthDTO.PasswordResetResponse("비밀번호가 변경되었습니다.", null);
-    }
-
-    @Override
     public String findLoginIdByEmail(String email) {
+        // 이메일만으로 가입된 아이디를 찾을 때 사용한다.
         if (email == null || email.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "email is required");
         }
@@ -199,6 +130,7 @@ public class ApiAuthService implements IApiAuthService {
 
     @Override
     public String findLoginIdByNameAndEmail(String name, String email) {
+        // 이름과 이메일이 모두 일치하는 계정의 아이디를 찾는다.
         if (name == null || name.isBlank() || email == null || email.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "name and email are required");
         }
@@ -212,6 +144,7 @@ public class ApiAuthService implements IApiAuthService {
     @Transactional
     @Override
     public AuthDTO.PasswordResetResponse issueTemporaryPassword(String loginId, String email) {
+        // 아이디와 이메일이 맞으면 임시 비밀번호로 교체하고 메일로 안내한다.
         if (loginId == null || loginId.isBlank() || email == null || email.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "loginId and email are required");
         }
@@ -236,6 +169,7 @@ public class ApiAuthService implements IApiAuthService {
 
     @Override
     public boolean isLoginIdAvailable(String loginId) {
+        // 회원가입 화면의 아이디 중복확인에서 사용한다.
         if (loginId == null || loginId.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "loginId is required");
         }
@@ -245,6 +179,7 @@ public class ApiAuthService implements IApiAuthService {
     @Transactional
     @Override
     public void resetPasswordForUser(String userId, String newPassword) {
+        // 로그인한 사용자가 마이페이지에서 비밀번호를 직접 변경할 때 사용한다.
         if (userId == null || userId.isBlank() || newPassword == null || newPassword.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "userId and newPassword are required");
         }
@@ -258,6 +193,7 @@ public class ApiAuthService implements IApiAuthService {
     @Transactional
     @Override
     public void deleteUserAccount(String userId) {
+        // 회원탈퇴 시 사용자와 연결된 모임/친구/검색/토큰 데이터를 함께 정리한다.
         if (userId == null || userId.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "userId is required");
         }
@@ -275,6 +211,7 @@ public class ApiAuthService implements IApiAuthService {
 
     @Override
     public boolean isEmailAvailable(String email) {
+        // 회원가입 화면의 이메일 중복확인에서 사용한다.
         if (email == null || email.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "email is required");
         }
@@ -284,6 +221,7 @@ public class ApiAuthService implements IApiAuthService {
 
     @Override
     public String createSignupEmailVerificationCode(String email) {
+        // 가입 가능한 이메일인지 확인한 뒤 6자리 인증코드를 만든다.
         if (email == null || email.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "email is required");
         }
@@ -296,6 +234,7 @@ public class ApiAuthService implements IApiAuthService {
 
     @Override
     public boolean matchesPassword(AppUser user, String rawPassword) {
+        // 비밀번호 확인 화면에서 입력값이 현재 비밀번호와 맞는지 검증한다.
         if (user == null || rawPassword == null || rawPassword.isBlank()) {
             return false;
         }
@@ -323,6 +262,7 @@ public class ApiAuthService implements IApiAuthService {
 
     @Override
     public AppUser requireUser(String authorizationHeader, String accessTokenCookie) {
+        // Authorization 헤더나 Access Token 쿠키에서 현재 로그인 사용자를 찾는다.
         String bearerToken = extractBearerToken(authorizationHeader);
         String resolvedToken = bearerToken;
         if (resolvedToken == null && accessTokenCookie != null && !accessTokenCookie.isBlank()) {
@@ -342,6 +282,7 @@ public class ApiAuthService implements IApiAuthService {
 
     @Override
     public UserDTO.UserResponse toUserResponse(AppUser user) {
+        // 엔티티에서 비밀번호 해시를 제외하고 화면/API에 안전한 사용자 정보만 만든다.
         return new UserDTO.UserResponse(
                 user.getId(),
                 user.getNickname(),
@@ -354,6 +295,7 @@ public class ApiAuthService implements IApiAuthService {
 
     @Override
     public UserDTO.UserResponse toUserResponse(UserDTO.UserAccount user) {
+        // 임시 사용자 DTO의 id로 최신 사용자 엔티티를 다시 조회해 응답 DTO로 바꾼다.
         AppUser persistentUser = userRepository.findById(user.id())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found: " + user.id()));
         return new UserDTO.UserResponse(
@@ -427,19 +369,5 @@ public class ApiAuthService implements IApiAuthService {
         return "WM" + String.format("%06d", ThreadLocalRandom.current().nextInt(0, 1_000_000)) + "!";
     }
 
-    private String hashToken(String rawToken) {
-        try {
-            // 재설정 토큰 원문을 그대로 저장하지 않고 해시값만 DB에 보관한다.
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashed = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
-            StringBuilder builder = new StringBuilder();
-            for (byte b : hashed) {
-                builder.append(String.format("%02x", b));
-            }
-            return builder.toString();
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 not available", exception);
-        }
-    }
 }
 

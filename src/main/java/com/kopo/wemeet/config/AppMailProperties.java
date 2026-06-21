@@ -2,6 +2,9 @@ package com.kopo.wemeet.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * AppMailProperties는 애플리케이션 실행에 필요한 Spring 설정과 보안/외부 연동 옵션을 구성합니다.
+ */
 @ConfigurationProperties(prefix = "app.mail")
 public class AppMailProperties {
     // SMTP 메일 발송 사용 여부와 발신자 표기를 application.properties에서 바인딩한다.

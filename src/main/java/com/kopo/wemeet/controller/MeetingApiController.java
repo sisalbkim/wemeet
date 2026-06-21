@@ -15,6 +15,9 @@ import org.springframework.stereotype.Controller;
 
 import java.util.List;
 
+/**
+ * MeetingApiController는 화면 요청과 API 요청을 받아 서비스 계층으로 위임하는 MVC 컨트롤러입니다.
+ */
 @Controller
 @RequiredArgsConstructor
 public class MeetingApiController {

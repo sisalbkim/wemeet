@@ -11,10 +11,17 @@
                 <img class="hero-brand__full" th:src="@{/img/brand-hero.png}" alt="we meet">
             </div>
             <h1>로그인</h1>
-            <p>DB에 저장된 계정 정보로 로그인합니다. 비밀번호는 URL이 아니라 서버 POST 요청으로 처리됩니다.</p>
-            <div class="notice-banner" th:if="${registered}">
-                <strong th:text="${registeredNickname != null ? registeredNickname : '새 사용자'}">새 사용자</strong>
-                <span>회원가입이 접수되었습니다. 이제 로그인 화면으로 연결됩니다.</span>
+            <div class="signup-success-modal" th:if="${signupSuccess}" role="dialog" aria-modal="true" aria-labelledby="signupSuccessTitle" data-signup-success-modal>
+                <div class="signup-success-modal__backdrop" data-signup-success-close></div>
+                <section class="signup-success-modal__card">
+                    <p class="signup-success-modal__eyebrow">회원가입 완료</p>
+                    <h2 id="signupSuccessTitle">
+                        <strong th:text="${registeredNickname != null ? registeredNickname : '새 사용자'}">새 사용자</strong>님,
+                        회원가입을 축하합니다.
+                    </h2>
+                    <p>이제 가입한 아이디와 비밀번호로 로그인할 수 있습니다.</p>
+                    <button class="primary-button" type="button" data-signup-success-close>로그인하기</button>
+                </section>
             </div>
             <div class="notice-banner notice-banner--error" th:if="${error}">
                 <strong>로그인 실패</strong>

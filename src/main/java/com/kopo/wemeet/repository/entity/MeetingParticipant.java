@@ -21,6 +21,9 @@ import java.time.LocalDateTime;
         name = "meeting_participant",
         uniqueConstraints = @UniqueConstraint(name = "uk_meeting_participant_meeting_user", columnNames = {"meeting_id", "user_id"})
 )
+/**
+ * MeetingParticipant는 데이터베이스 테이블과 매핑되는 JPA 엔티티입니다.
+ */
 public class MeetingParticipant {
     // 특정 사용자가 어떤 모임에 어떤 역할로 참여하는지 나타내는 연결 엔티티다.
 

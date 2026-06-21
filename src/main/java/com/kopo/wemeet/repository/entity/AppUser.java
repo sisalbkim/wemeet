@@ -9,6 +9,9 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
+/**
+ * AppUser는 데이터베이스 테이블과 매핑되는 JPA 엔티티입니다.
+ */
 @Entity
 @Table(name = "app_user")
 public class AppUser {

@@ -5,6 +5,9 @@ import com.kopo.wemeet.dto.UserDTO;
 
 import java.util.List;
 
+/**
+ * IFriendService는 구현체가 지켜야 할 서비스 계층 계약을 정의합니다.
+ */
 public interface IFriendService {
     // 친구 관계 조회와 요청 처리 로직을 담당한다.
 

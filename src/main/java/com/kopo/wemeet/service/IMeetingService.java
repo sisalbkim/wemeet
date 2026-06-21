@@ -8,6 +8,9 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * IMeetingService는 구현체가 지켜야 할 서비스 계층 계약을 정의합니다.
+ */
 public interface IMeetingService {
     // 모임 생성, 조회, 삭제를 모아두는 서비스 계약이다.
 

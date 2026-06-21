@@ -8,6 +8,9 @@ import org.springframework.web.client.RestClient;
 import java.time.Duration;
 import java.util.function.Consumer;
 
+/**
+ * OpenApiRestClientFactory는 애플리케이션 실행에 필요한 Spring 설정과 보안/외부 연동 옵션을 구성합니다.
+ */
 @Component
 @RequiredArgsConstructor
 public class OpenApiRestClientFactory {

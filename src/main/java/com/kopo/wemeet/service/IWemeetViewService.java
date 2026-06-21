@@ -5,6 +5,9 @@ import com.kopo.wemeet.dto.*;
 
 import java.util.List;
 
+/**
+ * IWemeetViewService는 구현체가 지켜야 할 서비스 계층 계약을 정의합니다.
+ */
 public interface IWemeetViewService {
     // 템플릿 화면에서 필요한 데이터를 화면 전용 모델로 제공하는 서비스 계약이다.
 
@@ -53,7 +56,8 @@ public interface IWemeetViewService {
             List<String> selectedFriendIds,
             String mode,
             String anchorId,
-            String routeMode
+            String routeMode,
+            String originAddress
     );
 
     RecommendationDTO.RecommendationBundle buildGuestRecommendation(

@@ -2,6 +2,9 @@ package com.kopo.wemeet.dto;
 
 import java.util.List;
 
+/**
+ * RecommendationDTO는 계층 간 데이터 전달과 화면/API 응답 구성을 위한 DTO 묶음입니다.
+ */
 public final class RecommendationDTO {
     // 추천 결과 화면과 지도 렌더링에 필요한 DTO 모음이다.
 
@@ -14,10 +17,15 @@ public final class RecommendationDTO {
             List<String> participantIds,
             String mode,
             String anchorParticipantId,
-            String routeMode
+            String routeMode,
+            String originAddress
     ) {
         public RecommendationRequest(String category, List<String> participantIds, String mode, String anchorParticipantId, String routeMode) {
-            this(category, "", participantIds, mode, anchorParticipantId, routeMode);
+            this(category, "", participantIds, mode, anchorParticipantId, routeMode, "");
+        }
+
+        public RecommendationRequest(String category, String detailKeyword, List<String> participantIds, String mode, String anchorParticipantId, String routeMode) {
+            this(category, detailKeyword, participantIds, mode, anchorParticipantId, routeMode, "");
         }
     }
 

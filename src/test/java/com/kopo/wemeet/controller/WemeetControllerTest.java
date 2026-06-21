@@ -41,6 +41,7 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -108,18 +109,16 @@ class WemeetControllerTest {
 
     @Test
     void passwordResetFlowEmailsTemporaryPasswordWhenLoginIdAndEmailMatch() throws Exception {
-        String signUpPayload = objectMapper.writeValueAsString(Map.of(
-                "nickname", "비번테스터",
-                "loginId", "passwordflow01",
-                "password", "pass1234",
-                "email", "passwordflow01@wemeet.local",
-                "baseAddress", "서울특별시 중구"
-        ));
-
-        mockMvc.perform(post("/api/auth/signup")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(signUpPayload))
-                .andExpect(status().isOk());
+        mockMvc.perform(post("/signup")
+                        .session(verifiedSignupSession("passwordflow01@wemeet.local"))
+                        .param("nickname", "비번테스터")
+                        .param("userId", "passwordflow01")
+                        .param("email", "passwordflow01@wemeet.local")
+                        .param("password", "pass1234")
+                        .param("confirmPassword", "pass1234")
+                        .param("baseAddress", "서울특별시 중구"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"));
 
         mockMvc.perform(post("/find-password/verify")
                         .param("userId", "passwordflow01")
@@ -249,7 +248,9 @@ class WemeetControllerTest {
                         .param("confirmPassword", "pass1234")
                         .param("baseAddress", "서울특별시 강남구"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login?registered=true"));
+                .andExpect(redirectedUrl("/login"))
+                .andExpect(flash().attribute("signupSuccess", true))
+                .andExpect(flash().attribute("registeredNickname", "테스터"));
     }
 
     @Test
@@ -831,6 +832,29 @@ class WemeetControllerTest {
     }
 
     @Test
+    void meetingPreviewUsesTemporaryOriginAddressWhenProfileAddressIsMissing() throws Exception {
+        Cookie[] session = signupAndLogin("meetingorigin01", "meetingorigin01@wemeet.local");
+        clearBaseAddress("meetingorigin01");
+
+        mockMvc.perform(get("/meetings/new").cookie(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("name=\"originAddress\"")))
+                .andExpect(content().string(containsString("이번 추천에 사용할 출발지")));
+
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 성동구", "서울특별시 성동구", "성수 로컬 카페"));
+
+        mockMvc.perform(post("/meetings/preview")
+                        .cookie(session)
+                        .param("category", "카페")
+                        .param("mode", "CENTER")
+                        .param("originAddress", "서울특별시 성동구 성수동1가"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("성수 로컬 카페")))
+                .andExpect(content().string(containsString("서울특별시 성동구 성수동1가")))
+                .andExpect(content().string(containsString("name=\"originAddress\"")));
+    }
+
+    @Test
     void loggedInRecommendationPageDoesNotShowMeetingSavePanelWithoutPreview() throws Exception {
         Cookie[] session = signupAndLogin("resultsave01", "resultsave01@wemeet.local");
         given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 카페"));
@@ -1242,6 +1266,12 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection());
 
         return login(loginId, "pass1234");
+    }
+
+    private void clearBaseAddress(String loginId) {
+        var user = userRepository.findByLoginId(loginId).orElseThrow();
+        user.changeBaseAddress("");
+        userRepository.save(user);
     }
 
     private Cookie[] login(String loginId, String password) throws Exception {

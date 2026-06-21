@@ -5,6 +5,9 @@ import com.kopo.wemeet.dto.RecommendationDTO;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * RecommendationSupport는 도메인 규칙과 외부 연동 흐름을 조합해 실제 비즈니스 처리를 수행합니다.
+ */
 public final class RecommendationSupport {
     private RecommendationSupport() {
     }

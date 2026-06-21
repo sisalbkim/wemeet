@@ -18,6 +18,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * ApiTmapWalkingRoutingService는 도메인 규칙과 외부 연동 흐름을 조합해 실제 비즈니스 처리를 수행합니다.
+ */
 @Service
 public class ApiTmapWalkingRoutingService {
     // TMAP 보행자 경로 API를 호출해 실제 도보 이동시간과 폴리라인을 계산한다.

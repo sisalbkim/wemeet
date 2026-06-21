@@ -19,6 +19,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * WemeetViewService는 도메인 규칙과 외부 연동 흐름을 조합해 실제 비즈니스 처리를 수행합니다.
+ */
 @Service
 @RequiredArgsConstructor
 public class WemeetViewService implements IWemeetViewService {
@@ -214,12 +217,13 @@ public class WemeetViewService implements IWemeetViewService {
             List<String> selectedFriendIds,
             String mode,
             String anchorId,
-            String routeMode
+            String routeMode,
+            String originAddress
     ) {
         // 추천 서비스 응답을 Thymeleaf 템플릿에서 쓰는 화면 전용 모델로 다시 묶는다.
         RecommendationDTO.RecommendationResponse response = recommendationService.recommend(
                 requesterId,
-                new RecommendationDTO.RecommendationRequest(normalizeCategory(category), normalizeOptionalText(detailKeyword), selectedFriendIds, mode, anchorId, routeMode),
+                new RecommendationDTO.RecommendationRequest(normalizeCategory(category), normalizeOptionalText(detailKeyword), selectedFriendIds, mode, anchorId, routeMode, normalizeOptionalText(originAddress)),
                 authService
         );
 

@@ -25,6 +25,9 @@ import java.util.List;
 import static com.kopo.wemeet.util.UiDefaults.DEFAULT_ROUTE_MODE;
 import static com.kopo.wemeet.util.UiDefaults.TAB_PROFILE;
 
+/**
+ * MyPageController는 화면 요청과 API 요청을 받아 서비스 계층으로 위임하는 MVC 컨트롤러입니다.
+ */
 @Controller
 @RequiredArgsConstructor
 public class MyPageController {
@@ -113,7 +116,8 @@ public class MyPageController {
                     selectedFriendIds,
                     savedMode,
                     savedAnchorId,
-                    normalizedRouteMode
+                    normalizedRouteMode,
+                    ""
             ));
         }
         return "meeting/results";

@@ -10,6 +10,9 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * RecommendationResponseFactory는 도메인 규칙과 외부 연동 흐름을 조합해 실제 비즈니스 처리를 수행합니다.
+ */
 @Component
 @RequiredArgsConstructor
 public class RecommendationResponseFactory {
@@ -184,14 +187,14 @@ public class RecommendationResponseFactory {
 
     private String calculationModeLabel(RecommendationMode mode, boolean usedFallbackRouting) {
         return mode.label() + " · " + (usedFallbackRouting
-                ? "Naver Local Search + 보조 이동시간 추정"
-                : "Naver Local Search + Directions 5");
+                ? "장소 검색과 보조 이동시간 기준"
+                : "장소 검색과 길찾기 기준");
     }
 
     private String strategyNote(RecommendationMode mode, int participantCount, boolean usedFallbackRouting) {
         String routingNote = usedFallbackRouting
                 ? "일부 후보는 네이버 길찾기 대신 좌표 기반 보조 추정값으로 계산했습니다."
-                : "네이버 지역검색과 Directions 5 기준으로 이동시간을 계산했습니다.";
+                : "네이버 지역검색과 길찾기 기준으로 이동시간을 계산했습니다.";
 
         return switch (mode) {
             case CENTER -> participantCount == 1

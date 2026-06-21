@@ -35,6 +35,9 @@ import static com.kopo.wemeet.util.UiDefaults.TAB_GUEST_HOME;
 import static com.kopo.wemeet.util.UiDefaults.TAB_HOME;
 import static com.kopo.wemeet.util.UiDefaults.TAB_NEARBY;
 
+/**
+ * MeetController는 화면 요청과 API 요청을 받아 서비스 계층으로 위임하는 MVC 컨트롤러입니다.
+ */
 @Controller
 @RequiredArgsConstructor
 public class MeetController {

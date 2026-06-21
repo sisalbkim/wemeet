@@ -8,6 +8,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
+/**
+ * UserAccountLookup는 구현체가 지켜야 할 서비스 계층 계약을 정의합니다.
+ */
 @Component
 @RequiredArgsConstructor
 public class UserAccountLookup {

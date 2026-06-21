@@ -9,6 +9,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
+/**
+ * ViewModeSupport는 여러 계층에서 반복되는 화면/문자열 처리 로직을 모아 둔 유틸리티입니다.
+ */
 @Component
 public class ViewModeSupport {
     public static final String VIEW_MODE_COOKIE = "VIEW_MODE";

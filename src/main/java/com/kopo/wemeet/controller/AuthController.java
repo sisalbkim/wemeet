@@ -3,9 +3,7 @@ package com.kopo.wemeet.controller;
 import com.kopo.wemeet.util.WemeetViewHelper;
 
 import com.kopo.wemeet.dto.*;
-import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
-import com.kopo.wemeet.service.IWemeetViewService;
 import com.kopo.wemeet.service.impl.MailDeliveryService;
 import com.kopo.wemeet.util.CmmUtil;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,7 +15,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.server.ResponseStatusException;
@@ -25,25 +22,24 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.function.Function;
 
+/**
+ * AuthController는 화면 요청과 API 요청을 받아 서비스 계층으로 위임하는 MVC 컨트롤러입니다.
+ */
 @Controller
 @RequiredArgsConstructor
 public class AuthController {
     // 로그인, 회원가입, 비밀번호 찾기 같은 인증 화면 흐름을 처리하는 컨트롤러.
 
-    private final IWemeetViewService viewService;
     private final IApiAuthService authService;
     private final WemeetViewHelper viewHelper;
     private final MailDeliveryService mailDeliveryService;
 
     @GetMapping("/login")
     public String login(
-            @RequestParam(defaultValue = "false") boolean registered,
             @RequestParam(defaultValue = "false") boolean error,
             Model model
     ) {
         viewHelper.populateCommon(model, "login", true);
-        model.addAttribute("categories", viewService.getSelectableCategories());
-        model.addAttribute("registered", registered);
         model.addAttribute("error", error);
         return "auth/login";
     }
@@ -53,10 +49,9 @@ public class AuthController {
             @RequestParam(name = "userId", defaultValue = "") String userId,
             @RequestParam(defaultValue = "") String password,
             @RequestParam(defaultValue = "false") boolean autoLogin,
-            HttpServletResponse response
+            HttpServletResponse response //서버가 브라우저에게 응답 보내기
     ) {
         String normalizedUserId = CmmUtil.nvl(userId);
-        AuthDTO.AuthResponse loginResult = authService.login(new AuthDTO.LoginRequest(normalizedUserId, password));
 
         /*
          * 로그인 성공 후 세션에 AUTH_TOKEN/USER_ID를 저장하지 않는다.
@@ -65,7 +60,7 @@ public class AuthController {
          * autoLogin=true  -> 브라우저를 닫아도 유지되는 persistent cookie
          * autoLogin=false -> 브라우저 세션 동안만 유지되는 session cookie
          */
-        authService.writeTokenCookies(response, loginResult, autoLogin);
+        loginAndWriteCookies(new AuthDTO.LoginRequest(normalizedUserId, password), response, autoLogin);
         return "redirect:/";
     }
 
@@ -84,7 +79,7 @@ public class AuthController {
             @RequestParam(defaultValue = "") String confirmPassword,
             @RequestParam(defaultValue = "") String baseAddress,
             HttpSession session,
-            RedirectAttributes redirectAttributes
+            RedirectAttributes redirectAttributes //redirect할 때 데이터를 같이 전달하기 위한 객체
     ) {
         String normalizedUserId = CmmUtil.nvl(userId);
         String normalizedEmail = CmmUtil.nvl(email);
@@ -108,27 +103,14 @@ public class AuthController {
         }
 
         try {
-            authService.signUp(new AuthDTO.SignUpRequest(
-                    nickname,
-                    normalizedUserId,
-                    password,
-                    normalizedEmail,
-                    baseAddress
-            ));
+            authService.signUp(createSignUpRequest(nickname, normalizedUserId, password, normalizedEmail, baseAddress));
         } catch (ResponseStatusException exception) {
-            return redirectSignupError.apply(switch (exception.getReason()) {
-                case "email already exists" -> "이미 사용 중인 이메일입니다.";
-                case "loginId already exists" -> "이미 사용 중인 아이디입니다.";
-                case "nickname, loginId, password, and email are required" -> "필수 입력값을 모두 작성해주세요.";
-                default -> exception.getReason();
-            });
+            return redirectSignupError.apply(toSignupErrorMessage(exception));
         }
 
-        session.removeAttribute("SIGNUP_VERIFICATION_EMAIL");
-        session.removeAttribute("SIGNUP_VERIFICATION_CODE");
-        session.removeAttribute("SIGNUP_VERIFIED_EMAIL");
+        clearSignupVerification(session);
 
-        redirectAttributes.addAttribute("registered", true);
+        redirectAttributes.addFlashAttribute("signupSuccess", true);
         redirectAttributes.addFlashAttribute("registeredNickname", nickname.isBlank() ? normalizedUserId : nickname);
         return "redirect:/login";
     }
@@ -225,57 +207,6 @@ public class AuthController {
     }
 
     @ResponseBody
-    @PostMapping("/api/auth/signup")
-    public AuthDTO.AuthResponse apiSignUp(@RequestBody AuthDTO.SignUpRequest request, HttpServletResponse response) {
-        AuthDTO.AuthResponse authResponse = authService.signUp(request);
-        authService.writeTokenCookies(response, authResponse);
-        return authResponse;
-    }
-
-    @ResponseBody
-    @PostMapping("/api/auth/login")
-    public AuthDTO.AuthResponse apiLogin(@RequestBody AuthDTO.LoginRequest request, HttpServletResponse response) {
-        AuthDTO.AuthResponse authResponse = authService.login(request);
-        authService.writeTokenCookies(response, authResponse);
-        return authResponse;
-    }
-
-    @ResponseBody
-    @PostMapping("/api/auth/refresh")
-    public AuthDTO.AuthResponse apiRefresh(
-            @RequestBody(required = false) AuthDTO.RefreshRequest request,
-            @CookieValue(name = "${app.auth.jwt.refresh-cookie-name:WM_REFRESH_TOKEN}", required = false) String refreshTokenCookie,
-            HttpServletResponse response
-    ) {
-        AuthDTO.AuthResponse authResponse = authService.refreshAccessToken(resolveRefreshToken(request, refreshTokenCookie));
-        authService.writeTokenCookies(response, authResponse);
-        return authResponse;
-    }
-
-    @ResponseBody
-    @PostMapping("/api/auth/logout")
-    public AuthDTO.PasswordResetResponse apiLogout(
-            @CookieValue(name = "${app.auth.jwt.refresh-cookie-name:WM_REFRESH_TOKEN}", required = false) String refreshToken,
-            HttpServletResponse response
-    ) {
-        authService.revokeRefreshToken(refreshToken);
-        authService.clearTokenCookies(response);
-        return new AuthDTO.PasswordResetResponse("로그아웃되었습니다.", null);
-    }
-
-    @ResponseBody
-    @PostMapping("/api/auth/password/reset-request")
-    public AuthDTO.PasswordResetResponse apiCreatePasswordResetToken(@RequestBody AuthDTO.PasswordResetRequest request) {
-        return authService.createPasswordResetToken(request);
-    }
-
-    @ResponseBody
-    @PostMapping("/api/auth/password/reset-confirm")
-    public AuthDTO.PasswordResetResponse apiResetPassword(@RequestBody AuthDTO.PasswordResetConfirmRequest request) {
-        return authService.resetPassword(request);
-    }
-
-    @ResponseBody
     @GetMapping("/api/auth/email/available")
     public AuthDTO.EmailAvailabilityResponse apiEmailAvailable(@RequestParam String email) {
         boolean available = authService.isEmailAvailable(email);
@@ -299,9 +230,7 @@ public class AuthController {
             session.setAttribute("SIGNUP_VERIFICATION_CODE", code);
             session.removeAttribute("SIGNUP_VERIFIED_EMAIL");
         } else {
-            session.removeAttribute("SIGNUP_VERIFICATION_EMAIL");
-            session.removeAttribute("SIGNUP_VERIFICATION_CODE");
-            session.removeAttribute("SIGNUP_VERIFIED_EMAIL");
+            clearSignupVerification(session);
         }
         return new AuthDTO.EmailVerificationSendResponse(
                 mailSendResult.sent(),
@@ -335,26 +264,6 @@ public class AuthController {
         return new AuthDTO.EmailVerificationConfirmResponse(true, "이메일 인증이 완료되었습니다.");
     }
 
-    @ResponseBody
-    @GetMapping("/api/me")
-    public UserDTO.UserResponse apiMe(
-            @RequestHeader(name = "Authorization", required = false) String authorization,
-            @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken
-    ) {
-        return authService.toUserResponse(authService.requireUser(authorization, accessToken));
-    }
-
-    @ResponseBody
-    @PostMapping("/api/me/address")
-    public UserDTO.UserResponse apiUpdateAddress(
-            @RequestHeader(name = "Authorization", required = false) String authorization,
-            @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken,
-            @RequestBody UserDTO.AddressUpdateRequest request
-    ) {
-        AppUser requester = authService.requireUser(authorization, accessToken);
-        return authService.updateBaseAddress(requester, request.baseAddress());
-    }
-
     private void populateSignupModel(Model model, HttpSession session) {
         viewHelper.populateCommon(model, "login", true);
         model.addAttribute("signupVerifiedEmail", session.getAttribute("SIGNUP_VERIFIED_EMAIL"));
@@ -368,11 +277,39 @@ public class AuthController {
         viewHelper.populateCommon(model, "login", true);
     }
 
-    private String resolveRefreshToken(AuthDTO.RefreshRequest request, String refreshTokenCookie) {
-        if (request != null && request.refreshToken() != null && !request.refreshToken().isBlank()) {
-            return request.refreshToken();
-        }
-        return refreshTokenCookie;
+    private AuthDTO.AuthResponse loginAndWriteCookies(
+            AuthDTO.LoginRequest request,
+            HttpServletResponse response,
+            boolean persistent
+    ) {
+        AuthDTO.AuthResponse authResponse = authService.login(request);
+        authService.writeTokenCookies(response, authResponse, persistent);
+        return authResponse;
+    }
+
+    private AuthDTO.SignUpRequest createSignUpRequest(
+            String nickname,
+            String loginId,
+            String password,
+            String email,
+            String baseAddress
+    ) {
+        return new AuthDTO.SignUpRequest(nickname, loginId, password, email, baseAddress);
+    }
+
+    private void clearSignupVerification(HttpSession session) {
+        session.removeAttribute("SIGNUP_VERIFICATION_EMAIL");
+        session.removeAttribute("SIGNUP_VERIFICATION_CODE");
+        session.removeAttribute("SIGNUP_VERIFIED_EMAIL");
+    }
+
+    private String toSignupErrorMessage(ResponseStatusException exception) {
+        return switch (exception.getReason()) {
+            case "email already exists" -> "이미 사용 중인 이메일입니다.";
+            case "loginId already exists" -> "이미 사용 중인 아이디입니다.";
+            case "nickname, loginId, password, and email are required" -> "필수 입력값을 모두 작성해주세요.";
+            default -> exception.getReason();
+        };
     }
 
     private String buildTemporaryPasswordNotice(AuthDTO.PasswordResetResponse response) {

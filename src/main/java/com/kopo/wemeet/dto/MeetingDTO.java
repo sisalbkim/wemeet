@@ -5,6 +5,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
+/**
+ * MeetingDTO는 계층 간 데이터 전달과 화면/API 응답 구성을 위한 DTO 묶음입니다.
+ */
 public final class MeetingDTO {
     // 모임 생성, 목록, 상세 응답에 공통으로 쓰는 DTO 모음이다.
 

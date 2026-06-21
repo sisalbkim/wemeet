@@ -34,6 +34,9 @@ import static com.kopo.wemeet.util.UiDefaults.TAB_CREATE;
 import static com.kopo.wemeet.util.UiDefaults.TAB_HOME;
 import static com.kopo.wemeet.util.UiDefaults.TAB_NEARBY;
 
+/**
+ * MeetingViewController는 화면 요청과 API 요청을 받아 서비스 계층으로 위임하는 MVC 컨트롤러입니다.
+ */
 @Controller
 @RequiredArgsConstructor
 public class MeetingViewController {
@@ -61,6 +64,7 @@ public class MeetingViewController {
             @RequestParam(required = false) String anchorId,
             @RequestParam(defaultValue = "false") boolean guest,
             @RequestParam(required = false) String guestAddress,
+            @RequestParam(defaultValue = "") String originAddress,
             @RequestParam(defaultValue = DEFAULT_ROUTE_MODE) String routeMode,
             Model model,
             HttpSession session,
@@ -72,7 +76,7 @@ public class MeetingViewController {
         }
         String normalizedRouteMode = viewHelper.normalizeRouteMode(routeMode);
         try {
-            populateRecommendationModel(model, guest ? TAB_NEARBY : TAB_HOME, currentUser, category, detailKeyword, friendIds, mode, anchorId, guest, guestAddress, normalizedRouteMode);
+            populateRecommendationModel(model, guest ? TAB_NEARBY : TAB_HOME, currentUser, category, detailKeyword, friendIds, mode, anchorId, guest, guestAddress, normalizedRouteMode, originAddress);
         } catch (ResponseStatusException exception) {
             if (!guest && exception.getStatusCode().isSameCodeAs(BAD_REQUEST)) {
                 redirectAttributes.addFlashAttribute("profileNotice", "주소가 설정된 인원이 없어 추천 결과를 만들 수 없습니다.");
@@ -97,6 +101,7 @@ public class MeetingViewController {
             @RequestParam(defaultValue = "") String meetingHour,
             @RequestParam(defaultValue = "") String meetingMinute,
             @RequestParam(defaultValue = DEFAULT_ROUTE_MODE) String routeMode,
+            @RequestParam(defaultValue = "") String originAddress,
             Model model,
             HttpSession session,
             RedirectAttributes redirectAttributes
@@ -116,7 +121,8 @@ public class MeetingViewController {
                     anchorId,
                     false,
                     null,
-                    normalizedRouteMode
+                    normalizedRouteMode,
+                    originAddress
             );
         } catch (ResponseStatusException exception) {
             if (exception.getStatusCode().isSameCodeAs(BAD_REQUEST)) {
@@ -224,6 +230,7 @@ public class MeetingViewController {
         model.addAttribute("selectedMode", DEFAULT_RECOMMENDATION_MODE);
         model.addAttribute("selectedAnchorId", profile.id());
         model.addAttribute("selectedRouteMode", DEFAULT_ROUTE_MODE);
+        model.addAttribute("originAddress", "");
         model.addAttribute("baseAddressMissing", profile.baseAddress() == null || profile.baseAddress().isBlank());
     }
 
@@ -238,7 +245,8 @@ public class MeetingViewController {
             String anchorId,
             boolean guestMode,
             String guestAddress,
-            String routeMode
+            String routeMode,
+            String originAddress
     ) {
         viewHelper.populateCommon(model, activeTab, guestMode);
         UserDTO.UserProfile guestProfile = guestMode ? viewService.getGuestUser(guestAddress) : null;
@@ -251,11 +259,13 @@ public class MeetingViewController {
                         friendIds,
                         mode,
                         anchorId,
-                        routeMode
+                        routeMode,
+                        originAddress
                 );
         model.addAttribute("profile", guestMode ? guestProfile : viewHelper.toProfile(currentUser));
         model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("guestAddress", guestMode ? guestProfile.baseAddress() : "");
+        model.addAttribute("originAddress", guestMode ? "" : normalizeOptionalText(originAddress));
         model.addAttribute("selectedCategory", category);
         model.addAttribute("detailKeyword", normalizeOptionalText(detailKeyword));
         model.addAttribute("selectedMode", RecommendationMode.from(mode).name());
@@ -293,6 +303,7 @@ public class MeetingViewController {
         model.addAttribute("profile", viewHelper.toProfile(currentUser));
         model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("guestAddress", "");
+        model.addAttribute("originAddress", "");
         model.addAttribute("selectedCategory", category);
         model.addAttribute("detailKeyword", "");
         model.addAttribute("selectedMode", RecommendationMode.from(recommendationMode).name());

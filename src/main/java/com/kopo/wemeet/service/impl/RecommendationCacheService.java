@@ -15,6 +15,9 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * RecommendationCacheService는 도메인 규칙과 외부 연동 흐름을 조합해 실제 비즈니스 처리를 수행합니다.
+ */
 @Service
 public class RecommendationCacheService {
     // 추천 결과 캐시 전용 서비스다.

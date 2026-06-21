@@ -6,6 +6,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+/**
+ * RecommendationBundleMapper는 Spring Boot 애플리케이션 시작점을 제공합니다.
+ */
 @Component
 public class RecommendationBundleMapper {
     // 추천 API 응답을 Thymeleaf 화면 전용 번들로 재조립한다.

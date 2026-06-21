@@ -22,6 +22,9 @@ import static com.kopo.wemeet.util.UiDefaults.DEFAULT_ROUTE_MODE;
 import static com.kopo.wemeet.util.UiDefaults.ROUTE_MODE_TRANSIT;
 import static com.kopo.wemeet.util.UiDefaults.ROUTE_MODE_WALK;
 
+/**
+ * WemeetViewHelper는 여러 계층에서 반복되는 화면/문자열 처리 로직을 모아 둔 유틸리티입니다.
+ */
 @Component
 public class WemeetViewHelper {
     // 화면 컨트롤러에서 공통으로 쓰는 로그인 체크와 모델 조립 보조 로직 모음이다.

@@ -24,6 +24,22 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    const signupSuccessModal = document.querySelector("[data-signup-success-modal]");
+    if (signupSuccessModal instanceof HTMLElement) {
+        const closeSignupSuccessModal = () => {
+            signupSuccessModal.hidden = true;
+        };
+
+        signupSuccessModal.querySelectorAll("[data-signup-success-close]").forEach((button) => {
+            button.addEventListener("click", closeSignupSuccessModal);
+        });
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && !signupSuccessModal.hidden) {
+                closeSignupSuccessModal();
+            }
+        });
+    }
+
     // 친구 목록 검색은 화면 안에서 카드 표시만 바꿔 새로고침 없이 처리한다.
     document.querySelectorAll("[data-friend-filter]").forEach((friendFilter) => {
         const filterScope = friendFilter.closest("[data-friend-filter-scope]") ?? document;

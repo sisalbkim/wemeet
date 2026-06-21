@@ -1,5 +1,8 @@
 package com.kopo.wemeet.dto;
 
+/**
+ * RecommendationMode는 계층 간 데이터 전달과 화면/API 응답 구성을 위한 DTO 묶음입니다.
+ */
 public enum RecommendationMode {
     // 추천 결과를 어떤 기준으로 고를지 결정하는 전략 enum이다.
     CENTER("중심점 부근"),

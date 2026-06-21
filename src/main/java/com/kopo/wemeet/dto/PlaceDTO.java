@@ -2,6 +2,9 @@ package com.kopo.wemeet.dto;
 
 import java.util.List;
 
+/**
+ * PlaceDTO는 계층 간 데이터 전달과 화면/API 응답 구성을 위한 DTO 묶음입니다.
+ */
 public final class PlaceDTO {
     // 장소 검색 결과와 경로 표시 데이터에 쓰는 DTO 모음이다.
 

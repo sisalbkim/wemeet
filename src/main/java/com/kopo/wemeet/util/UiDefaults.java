@@ -2,6 +2,9 @@ package com.kopo.wemeet.util;
 
 import com.kopo.wemeet.dto.RecommendationMode;
 
+/**
+ * UiDefaults는 여러 계층에서 반복되는 화면/문자열 처리 로직을 모아 둔 유틸리티입니다.
+ */
 public final class UiDefaults {
     // 화면 컨트롤러와 템플릿 모델에서 공유하는 기본 UI 값을 한 곳에 모은다.
 

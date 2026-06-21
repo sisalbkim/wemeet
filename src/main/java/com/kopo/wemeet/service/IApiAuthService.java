@@ -5,14 +5,15 @@ import com.kopo.wemeet.dto.*;
 import com.kopo.wemeet.repository.entity.AppUser;
 import jakarta.servlet.http.HttpServletResponse;
 
+/**
+ * IApiAuthService는 구현체가 지켜야 할 서비스 계층 계약을 정의합니다.
+ */
 public interface IApiAuthService {
     // 인증/회원 정보를 다루는 서비스 계약이다.
 
-    AuthDTO.AuthResponse signUp(AuthDTO.SignUpRequest request);
+    void signUp(AuthDTO.SignUpRequest request);
 
     AuthDTO.AuthResponse login(AuthDTO.LoginRequest request);
-
-    AuthDTO.AuthResponse refreshAccessToken(String refreshToken);
 
     void revokeRefreshToken(String refreshToken);
 
@@ -21,10 +22,6 @@ public interface IApiAuthService {
     void writeTokenCookies(HttpServletResponse response, AuthDTO.AuthResponse authResponse, boolean persistent);
 
     void clearTokenCookies(HttpServletResponse response);
-
-    AuthDTO.PasswordResetResponse createPasswordResetToken(AuthDTO.PasswordResetRequest request);
-
-    AuthDTO.PasswordResetResponse resetPassword(AuthDTO.PasswordResetConfirmRequest request);
 
     String findLoginIdByNameAndEmail(String name, String email);
 

@@ -4,6 +4,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
+/**
+ * WemeetApplication는 Spring Boot 애플리케이션 시작점을 제공합니다.
+ */
 @SpringBootApplication
 @ConfigurationPropertiesScan
 public class WemeetApplication {

@@ -16,6 +16,9 @@ import java.util.List;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
+/**
+ * HistoryService는 도메인 규칙과 외부 연동 흐름을 조합해 실제 비즈니스 처리를 수행합니다.
+ */
 @Service
 @RequiredArgsConstructor
 public class HistoryService implements IHistoryService {

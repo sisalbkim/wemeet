@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * NaverPlaceTagCatalog는 도메인 규칙과 외부 연동 흐름을 조합해 실제 비즈니스 처리를 수행합니다.
+ */
 @Component
 public class NaverPlaceTagCatalog {
     // 내부 카테고리를 네이버 검색어 스타일로 확장하고, 응답 category를 다시 내부 분류로 정규화한다.

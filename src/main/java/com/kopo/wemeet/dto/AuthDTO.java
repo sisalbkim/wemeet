@@ -1,5 +1,8 @@
 package com.kopo.wemeet.dto;
 
+/**
+ * AuthDTO는 계층 간 데이터 전달과 화면/API 응답 구성을 위한 DTO 묶음입니다.
+ */
 public final class AuthDTO {
     // 인증 관련 요청과 응답 record를 한곳에 모아둔 DTO 모음이다.
 
