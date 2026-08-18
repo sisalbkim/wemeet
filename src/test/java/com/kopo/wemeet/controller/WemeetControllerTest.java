@@ -361,6 +361,38 @@ class WemeetControllerTest {
     }
 
     @Test
+    void refreshCookieRenewsAccessCookieForViewRequests() throws Exception {
+        mockMvc.perform(post("/signup")
+                        .session(verifiedSignupSession("refreshview01@wemeet.local"))
+                        .param("nickname", "리프레시테스터")
+                        .param("userId", "refreshview01")
+                        .param("email", "refreshview01@wemeet.local")
+                        .param("password", "pass1234")
+                        .param("confirmPassword", "pass1234")
+                        .param("baseAddress", "서울특별시 중구"))
+                .andExpect(status().is3xxRedirection());
+
+        MvcResult loginResult = mockMvc.perform(post("/login")
+                        .param("userId", "refreshview01")
+                        .param("password", "pass1234")
+                        .param("autoLogin", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        Cookie refreshTokenCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        assertNotNull(refreshTokenCookie);
+
+        MvcResult profileResult = mockMvc.perform(get("/profile").cookie(refreshTokenCookie))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("리프레시테스터")))
+                .andReturn();
+
+        Cookie renewedAccessCookie = profileResult.getResponse().getCookie("WM_ACCESS_TOKEN");
+        assertNotNull(renewedAccessCookie);
+        assertTrue(renewedAccessCookie.getMaxAge() > 0);
+    }
+
+    @Test
     void homePageShowsActualUpcomingMeetingsForCurrentUser() throws Exception {
         Cookie[] session = signupAndLogin("homeagenda01", "homeagenda01@wemeet.local");
         String userId = userRepository.findByLoginId("homeagenda01").orElseThrow().getId();
@@ -807,6 +839,27 @@ class WemeetControllerTest {
     }
 
     @Test
+    void meetingFormLimitsAnchorCandidatesToSelectedParticipants() throws Exception {
+        Cookie[] session = login("user123", "pass1234");
+
+        String html = mockMvc.perform(get("/meetings/new").cookie(session))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String selectedFavoriteAnchorOption = extractOptionByValue(html, "friend-park");
+        String unselectedAnchorOption = extractOptionByValue(html, "friend-lee");
+
+        assertTrue(selectedFavoriteAnchorOption.contains("data-anchor-option"));
+        assertFalse(selectedFavoriteAnchorOption.contains("hidden=\"hidden\""));
+        assertFalse(selectedFavoriteAnchorOption.contains("disabled=\"disabled\""));
+        assertTrue(unselectedAnchorOption.contains("data-anchor-option"));
+        assertTrue(unselectedAnchorOption.contains("hidden=\"hidden\""));
+        assertTrue(unselectedAnchorOption.contains("disabled=\"disabled\""));
+    }
+
+    @Test
     void meetingPreviewComposesTimeFromHourAndMinute() throws Exception {
         Cookie[] session = signupAndLogin("meetingtime01", "meetingtime01@wemeet.local");
 
@@ -1164,6 +1217,59 @@ class WemeetControllerTest {
     }
 
     @Test
+    void profileMeetingDetailShowsSavedSelectedVenueFirst() throws Exception {
+        Cookie[] session = signupAndLogin("savedselected01", "savedselected01@wemeet.local");
+        String userId = userRepository.findByLoginId("savedselected01").orElseThrow().getId();
+
+        given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearchWithTwoPlaces());
+
+        MvcResult previewResult = mockMvc.perform(post("/meetings/preview")
+                        .cookie(session)
+                        .param("category", "카페")
+                        .param("mode", "CENTER")
+                        .param("meetingName", "선택 장소 저장 모임")
+                        .param("meetingDate", "2026-07-15")
+                        .param("meetingHour", "19")
+                        .param("meetingMinute", "00")
+                        .param("routeMode", "car"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String previewKey = extractHiddenInputValue(previewResult.getResponse().getContentAsString(), "meetingPreviewKey");
+
+        mockMvc.perform(post("/meetings")
+                        .session((MockHttpSession) previewResult.getRequest().getSession(false))
+                        .cookie(session)
+                        .param("meetingName", "선택 장소 저장 모임")
+                        .param("meetingDescription", "두 번째 후보를 저장합니다")
+                        .param("meetingDate", "2026-07-15")
+                        .param("meetingTime", "19:00")
+                        .param("meetingPlaceName", "선택한 카페")
+                        .param("meetingPlaceAddress", "서울특별시 중구 선택로 2")
+                        .param("category", "카페")
+                        .param("recommendationMode", "CENTER")
+                        .param("anchorId", userId)
+                        .param("meetingPreviewKey", previewKey))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/profile"));
+
+        String meetingId = meetingService.listMeetingsCreatedByUser(userId).stream()
+                .filter(meeting -> "선택 장소 저장 모임".equals(meeting.title()))
+                .findFirst()
+                .orElseThrow()
+                .id();
+
+        mockMvc.perform(get("/profile/meetings/results")
+                        .cookie(session)
+                        .param("meetingId", meetingId))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("저장된 추천 결과를 보여주고 있습니다.")))
+                .andExpect(content().string(containsString("id=\"recommendationVenuePanelName\">선택한 카페</h3>")))
+                .andExpect(content().string(containsString("data-map-point data-id=\"venue-0\" data-label=\"선택한 카페\"")))
+                .andExpect(content().string(containsString("data-selected=\"true\"")));
+    }
+
+    @Test
     void profileMeetingNaverMapLinkUsesSavedRouteWhenSnapshotExists() throws Exception {
         Cookie[] session = signupAndLogin("savedroute01", "savedroute01@wemeet.local");
         String userId = userRepository.findByLoginId("savedroute01").orElseThrow().getId();
@@ -1332,6 +1438,13 @@ class WemeetControllerTest {
         return matcher.group(1);
     }
 
+    private String extractOptionByValue(String html, String value) {
+        Pattern pattern = Pattern.compile("<option[^>]*value=\"" + Pattern.quote(value) + "\"[^>]*>\\s*[^<]*\\s*</option>");
+        Matcher matcher = pattern.matcher(html);
+        assertTrue(matcher.find(), "Expected option for " + value);
+        return matcher.group();
+    }
+
     private String extractAnchorHref(String html, String linkText) {
         Pattern pattern = Pattern.compile("<a[^>]*href=\"([^\"]*)\"[^>]*>\\s*" + Pattern.quote(linkText) + "\\s*</a>");
         Matcher matcher = pattern.matcher(html);
@@ -1360,6 +1473,47 @@ class WemeetControllerTest {
                                 127.041,
                                 320,
                                 4,
+                                List.of()
+                        )
+                )
+        );
+    }
+
+    private PlaceDTO.PlaceSearchResponse samplePlaceSearchWithTwoPlaces() {
+        return new PlaceDTO.PlaceSearchResponse(
+                "서울특별시 중구 카페",
+                "카페",
+                "카페",
+                List.of("카페"),
+                List.of("카페,디저트"),
+                new PlaceDTO.PlaceSearchOriginResponse("서울특별시 중구", "서울특별시 중구", "서울특별시 중구", 37.575, 127.04),
+                List.of(
+                        new PlaceDTO.PlaceCandidateResponse(
+                                "첫 추천 카페",
+                                "카페",
+                                "카페,디저트",
+                                "서울특별시 중구",
+                                "서울특별시 중구 첫추천로 1",
+                                "",
+                                "",
+                                37.5755,
+                                127.041,
+                                320,
+                                4,
+                                List.of()
+                        ),
+                        new PlaceDTO.PlaceCandidateResponse(
+                                "선택한 카페",
+                                "카페",
+                                "카페,디저트",
+                                "서울특별시 중구",
+                                "서울특별시 중구 선택로 2",
+                                "",
+                                "",
+                                37.576,
+                                127.042,
+                                420,
+                                5,
                                 List.of()
                         )
                 )

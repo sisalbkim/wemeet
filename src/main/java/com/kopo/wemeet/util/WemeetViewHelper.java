@@ -7,6 +7,7 @@ import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -34,19 +35,22 @@ public class WemeetViewHelper {
     private final OpenApiProperties openApiProperties;
     private final boolean forceTransitVisible;
     private final String accessCookieName;
+    private final String refreshCookieName;
 
     public WemeetViewHelper(
             IApiAuthService authService,
             NaverMapProperties naverMapProperties,
             OpenApiProperties openApiProperties,
             @Value("${app.ui.force-transit-visible:false}") boolean forceTransitVisible,
-            @Value("${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}") String accessCookieName
+            @Value("${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}") String accessCookieName,
+            @Value("${app.auth.jwt.refresh-cookie-name:WM_REFRESH_TOKEN}") String refreshCookieName
     ) {
         this.authService = authService;
         this.naverMapProperties = naverMapProperties;
         this.openApiProperties = openApiProperties;
         this.forceTransitVisible = forceTransitVisible;
         this.accessCookieName = accessCookieName;
+        this.refreshCookieName = refreshCookieName;
     }
 
     public void populateCommon(Model model, String activeTab, boolean guestMode) {
@@ -79,12 +83,23 @@ public class WemeetViewHelper {
 
     public AppUser findLoggedInUser(HttpSession session) {
         String token = findAccessTokenCookie();
-        if (token == null || token.isBlank()) {
-            return null;
+        if (token != null && !token.isBlank()) {
+            try {
+                return authService.requireUser("Bearer " + token);
+            } catch (ResponseStatusException exception) {
+                if (exception.getStatusCode().value() != 401) {
+                    throw exception;
+                }
+            }
         }
 
         try {
-            return authService.requireUser("Bearer " + token);
+            String refreshToken = findRefreshTokenCookie();
+            HttpServletResponse response = currentResponse();
+            if (refreshToken == null || refreshToken.isBlank() || response == null) {
+                return null;
+            }
+            return authService.refreshAccessToken(refreshToken, response);
         } catch (ResponseStatusException exception) {
             if (exception.getStatusCode().value() == 401) {
                 if (session != null) {
@@ -123,8 +138,16 @@ public class WemeetViewHelper {
     }
 
     private String findAccessTokenCookie() {
+        return findCookieValue(accessCookieName);
+    }
+
+    private String findRefreshTokenCookie() {
+        return findCookieValue(refreshCookieName);
+    }
+
+    private String findCookieValue(String cookieName) {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes == null) {
+        if (attributes == null || cookieName == null || cookieName.isBlank()) {
             return null;
         }
         HttpServletRequest request = attributes.getRequest();
@@ -133,10 +156,15 @@ public class WemeetViewHelper {
             return null;
         }
         for (Cookie cookie : cookies) {
-            if (accessCookieName.equals(cookie.getName())) {
+            if (cookieName.equals(cookie.getName())) {
                 return cookie.getValue();
             }
         }
         return null;
+    }
+
+    private HttpServletResponse currentResponse() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        return attributes == null ? null : attributes.getResponse();
     }
 }

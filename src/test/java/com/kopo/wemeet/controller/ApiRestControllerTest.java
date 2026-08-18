@@ -92,6 +92,20 @@ class ApiRestControllerTest {
     }
 
     @Test
+    void refreshCookieRenewsAccessCookieForProtectedApiGroups() throws Exception {
+        MvcResult loginResult = loginAndGetResult("user123", "pass1234");
+        Cookie refreshCookie = loginResult.getResponse().getCookie("WM_REFRESH_TOKEN");
+        assertNotNull(refreshCookie);
+
+        MvcResult apiResult = mockMvc.perform(get("/api/meetings").cookie(refreshCookie))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Cookie renewedAccessCookie = apiResult.getResponse().getCookie("WM_ACCESS_TOKEN");
+        assertNotNull(renewedAccessCookie);
+    }
+
+    @Test
     void recommendationsEndpointReturnsBalancedVenueList() throws Exception {
         String token = accessTokenFor("user123");
         given(apiNaverPlaceSearchService.search(any())).willReturn(samplePlaceSearch("서울특별시 중구", "서울특별시 중구", "중구 로컬 맛집"));

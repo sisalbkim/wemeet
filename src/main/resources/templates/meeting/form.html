@@ -183,11 +183,20 @@
                     <div class="inline-panel" data-anchor-panel th:attr="hidden=${selectedMode != 'ANCHOR'} ? 'hidden' : null">
                         <label class="field-label" for="anchorId">기준 인물 선택</label>
                         <select class="text-input" id="anchorId" name="anchorId">
-                            <option th:value="${profile.id}" th:selected="${selectedAnchorId == profile.id}" th:text="${profile.name + ' (나)'}">김철수 (나)</option>
+                            <option th:value="${profile.id}"
+                                    th:selected="${selectedAnchorId == profile.id}"
+                                    th:text="${profile.name + ' (나)'}"
+                                    data-anchor-option
+                                    data-anchor-always
+                                    th:attr="data-anchor-participant-id=${profile.id}">김철수 (나)</option>
                             <option th:each="friend : ${friends}"
                                     th:value="${friend.id}"
                                     th:selected="${selectedAnchorId == friend.id}"
-                                    th:text="${friend.name}">
+                                    th:text="${friend.name}"
+                                    data-anchor-option
+                                    th:attr="data-anchor-participant-id=${friend.id},
+                                             hidden=${preselectedFriendIds == null or !#lists.contains(preselectedFriendIds, friend.id)} ? 'hidden' : null,
+                                             disabled=${preselectedFriendIds == null or !#lists.contains(preselectedFriendIds, friend.id)} ? 'disabled' : null">
                                 이영희
                             </option>
                         </select>

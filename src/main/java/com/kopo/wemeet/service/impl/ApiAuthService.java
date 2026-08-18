@@ -116,6 +116,20 @@ public class ApiAuthService implements IApiAuthService {
     }
 
     @Override
+    public AppUser refreshAccessToken(String refreshToken, HttpServletResponse response) {
+        JwtTokenService.TokenDetails tokenDetails = jwtTokenService.resolveRefreshTokenDetails(refreshToken)
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Invalid refresh token"));
+        if (!refreshTokenStore.isValid(tokenDetails.tokenId(), tokenDetails.userId())) {
+            throw new ResponseStatusException(UNAUTHORIZED, "Refresh token is not active");
+        }
+
+        AppUser user = userRepository.findById(tokenDetails.userId())
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "User not found"));
+        jwtTokenService.writeRefreshedAccessCookie(response, jwtTokenService.createAccessToken(user.getId()));
+        return user;
+    }
+
+    @Override
     public String findLoginIdByEmail(String email) {
         // 이메일만으로 가입된 아이디를 찾을 때 사용한다.
         if (email == null || email.isBlank()) {

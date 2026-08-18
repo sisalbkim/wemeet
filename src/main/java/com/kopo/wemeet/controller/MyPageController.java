@@ -20,6 +20,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.kopo.wemeet.util.UiDefaults.DEFAULT_ROUTE_MODE;
@@ -98,17 +99,15 @@ public class MyPageController {
         model.addAttribute("meetingCreationAvailable", false);
         String normalizedRouteMode = viewHelper.normalizeRouteMode(routeMode);
         model.addAttribute("selectedRouteMode", normalizedRouteMode);
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
         RecommendationDTO.RecommendationBundle savedRecommendation = deserializeRecommendationSnapshot(meeting);
-        if (savedRecommendation != null && meeting.recommendationSnapshotExpiresAt() != null
-                && meeting.recommendationSnapshotExpiresAt().isAfter(now)) {
-            model.addAttribute("recommendation", savedRecommendation);
+        if (savedRecommendation != null) {
+            model.addAttribute("recommendation", prioritizeSavedMeetingPlace(savedRecommendation, meeting));
             model.addAttribute("recommendationSnapshotNotice", "저장된 추천 결과를 보여주고 있습니다.");
-            model.addAttribute("recommendationSnapshotExpiresOn", meeting.recommendationSnapshotExpiresAt().toLocalDate());
-        } else {
-            if (meeting.recommendationSnapshotExpiresAt() != null && meeting.recommendationSnapshotExpiresAt().isBefore(now)) {
-                model.addAttribute("recommendationSnapshotNotice", "저장된 추천 결과 보관 기간이 지나 최신 기준으로 다시 계산했습니다.");
+            if (meeting.recommendationSnapshotExpiresAt() != null) {
+                model.addAttribute("recommendationSnapshotExpiresOn", meeting.recommendationSnapshotExpiresAt().toLocalDate());
             }
+        } else {
+            model.addAttribute("recommendationSnapshotNotice", "저장된 추천 결과가 없어 최신 기준으로 다시 계산했습니다.");
             model.addAttribute("recommendation", viewService.buildRecommendation(
                     currentUser.getId(),
                     meeting.category(),
@@ -149,6 +148,98 @@ public class MyPageController {
         } catch (Exception exception) {
             return null;
         }
+    }
+
+    private RecommendationDTO.RecommendationBundle prioritizeSavedMeetingPlace(
+            RecommendationDTO.RecommendationBundle snapshot,
+            MeetingDTO.MeetingRecord meeting
+    ) {
+        if (snapshot.venues() == null || snapshot.venues().isEmpty()) {
+            return snapshot;
+        }
+
+        int selectedVenueIndex = findSavedMeetingVenueIndex(snapshot.venues(), meeting);
+        if (selectedVenueIndex <= 0) {
+            return selectedVenueIndex == 0 ? copySnapshotWithSelectedVenueMapPoints(snapshot, snapshot.venues()) : snapshot;
+        }
+
+        List<RecommendationDTO.VenueOption> reorderedVenues = new ArrayList<>(snapshot.venues());
+        RecommendationDTO.VenueOption selectedVenue = reorderedVenues.remove(selectedVenueIndex);
+        reorderedVenues.add(0, selectedVenue);
+
+        return copySnapshotWithSelectedVenueMapPoints(snapshot, reorderedVenues);
+    }
+
+    private int findSavedMeetingVenueIndex(
+            List<RecommendationDTO.VenueOption> venues,
+            MeetingDTO.MeetingRecord meeting
+    ) {
+        for (int index = 0; index < venues.size(); index++) {
+            RecommendationDTO.VenueOption venue = venues.get(index);
+            if (sameText(venue.name(), meeting.meetingPlaceName())
+                    && (isBlank(meeting.meetingPlaceAddress()) || sameText(venue.description(), meeting.meetingPlaceAddress()))) {
+                return index;
+            }
+        }
+        for (int index = 0; index < venues.size(); index++) {
+            if (sameText(venues.get(index).name(), meeting.meetingPlaceName())) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    private RecommendationDTO.RecommendationBundle copySnapshotWithSelectedVenueMapPoints(
+            RecommendationDTO.RecommendationBundle snapshot,
+            List<RecommendationDTO.VenueOption> venues
+    ) {
+        RecommendationDTO.VenueOption selectedVenue = venues.get(0);
+        RecommendationDTO.MidpointSummary midpoint = new RecommendationDTO.MidpointSummary(
+                snapshot.midpoint().district(),
+                snapshot.midpoint().station(),
+                snapshot.midpoint().latitude(),
+                snapshot.midpoint().longitude(),
+                selectedVenue.averageMinutes(),
+                selectedVenue.fairnessGap(),
+                snapshot.midpoint().note()
+        );
+
+        List<RecommendationDTO.MapPoint> mapPoints = new ArrayList<>();
+        if (snapshot.mapPoints() != null) {
+            snapshot.mapPoints().stream()
+                    .filter(point -> !"venue".equals(point.markerType()))
+                    .forEach(mapPoints::add);
+        }
+        for (int index = 0; index < venues.size(); index++) {
+            RecommendationDTO.VenueOption venue = venues.get(index);
+            mapPoints.add(new RecommendationDTO.MapPoint(
+                    "venue-" + index,
+                    venue.name(),
+                    venue.description(),
+                    venue.latitude(),
+                    venue.longitude(),
+                    "venue",
+                    index == 0
+            ));
+        }
+
+        return new RecommendationDTO.RecommendationBundle(
+                snapshot.category(),
+                snapshot.participants(),
+                midpoint,
+                venues,
+                mapPoints,
+                snapshot.calculationMode(),
+                snapshot.excludedParticipants()
+        );
+    }
+
+    private boolean sameText(String left, String right) {
+        return left != null && right != null && left.trim().equals(right.trim());
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private List<MeetingDTO.CreatedMeeting> enrichProfileMeetings(List<MeetingDTO.CreatedMeeting> meetings, String viewerUserId) {

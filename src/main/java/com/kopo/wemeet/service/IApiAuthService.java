@@ -23,6 +23,8 @@ public interface IApiAuthService {
 
     void clearTokenCookies(HttpServletResponse response);
 
+    AppUser refreshAccessToken(String refreshToken, HttpServletResponse response);
+
     String findLoginIdByNameAndEmail(String name, String email);
 
     String findLoginIdByEmail(String email);

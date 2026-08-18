@@ -449,9 +449,40 @@ document.addEventListener("DOMContentLoaded", () => {
     const anchorPanel = document.querySelector("[data-anchor-panel]");
     const modeInputs = Array.from(document.querySelectorAll('input[name="mode"]'));
     if (anchorSelect && modeInputs.length > 0) {
+        const participantCheckboxes = Array.from(document.querySelectorAll("[data-participant-friend-checkbox]"))
+            .filter((checkbox) => checkbox instanceof HTMLInputElement);
+        const anchorOptions = Array.from(anchorSelect.querySelectorAll("[data-anchor-option]"))
+            .filter((option) => option instanceof HTMLOptionElement);
+
+        const syncAnchorOptions = () => {
+            const selectedParticipantIds = new Set(
+                participantCheckboxes
+                    .filter((checkbox) => checkbox.checked)
+                    .map((checkbox) => checkbox.dataset.friendId)
+                    .filter(Boolean)
+            );
+
+            anchorOptions.forEach((option) => {
+                const alwaysAvailable = option.hasAttribute("data-anchor-always");
+                const participantId = option.dataset.anchorParticipantId;
+                const available = alwaysAvailable || selectedParticipantIds.has(participantId);
+                option.hidden = !available;
+                option.disabled = !available;
+            });
+
+            const selectedOption = anchorSelect.selectedOptions[0];
+            if (!selectedOption || selectedOption.disabled || selectedOption.hidden) {
+                const fallbackOption = anchorOptions.find((option) => !option.disabled && !option.hidden);
+                if (fallbackOption) {
+                    anchorSelect.value = fallbackOption.value;
+                }
+            }
+        };
+
         const syncAnchorState = () => {
             const selectedMode = modeInputs.find((input) => input.checked)?.value;
             const anchorEnabled = selectedMode === "ANCHOR";
+            syncAnchorOptions();
             anchorSelect.disabled = !anchorEnabled;
             if (anchorPanel) {
                 anchorPanel.hidden = !anchorEnabled;
@@ -460,6 +491,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         modeInputs.forEach((input) => {
             input.addEventListener("change", syncAnchorState);
+        });
+        participantCheckboxes.forEach((checkbox) => {
+            checkbox.addEventListener("change", syncAnchorState);
         });
 
         syncAnchorState();
