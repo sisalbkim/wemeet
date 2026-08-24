@@ -1,0 +1,85 @@
+package com.kopo.wemeet.controller;
+
+import com.kopo.wemeet.repository.AppUserRepository;
+import com.kopo.wemeet.repository.FriendRelationRepository;
+import com.kopo.wemeet.repository.entity.AppUser;
+import com.kopo.wemeet.repository.entity.FriendRelation;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.List;
+
+final class TestSeedData {
+
+    private TestSeedData() {
+    }
+
+    static void ensure(
+            AppUserRepository userRepository,
+            FriendRelationRepository friendRelationRepository,
+            PasswordEncoder passwordEncoder
+    ) {
+        List<AppUser> users = List.of(
+                new AppUser("user-123", "user123", "김철수", "user123@wemeet.local", passwordEncoder.encode("pass1234"), "FRIEND123", "서울특별시 중구 명동길 74"),
+                new AppUser("friend-lee", "user456", "이영희", "user456@wemeet.local", passwordEncoder.encode("pass1234"), "FRIEND456", "서울특별시 성동구 성수동1가"),
+                new AppUser("friend-park", "user789", "박민수", "user789@wemeet.local", passwordEncoder.encode("pass1234"), "FRIEND789", "서울특별시 마포구 공덕동"),
+                new AppUser("friend-kim-test", "friendkim", "김철수", "friendkim@wemeet.local", passwordEncoder.encode("pass1234"), "FRIENDKIM", "서울특별시 종로구 세종대로 175"),
+                new AppUser("friend-park-younghee", "parkyounghee", "박영희", "parkyounghee@wemeet.local", passwordEncoder.encode("pass1234"), "FRIENDYH", "서울특별시 서초구 서초대로 396"),
+                new AppUser("friend-go-areum", "goareum", "고아름", "goareum@wemeet.local", passwordEncoder.encode("pass1234"), "FRIENDAREUM", "서울특별시 영등포구 여의대로 108"),
+                new AppUser("friend-choi-minjun", "choiminjun", "최민준", "choiminjun@wemeet.local", passwordEncoder.encode("pass1234"), "FRIENDMJ", "서울특별시 송파구 올림픽로 300"),
+                new AppUser("friend-jung-hana", "junghana", "정하나", "junghana@wemeet.local", passwordEncoder.encode("pass1234"), "FRIENDHN", "서울특별시 강남구 테헤란로 212"),
+                new AppUser("friend-yoon-seo", "yoonseo", "윤서연", "yoonseo@wemeet.local", passwordEncoder.encode("pass1234"), "FRIENDYS", "서울특별시 용산구 한강대로 405"),
+                new AppUser("friend-kang-doyun", "kangdoyun", "강도윤", "kangdoyun@wemeet.local", passwordEncoder.encode("pass1234"), "FRIENDDY", "서울특별시 구로구 디지털로 300"),
+                new AppUser("friend-han-jisoo", "hanjisoo", "한지수", "hanjisoo@wemeet.local", passwordEncoder.encode("pass1234"), "FRIENDJS", "서울특별시 노원구 동일로 1414"),
+                new AppUser("user-test-aaaaaa", "test_friend_aaaaaa", "테스트 친구", "aaaaaa@wemeet.local", passwordEncoder.encode("Passw0rd!"), "AAAAAA", "서울특별시 강남구 테헤란로 212")
+        );
+
+        for (AppUser user : users) {
+            if (userRepository.findById(user.getId()).isEmpty()) {
+                userRepository.save(user);
+            }
+        }
+
+        ensureFriendRelations(userRepository, friendRelationRepository);
+    }
+
+    private static void ensureFriendRelations(
+            AppUserRepository userRepository,
+            FriendRelationRepository friendRelationRepository
+    ) {
+        AppUser mainUser = userRepository.findById("user-123").orElseThrow();
+        List<String> friendIds = List.of(
+                "friend-kim-test",
+                "friend-park",
+                "friend-lee",
+                "friend-park-younghee",
+                "friend-go-areum",
+                "friend-choi-minjun",
+                "friend-jung-hana",
+                "friend-yoon-seo",
+                "friend-kang-doyun",
+                "friend-han-jisoo"
+        );
+
+        for (int i = 0; i < friendIds.size(); i++) {
+            AppUser friend = userRepository.findById(friendIds.get(i)).orElseThrow();
+            boolean favorite = i < 2;
+            ensureFriendRelation(friendRelationRepository, mainUser, friend, favorite);
+            ensureFriendRelation(friendRelationRepository, friend, mainUser, false);
+        }
+    }
+
+    private static void ensureFriendRelation(
+            FriendRelationRepository friendRelationRepository,
+            AppUser user,
+            AppUser friend,
+            boolean favorite
+    ) {
+        if (friendRelationRepository.existsByUserIdAndFriendId(user.getId(), friend.getId())) {
+            return;
+        }
+
+        FriendRelation relation = new FriendRelation(user, friend);
+        relation.changeFavorite(favorite);
+        friendRelationRepository.save(relation);
+    }
+}
