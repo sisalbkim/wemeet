@@ -48,7 +48,7 @@ public class ApiNaverPlaceSearchService {
         this.tagCatalog = tagCatalog;
         this.naverSearchClient = restClientFactory.create(
                 properties.getNaverSearch().getBaseUrl(),
-                builder -> builder
+                builder -> builder //람다식
                         .defaultHeader("X-Naver-Client-Id", properties.getNaverSearch().getClientId())
                         .defaultHeader("X-Naver-Client-Secret", properties.getNaverSearch().getClientSecret())
         );
