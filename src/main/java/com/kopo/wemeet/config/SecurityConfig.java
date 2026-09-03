@@ -62,7 +62,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/api/**").permitAll()
                         .requestMatchers(
                                 "/", "/error",
-                                "/css/**", "/js/**", "/img/**", "/favicon.ico",
+                                "/css/**", "/js/**", "/img/**", "/uploads/**", "/favicon.ico",
                                 "/login", "/signup", "/find-id", "/find-password", "/find-password/**",
                                 "/logout",
                                 "/guest/**", "/search/results", "/meetings/**",

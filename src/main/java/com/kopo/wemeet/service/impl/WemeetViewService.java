@@ -64,6 +64,7 @@ public class WemeetViewService implements IWemeetViewService {
                 "@FRIEND123",
                 "FRIEND123",
                 normalizedBaseAddress,
+                null,
                 "••••••••",
                 2,
                 2,
@@ -246,7 +247,8 @@ public class WemeetViewService implements IWemeetViewService {
                 "guest",
                 "",
                 guestProfile.friendCode(),
-                guestProfile.baseAddress()
+                guestProfile.baseAddress(),
+                null
         );
 
         RecommendationDTO.RecommendationResponse response = recommendationService.recommendForGuest(

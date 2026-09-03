@@ -7,9 +7,35 @@
 
     <main class="page">
         <section class="profile-hero">
-            <div class="profile-avatar" th:text="${#strings.substring(profile.name,0,1)}">김</div>
+            <!-- 프로필 사진이 등록되어 있으면 실제 이미지 표시 -->
+            <img class="profile-avatar"
+                 th:if="${profile.profileImageUrl != null and !#strings.isEmpty(profile.profileImageUrl)}"
+                 th:src="${profile.profileImageUrl}"
+                 alt="프로필 이미지">
+
+            <!-- 프로필 사진이 없으면 기존처럼 닉네임 첫 글자 표시 -->
+            <div class="profile-avatar"
+                 th:unless="${profile.profileImageUrl != null and !#strings.isEmpty(profile.profileImageUrl)}"
+                 th:text="${#strings.substring(profile.name,0,1)}">
+                김
+            </div>
             <h1 th:text="${profile.name}">김철수</h1>
             <p th:text="${profile.handle}">@내친구코드</p>
+            <!-- 프로필 이미지 업로드 -->
+            <form method="post"
+                  th:action="@{/profile/image}"
+                  enctype="multipart/form-data">
+
+                <input type="file"
+                       name="profileImage"
+                       accept="image/jpeg,image/png,image/webp"
+                       required>
+
+                <button type="submit"
+                        class="ghost-button ghost-button--light">
+                    프로필 사진 변경
+                </button>
+            </form>
             <div class="profile-hero__actions">
                 <a class="ghost-button ghost-button--light" th:href="@{/profile/verify-password}">프로필 수정</a>
                 <a class="ghost-button ghost-button--light ghost-button--danger-light" th:href="@{/logout}">로그아웃</a>

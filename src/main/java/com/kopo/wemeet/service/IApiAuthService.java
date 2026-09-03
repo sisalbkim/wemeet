@@ -4,6 +4,7 @@ import com.kopo.wemeet.dto.*;
 
 import com.kopo.wemeet.repository.entity.AppUser;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * IApiAuthService는 구현체가 지켜야 할 서비스 계층 계약을 정의합니다.
@@ -44,6 +45,8 @@ public interface IApiAuthService {
     void deleteUserAccount(String userId);
 
     UserDTO.UserResponse updateBaseAddress(AppUser user, String baseAddress);
+
+    UserDTO.UserResponse updateProfileImage(AppUser user, MultipartFile profileImage);
 
     // 토큰에서 실제 사용자 엔티티를 찾아야 할 때 사용한다.
     AppUser requireUser(String authorizationHeader);

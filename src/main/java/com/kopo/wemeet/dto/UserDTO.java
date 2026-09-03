@@ -17,7 +17,8 @@ public final class UserDTO {
             String loginId,
             String email,
             String friendCode,
-            String baseAddress
+            String baseAddress,
+            String profileImageUrl
     ) {
     }
 
@@ -32,6 +33,7 @@ public final class UserDTO {
             String handle,
             String friendCode,
             String baseAddress,
+            String profileImageUrl,
             String passwordMask,
             int createdMeetings,
             int friendCount,

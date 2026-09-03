@@ -24,6 +24,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -268,6 +275,69 @@ public class ApiAuthService implements IApiAuthService {
         return toUserResponse(savedUser);
     }
 
+    @Transactional
+    @Override
+    public UserDTO.UserResponse updateProfileImage(AppUser user, MultipartFile profileImage) {
+
+        // 파일이 전달되지 않았거나 비어 있으면 업로드 중단
+        if (profileImage == null || profileImage.isEmpty()) {
+            throw new ResponseStatusException(BAD_REQUEST, "profile image is required");
+        }
+
+        // 업로드된 파일의 MIME 타입 확인
+        String contentType = profileImage.getContentType();
+
+        // JPG(JPEG), PNG, WebP 이미지만 허용
+        if (contentType == null ||
+                (!contentType.equals("image/jpeg")
+                        && !contentType.equals("image/png")
+                        && !contentType.equals("image/webp"))) {
+            throw new ResponseStatusException(BAD_REQUEST, "unsupported image type");
+        }
+
+        String originalFilename = profileImage.getOriginalFilename();
+
+        // 원본 파일명에서 확장자 추출
+        String extension = "";
+
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+
+        // 파일명이 겹치지 않도록 UUID를 이용해 새로운 파일명 생성
+        String savedFilename = UUID.randomUUID() + extension;
+
+        // 실제 프로필 이미지가 저장될 서버 폴더
+        Path uploadDirectory = Paths.get("uploads", "profile");
+
+        try {
+            // uploads/profile 폴더가 없으면 생성
+            Files.createDirectories(uploadDirectory);
+
+            // 저장할 최종 파일 경로 생성
+            Path filePath = uploadDirectory.resolve(savedFilename);
+
+            // 전달받은 이미지를 실제 서버 폴더에 저장
+            profileImage.transferTo(filePath);
+
+        } catch (IOException e) {
+            throw new ResponseStatusException(
+                    org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR,
+                    "failed to save profile image"
+            );
+        }
+
+        // DB에는 이미지 자체가 아니라 접근할 수 있는 이미지 주소를 저장
+        String profileImageUrl = "/uploads/profile/" + savedFilename;
+
+        user.changeProfileImageUrl(profileImageUrl);
+
+        // 변경된 프로필 이미지 주소를 DB에 반영
+        AppUser savedUser = userRepository.save(user);
+
+        return toUserResponse(savedUser);
+    }
+
     @Override
     public AppUser requireUser(String authorizationHeader) {
         // REST API에서는 세션 대신 Bearer 토큰으로 사용자를 식별한다.
@@ -303,7 +373,9 @@ public class ApiAuthService implements IApiAuthService {
                 user.getLoginId(),
                 user.getEmail(),
                 user.getFriendCode(),
-                user.getBaseAddress()
+                user.getBaseAddress(),
+                user.getProfileImageUrl()
+
         );
     }
 
@@ -318,7 +390,8 @@ public class ApiAuthService implements IApiAuthService {
                 persistentUser.getLoginId(),
                 persistentUser.getEmail(),
                 persistentUser.getFriendCode(),
-                persistentUser.getBaseAddress()
+                persistentUser.getBaseAddress(),
+                persistentUser.getProfileImageUrl()
         );
     }
 

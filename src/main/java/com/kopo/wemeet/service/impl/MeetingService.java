@@ -287,7 +287,8 @@ public class MeetingService implements IMeetingService {
                 user.getLoginId(),
                 user.getEmail(),
                 user.getFriendCode(),
-                user.getBaseAddress()
+                user.getBaseAddress(),
+                user.getProfileImageUrl()
         );
     }
 

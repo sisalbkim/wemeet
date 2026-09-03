@@ -46,6 +46,9 @@ public class AppUser {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
+
     protected AppUser() {
     }
 
@@ -65,6 +68,7 @@ public class AppUser {
         this.passwordHash = passwordHash;
         this.friendCode = friendCode;
         this.baseAddress = baseAddress;
+
     }
 
     @PrePersist
@@ -117,6 +121,8 @@ public class AppUser {
         return updatedAt;
     }
 
+    public String getProfileImageUrl() { return profileImageUrl; }
+
     public void changeBaseAddress(String baseAddress) {
         // 추천 출발지로 쓰이는 기본 주소 변경용 메서드다.
         this.baseAddress = baseAddress;
@@ -126,4 +132,8 @@ public class AppUser {
         // 비밀번호는 항상 해시값 형태로만 교체한다.
         this.passwordHash = passwordHash;
     }
+
+    public void changeProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    } //프로필 사진용 메서드
 }

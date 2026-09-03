@@ -248,7 +248,8 @@ public class MeetController {
                 "guest",
                 "",
                 "GUEST",
-                normalizedBaseAddress
+                normalizedBaseAddress,
+                null
         );
     }
 
