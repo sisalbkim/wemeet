@@ -22,20 +22,7 @@
             <h1 th:text="${profile.name}">김철수</h1>
             <p th:text="${profile.handle}">@내친구코드</p>
             <!-- 프로필 이미지 업로드 -->
-            <form method="post"
-                  th:action="@{/profile/image}"
-                  enctype="multipart/form-data">
 
-                <input type="file"
-                       name="profileImage"
-                       accept="image/jpeg,image/png,image/webp"
-                       required>
-
-                <button type="submit"
-                        class="ghost-button ghost-button--light">
-                    프로필 사진 변경
-                </button>
-            </form>
             <div class="profile-hero__actions">
                 <a class="ghost-button ghost-button--light" th:href="@{/profile/verify-password}">프로필 수정</a>
                 <a class="ghost-button ghost-button--light ghost-button--danger-light" th:href="@{/logout}">로그아웃</a>

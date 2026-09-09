@@ -32,6 +32,69 @@
             </div>
         </section>
 
+        <!-- 프로필 사진 변경 -->
+        <section class="panel">
+            <div class="section-heading section-heading--stacked">
+                <h2>프로필 사진</h2>
+                <span>프로필에 표시할 사진을 변경할 수 있습니다.</span>
+            </div>
+
+            <form class="form-stack"
+                  method="post"
+                  th:action="@{/profile/image}"
+                  enctype="multipart/form-data">
+
+                <div class="profile-image-change">
+
+                    <!-- 현재 사진 -->
+                    <div class="profile-image-change__item">
+                        <span class="field-label">현재 사진</span>
+
+                        <img class="profile-avatar"
+                             th:if="${profile.profileImageUrl != null and !#strings.isEmpty(profile.profileImageUrl)}"
+                             th:src="${profile.profileImageUrl}"
+                             alt="현재 프로필 이미지">
+
+                        <div class="profile-avatar"
+                             th:unless="${profile.profileImageUrl != null and !#strings.isEmpty(profile.profileImageUrl)}"
+                             th:text="${#strings.substring(profile.name, 0, 1)}">
+                            김
+                        </div>
+                    </div>
+
+                    <span class="profile-image-change__arrow">→</span>
+
+                    <!-- 변경할 사진 -->
+                    <div class="profile-image-change__item">
+                        <span class="field-label">변경할 사진</span>
+
+                        <img id="profileImagePreview"
+                             class="profile-avatar"
+                             alt="변경할 프로필 이미지"
+                             style="display: none;">
+
+                        <div id="profileImagePlaceholder"
+                             class="profile-avatar">
+                            ?
+                        </div>
+                    </div>
+
+                </div>
+
+                <input type="file"
+                       id="profileImageInput"
+                       class="profile-image-file-input"
+                       name="profileImage"
+                       accept="image/jpeg,image/png,image/webp"
+                       required>
+
+                <button class="primary-button" type="submit">
+                    프로필 사진 변경
+                </button>
+
+            </form>
+        </section>
+
         <section class="panel" th:if="${profilePasswordNotice == null}">
             <div class="chip-grid chip-grid--compact chip-grid--three-up profile-edit-tabs">
                 <a class="filter-chip filter-chip--link"
@@ -91,5 +154,26 @@
     </main>
 
 </div>
+<script>
+    const input = document.getElementById('profileImageInput');
+    const preview = document.getElementById('profileImagePreview');
+    const placeholder = document.getElementById('profileImagePlaceholder');
+
+    input.addEventListener('change', function () {
+        const file = this.files[0];
+
+        if (!file) {
+            preview.style.display = 'none';
+            placeholder.style.display = '';
+            return;
+        }
+
+        // 선택한 이미지 파일을 브라우저에서 임시 URL로 만들어 미리보기
+        preview.src = URL.createObjectURL(file);
+
+        preview.style.display = '';
+        placeholder.style.display = 'none';
+    });
+</script>
 </body>
 </html>
