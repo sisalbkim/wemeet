@@ -74,6 +74,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const venuePanelTelephone = document.querySelector("#recommendationVenuePanelTelephone");
         const venuePanelCallButton = document.querySelector("#recommendationVenuePanelCallButton");
         const venuePanelLink = document.querySelector("#recommendationVenuePanelLink");
+        const favoritePlaceName = document.querySelector("#favoritePlaceName");
+        const favoritePlaceCategory = document.querySelector("#favoritePlaceCategory");
+        const favoritePlaceAddress = document.querySelector("#favoritePlaceAddress");
+        const favoritePlaceLatitude = document.querySelector("#favoritePlaceLatitude");
+        const favoritePlaceLongitude = document.querySelector("#favoritePlaceLongitude");
         const venuePanelReason = document.querySelector("#recommendationVenuePanelReason");
         const venuePanelFairness = document.querySelector("#recommendationVenuePanelFairness");
         const venuePanelHighlights = document.querySelector("#recommendationVenuePanelHighlights");
@@ -371,6 +376,29 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             if (venuePanelName) {
                 venuePanelName.textContent = card.dataset.venueName ?? "";
+            }
+            // 현재 선택된 장소 정보를 즐겨찾기 form에도 반영
+            if (favoritePlaceName) {
+                favoritePlaceName.value = card.dataset.venueName ?? "";
+            }
+
+            if (favoritePlaceCategory) {
+                favoritePlaceCategory.value = card.dataset.venueCategory ?? "";
+            }
+
+            if (favoritePlaceAddress) {
+                favoritePlaceAddress.value =
+                    card.dataset.venueAddress ??
+                    card.dataset.venueDescription ??
+                    "";
+            }
+
+            if (favoritePlaceLatitude) {
+                favoritePlaceLatitude.value = card.dataset.venueLatitude ?? "";
+            }
+
+            if (favoritePlaceLongitude) {
+                favoritePlaceLongitude.value = card.dataset.venueLongitude ?? "";
             }
             if (venuePanelAverage) {
                 venuePanelAverage.textContent = `${summary.average ?? Number(card.dataset.venueAverage ?? 0)}분`;

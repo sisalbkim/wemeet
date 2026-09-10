@@ -148,6 +148,26 @@
                        th:href="${'https://map.naver.com/p/search/' + #uris.escapePathSegment(recommendation.venues[0].name)}"
                        target="_blank"
                        rel="noreferrer noopener">네이버 지도에서 보기</a>
+                    <form method="post"
+                          th:action="@{/favorites}"
+                          id="recommendationFavoriteForm">
+
+                        <input type="hidden" name="name" id="favoritePlaceName">
+                        <input type="hidden" name="category" id="favoritePlaceCategory">
+                        <input type="hidden" name="address" id="favoritePlaceAddress">
+                        <input type="hidden" name="latitude" id="favoritePlaceLatitude">
+                        <input type="hidden" name="longitude" id="favoritePlaceLongitude">
+
+                        <input type="hidden"
+                               name="redirectUrl"
+                               th:value="${#httpServletRequest.requestURI + '?' + #httpServletRequest.queryString}">
+
+                        <button type="submit"
+                                class="secondary-button secondary-button--compact">
+                            ☆ 즐겨찾기
+                        </button>
+
+                    </form>
                 </div>
                 <p class="map-detail-panel__meta" id="recommendationVenuePanelTelephone"
                    th:text="${#strings.isEmpty(recommendation.venues[0].telephone) ? '전화번호 정보 없음' : recommendation.venues[0].telephone}">02-0000-0000</p>
@@ -252,6 +272,9 @@
                 <div class="tag-row">
                     <span class="mini-tag" th:each="highlight : ${venue.highlights}" th:text="${highlight}">대기 줄 짧은 편</span>
                 </div>
+
+
+
                 <div class="visually-hidden">
                     <span th:each="highlight : ${venue.highlights}" data-venue-highlight th:text="${highlight}">태그</span>
                     <span th:each="time : ${venue.travelTimes}" data-venue-time
