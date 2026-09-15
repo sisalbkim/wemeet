@@ -158,11 +158,8 @@
                         <input type="hidden" name="latitude" id="favoritePlaceLatitude">
                         <input type="hidden" name="longitude" id="favoritePlaceLongitude">
 
-                        <input type="hidden"
-                               name="redirectUrl"
-                               th:value="${#httpServletRequest.requestURI + '?' + #httpServletRequest.queryString}">
-
                         <button type="submit"
+                                id="recommendationFavoriteButton"
                                 class="secondary-button secondary-button--compact">
                             ☆ 즐겨찾기
                         </button>

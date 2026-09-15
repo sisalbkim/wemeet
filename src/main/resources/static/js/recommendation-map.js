@@ -79,6 +79,42 @@ document.addEventListener("DOMContentLoaded", () => {
         const favoritePlaceAddress = document.querySelector("#favoritePlaceAddress");
         const favoritePlaceLatitude = document.querySelector("#favoritePlaceLatitude");
         const favoritePlaceLongitude = document.querySelector("#favoritePlaceLongitude");
+        const favoriteRedirectUrl = document.querySelector("#favoriteRedirectUrl");
+        if (favoriteRedirectUrl) {
+            favoriteRedirectUrl.value =
+                window.location.pathname + window.location.search;
+        }
+        const favoriteForm = document.querySelector("#recommendationFavoriteForm");
+        const favoriteButton = document.querySelector("#recommendationFavoriteButton");
+        if (favoriteForm && favoriteButton) {
+            favoriteForm.addEventListener("submit", async (event) => {
+                event.preventDefault(); // /favorites 페이지로 이동하는 것 방지
+
+                const formData = new FormData(favoriteForm);
+
+                try {
+                    const response = await fetch(favoriteForm.action, {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("즐겨찾기 요청 실패");
+                    }
+
+                    const isFavorite = await response.json();
+
+                    if (isFavorite) {
+                        favoriteButton.textContent = "★ 즐겨찾기";
+                    } else {
+                        favoriteButton.textContent = "☆ 즐겨찾기";
+                    }
+
+                } catch (error) {
+                    console.error(error);
+                }
+            });
+        }
         const venuePanelReason = document.querySelector("#recommendationVenuePanelReason");
         const venuePanelFairness = document.querySelector("#recommendationVenuePanelFairness");
         const venuePanelHighlights = document.querySelector("#recommendationVenuePanelHighlights");

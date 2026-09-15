@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 @RequiredArgsConstructor
@@ -16,20 +17,20 @@ public class FavoritePlaceController {
     private final FavoritePlaceService favoritePlaceService;
     private final WemeetViewHelper viewHelper;
 
-    // 검색 결과의 장소를 즐겨찾기에 저장
+    // 즐겨찾기 등록 / 해제
     @PostMapping("/favorites")
-    public String addFavorite(
+    @ResponseBody
+    public boolean toggleFavorite(
             @RequestParam String name,
             @RequestParam String category,
             @RequestParam String address,
             @RequestParam double latitude,
             @RequestParam double longitude,
-            @RequestParam(required = false) String redirectUrl,
             HttpSession session
     ) {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
 
-        favoritePlaceService.addFavorite(
+        return favoritePlaceService.toggleFavorite(
                 currentUser.getId(),
                 name,
                 category,
@@ -37,12 +38,5 @@ public class FavoritePlaceController {
                 latitude,
                 longitude
         );
-
-        // 즐겨찾기 저장 후 기존 검색 결과 페이지로 돌아가기
-        if (redirectUrl != null && !redirectUrl.isBlank()) {
-            return "redirect:" + redirectUrl;
-        }
-
-        return "redirect:/search/results";
     }
 }
