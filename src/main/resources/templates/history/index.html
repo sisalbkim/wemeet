@@ -6,10 +6,22 @@
     <header th:replace="~{fragments/layout :: topBar}"></header>
 
     <main class="page">
-        <section class="page-heading page-heading--compact">
+        <section class="page-heading page-heading--compact"
+                 style="display: flex; justify-content: space-between; align-items: center;">
             <div>
                 <h1>검색 기록</h1>
             </div>
+
+            <form method="post"
+                  th:action="@{/history/clear}"
+                  data-confirm-submit="검색 기록을 모두 삭제할까요?">
+                <input type="hidden" name="filter" th:value="${selectedFilter}">
+                <input type="hidden" name="keyword" th:value="${keyword}">
+
+                <button class="text-button" type="submit">
+                    전체 삭제
+                </button>
+            </form>
         </section>
 
         <section class="panel">
@@ -54,15 +66,7 @@
             <p class="empty-state" th:if="${#lists.isEmpty(searchHistory)}">조건에 맞는 검색 기록이 없습니다.</p>
         </section>
 
-        <section class="history-actions">
-            <form method="post"
-                  th:action="@{/history/clear}"
-                  data-confirm-submit="검색 기록을 모두 삭제할까요?">
-                <input type="hidden" name="filter" th:value="${selectedFilter}">
-                <input type="hidden" name="keyword" th:value="${keyword}">
-                <button class="text-button" type="submit">전체 삭제</button>
-            </form>
-        </section>
+
     </main>
 
     <nav th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>

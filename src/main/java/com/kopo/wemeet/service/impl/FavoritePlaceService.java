@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
@@ -101,5 +103,31 @@ public class FavoritePlaceService {
                 latitude,
                 longitude
         );
+    }
+
+    // 사용자의 즐겨찾기 목록 조회
+    @Transactional(readOnly = true)
+    public List<FavoritePlace> listFavorites(String userId) {
+        return favoritePlaceRepository
+                .findAllByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    // 즐겨찾기 개별 삭제
+    @Transactional
+    public void removeFavorite(String userId, Long favoriteId) {
+        if (favoriteId == null) {
+            return;
+        }
+
+        favoritePlaceRepository.deleteByIdAndUserId(
+                favoriteId,
+                userId
+        );
+    }
+
+    // 즐겨찾기 전체 삭제
+    @Transactional
+    public void clearFavorites(String userId) {
+        favoritePlaceRepository.deleteByUserId(userId);
     }
 }

@@ -50,6 +50,20 @@
             </div>
         </section>
 
+        <section class="panel">
+            <div class="section-heading">
+                <h2>내 활동</h2>
+            </div>
+
+            <div class="info-list">
+                <a class="info-item"
+                   th:href="@{/history}">
+                    <span class="info-item__label">검색 기록</span>
+                    <strong>내가 검색한 장소 보기 ›</strong>
+                </a>
+            </div>
+        </section>
+
         <section class="panel" th:if="${meetingInvitations != null and !#lists.isEmpty(meetingInvitations)}">
             <div class="section-heading">
                 <h2>받은 모임 초대</h2>

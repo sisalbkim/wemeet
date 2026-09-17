@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('즐겨찾기')}"></head>
+<body>
+<div class="app-shell" th:attr="data-view-mode=${viewMode}">
+    <header th:replace="~{fragments/layout :: topBar}"></header>
+
+    <main class="page">
+        <section class="page-heading page-heading--compact"
+                 style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>즐겨찾기</h1>
+            </div>
+
+            <form method="post"
+                  th:if="${!#lists.isEmpty(favorites)}"
+                  th:action="@{/favorites/clear}"
+                  data-confirm-submit="즐겨찾기를 모두 삭제할까요?">
+                <button class="text-button" type="submit">
+                    전체 삭제
+                </button>
+            </form>
+        </section>
+
+        <section class="card-stack">
+
+            <article class="history-card"
+                     th:each="item : ${favorites}">
+
+                <div class="history-card__body">
+                    <strong th:text="${item.name}">
+                        장소 이름
+                    </strong>
+
+                    <div class="meta-row">
+                        <span class="mini-tag"
+                              th:text="${item.category}">
+                            카페
+                        </span>
+
+                        <span th:text="${item.address}">
+                            서울특별시...
+                        </span>
+                    </div>
+                </div>
+
+                <form method="post"
+                      th:action="@{/favorites/remove}">
+                    <input type="hidden"
+                           name="favoriteId"
+                           th:value="${item.id}">
+
+                    <button class="history-card__remove"
+                            type="submit">
+                        닫기
+                    </button>
+                </form>
+
+            </article>
+
+            <p class="empty-state"
+               th:if="${#lists.isEmpty(favorites)}">
+                저장한 즐겨찾기가 없습니다.
+            </p>
+
+        </section>
+
+    </main>
+
+    <nav th:replace="~{fragments/layout :: bottomNav(${activeTab})}"></nav>
+</div>
+</body>
+</html>

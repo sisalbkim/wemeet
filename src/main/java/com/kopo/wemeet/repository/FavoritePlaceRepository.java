@@ -13,6 +13,9 @@ public interface FavoritePlaceRepository extends JpaRepository<FavoritePlace, Lo
     // 특정 즐겨찾기를 사용자 기준으로 삭제
     long deleteByIdAndUserId(Long id, String userId);
 
+    // 특정 사용자의 즐겨찾기 전체 삭제
+    long deleteByUserId(String userId);
+
     // 이 장소가 이미 즐겨찾기에 있는지 확인
     boolean existsByUserIdAndLatitudeAndLongitude(
             String userId,
@@ -26,5 +29,7 @@ public interface FavoritePlaceRepository extends JpaRepository<FavoritePlace, Lo
             double latitude,
             double longitude
     );
+
+
 }
 

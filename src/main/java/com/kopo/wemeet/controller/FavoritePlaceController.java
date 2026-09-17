@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
 @RequiredArgsConstructor
@@ -56,5 +58,49 @@ public class FavoritePlaceController {
                 latitude,
                 longitude
         );
+    }
+
+    // 즐겨찾기 목록 페이지
+    @GetMapping("/favorites")
+    public String favorites(
+            HttpSession session,
+            Model model
+    ) {
+        AppUser currentUser = viewHelper.requireLoggedInUser(session);
+
+        model.addAttribute(
+                "favorites",
+                favoritePlaceService.listFavorites(currentUser.getId())
+        );
+
+        model.addAttribute("activeTab", "favorites");
+
+        return "favorites/index";
+    }
+
+    // 즐겨찾기 개별 삭제
+    @PostMapping("/favorites/remove")
+    public String removeFavorite(
+            @RequestParam Long favoriteId,
+            HttpSession session
+    ) {
+        AppUser currentUser = viewHelper.requireLoggedInUser(session);
+
+        favoritePlaceService.removeFavorite(
+                currentUser.getId(),
+                favoriteId
+        );
+
+        return "redirect:/favorites";
+    }
+
+    // 즐겨찾기 전체 삭제
+    @PostMapping("/favorites/clear")
+    public String clearFavorites(HttpSession session) {
+        AppUser currentUser = viewHelper.requireLoggedInUser(session);
+
+        favoritePlaceService.clearFavorites(currentUser.getId());
+
+        return "redirect:/favorites";
     }
 }
