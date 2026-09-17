@@ -79,11 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const favoritePlaceAddress = document.querySelector("#favoritePlaceAddress");
         const favoritePlaceLatitude = document.querySelector("#favoritePlaceLatitude");
         const favoritePlaceLongitude = document.querySelector("#favoritePlaceLongitude");
-        const favoriteRedirectUrl = document.querySelector("#favoriteRedirectUrl");
-        if (favoriteRedirectUrl) {
-            favoriteRedirectUrl.value =
-                window.location.pathname + window.location.search;
-        }
+
         const favoriteForm = document.querySelector("#recommendationFavoriteForm");
         const favoriteButton = document.querySelector("#recommendationFavoriteButton");
         if (favoriteForm && favoriteButton) {
@@ -114,6 +110,33 @@ document.addEventListener("DOMContentLoaded", () => {
                     console.error(error);
                 }
             });
+        }
+
+        async function updateFavoriteButton(latitude, longitude) {
+            if (!favoriteButton || !latitude || !longitude) {
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams({
+                    latitude: latitude,
+                    longitude: longitude
+                });
+
+                const response = await fetch(`/favorites/check?${params}`);
+
+                if (!response.ok) {
+                    throw new Error("즐겨찾기 상태 확인 실패");
+                }
+
+                const isFavorite = await response.json();
+
+                favoriteButton.textContent =
+                    isFavorite ? "★ 즐겨찾기" : "☆ 즐겨찾기";
+
+            } catch (error) {
+                console.error(error);
+            }
         }
         const venuePanelReason = document.querySelector("#recommendationVenuePanelReason");
         const venuePanelFairness = document.querySelector("#recommendationVenuePanelFairness");
@@ -421,6 +444,11 @@ document.addEventListener("DOMContentLoaded", () => {
             if (favoritePlaceCategory) {
                 favoritePlaceCategory.value = card.dataset.venueCategory ?? "";
             }
+
+            updateFavoriteButton(
+                card.dataset.venueLatitude,
+                card.dataset.venueLongitude
+            );
 
             if (favoritePlaceAddress) {
                 favoritePlaceAddress.value =

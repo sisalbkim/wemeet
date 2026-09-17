@@ -6,6 +6,7 @@ import com.kopo.wemeet.util.WemeetViewHelper;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -35,6 +36,23 @@ public class FavoritePlaceController {
                 name,
                 category,
                 address,
+                latitude,
+                longitude
+        );
+    }
+
+
+    @GetMapping("/favorites/check")
+    @ResponseBody
+    public boolean checkFavorite(
+            @RequestParam double latitude,
+            @RequestParam double longitude,
+            HttpSession session
+    ) {
+        AppUser currentUser = viewHelper.requireLoggedInUser(session);
+
+        return favoritePlaceService.isFavorite(
+                currentUser.getId(),
                 latitude,
                 longitude
         );
