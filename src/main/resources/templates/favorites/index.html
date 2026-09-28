@@ -27,22 +27,24 @@
             <article class="history-card"
                      th:each="item : ${favorites}">
 
-                <div class="history-card__body">
+                <a class="history-card__body"
+                   th:href="@{/search/results(category=${item.category})}">
+
                     <strong th:text="${item.name}">
                         장소 이름
                     </strong>
 
                     <div class="meta-row">
-                        <span class="mini-tag"
-                              th:text="${item.category}">
-                            카페
-                        </span>
+                    <span class="mini-tag"
+                       th:text="${item.category}">
+                          카페
+                     </span>
 
                         <span th:text="${item.address}">
-                            서울특별시...
+                          서울특별시...
                         </span>
                     </div>
-                </div>
+                </a>
 
                 <form method="post"
                       th:action="@{/favorites/remove}">
