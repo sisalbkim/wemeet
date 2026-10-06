@@ -319,14 +319,40 @@ public class WemeetViewService implements IWemeetViewService {
         String hostName = userAccountLookup.findById(meeting.hostUserId())
                 .map(UserDTO.UserAccount::nickname)
                 .orElse("알 수 없음");
+
         boolean isToday = LocalDate.now().equals(meeting.meetingDate());
+
+        String placeName =
+                meeting.meetingPlaceName() == null || meeting.meetingPlaceName().isBlank()
+                        ? "만날 지점 미정"
+                        : meeting.meetingPlaceName();
+
+        String placeAddress =
+                meeting.meetingPlaceAddress() == null
+                        ? ""
+                        : meeting.meetingPlaceAddress();
+
+        String naverMapUrl =
+                meeting.meetingPlaceName() == null || meeting.meetingPlaceName().isBlank()
+                        ? ""
+                        : "https://map.naver.com/p/search/"
+                        + UriUtils.encodePathSegment(
+                        meeting.meetingPlaceName().trim(),
+                        StandardCharsets.UTF_8
+                );
+
         return new MeetingDTO.UpcomingMeeting(
                 meeting.title(),
-                meeting.description() == null || meeting.description().isBlank() ? "등록된 설명이 없습니다." : meeting.description(),
+                meeting.description() == null || meeting.description().isBlank()
+                        ? "등록된 설명이 없습니다."
+                        : meeting.description(),
                 meeting.meetingDate().format(historyFormatter),
                 hostName,
                 isToday ? "진행중" : "예정",
-                isToday ? "active" : "scheduled"
+                isToday ? "active" : "scheduled",
+                placeName,
+                placeAddress,
+                naverMapUrl
         );
     }
 }

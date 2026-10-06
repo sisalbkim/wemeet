@@ -42,6 +42,24 @@
                     <div class="meeting-card__body">
                         <h3 th:text="${meeting.title}">주말 맛집 탐방</h3>
                         <p th:text="${meeting.description}">주말에 새로운 맛집 찾아가요!</p>
+                        <div class="meeting-card__place">
+                            <a th:if="${!#strings.isEmpty(meeting.naverMapUrl)}"
+                               th:href="${meeting.naverMapUrl}"
+                               target="_blank"
+                               rel="noreferrer noopener">
+                                <strong th:text="${meeting.meetingPlaceName}">남산산채집</strong>
+                            </a>
+
+                            <strong th:if="${#strings.isEmpty(meeting.naverMapUrl)}"
+                                    th:text="${meeting.meetingPlaceName}">
+                                만날 지점 미정
+                            </strong>
+
+                            <span th:if="${!#strings.isEmpty(meeting.meetingPlaceAddress)}"
+                                  th:text="${meeting.meetingPlaceAddress}">
+                            서울특별시 중구 소파로 95
+                        </span>
+                        </div>
                         <div class="meta-row">
                             <span th:text="${meeting.dateLabel}">2026. 3. 15.</span>
                             <span th:text="${meeting.hostName}">김철수</span>

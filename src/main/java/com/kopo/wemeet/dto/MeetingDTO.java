@@ -87,7 +87,10 @@ public final class MeetingDTO {
             String dateLabel,
             String hostName,
             String status,
-            String statusTone
+            String statusTone,
+            String meetingPlaceName,
+            String meetingPlaceAddress,
+            String naverMapUrl
     ) {
     }
 
