@@ -29,9 +29,9 @@ public class ApiNaverPlaceSearchService {
     // 네이버 지역검색과 지도 길찾기를 묶어서 장소 후보 조회와 거리 정렬을 담당한다.
 
     private static final Logger log = LoggerFactory.getLogger(ApiNaverPlaceSearchService.class);
-    private static final int DEFAULT_DISPLAY = 5;
-    private static final int MAX_DISPLAY = 5;
-    private static final int MAX_CANDIDATES_FOR_ROUTING = 8;
+    private static final int DEFAULT_DISPLAY = 9;
+    private static final int MAX_DISPLAY = 9;
+    private static final int MAX_CANDIDATES_FOR_ROUTING = 9;
     private static final double NAVER_SCALED_COORDINATE_DIVISOR = 10_000_000d;
 
     private final OpenApiProperties properties;
@@ -70,12 +70,13 @@ public class ApiNaverPlaceSearchService {
         String tag = requireText(request.tag(), "tag");
         String effectiveTag = firstNonBlank(request.detailKeyword(), tag);
         int display = normalizeDisplay(request.display());
+        int start = normalizeStart(request.start());
         NaverPlaceTagCatalog.ResolvedTag resolvedTag = tagCatalog.resolve(effectiveTag);
 
         ResolvedPlace origin = resolveOrigin(originQuery);
         String combinedQuery = originQuery + " " + resolvedTag.primaryQueryTerm();
 
-        List<PlaceDTO.PlaceCandidateResponse> places = searchCandidates(originQuery, origin, display, resolvedTag).stream()
+        List<PlaceDTO.PlaceCandidateResponse> places = searchCandidates(originQuery, origin, display, start, resolvedTag).stream()
                 .map(item -> mapCandidate(origin, item))
                 .filter(Objects::nonNull)
                 .sorted(Comparator
@@ -84,6 +85,8 @@ public class ApiNaverPlaceSearchService {
                         .thenComparing(PlaceDTO.PlaceCandidateResponse::name))
                 .limit(display)
                 .toList();
+        log.info("장소 검색 확인: start={}, display={}, 실제 후보 수={}",
+                start, display, places.size());
         List<String> observedCategories = places.stream()
                 .map(PlaceDTO.PlaceCandidateResponse::category)
                 .filter(category -> category != null && !category.isBlank())
@@ -186,6 +189,7 @@ public class ApiNaverPlaceSearchService {
             String originQuery,
             ResolvedPlace origin,
             int display,
+            int start,
             NaverPlaceTagCatalog.ResolvedTag resolvedTag
     ) {
         // 여러 검색 베이스와 태그 조합을 순회하면서 중복 없는 후보를 최대치까지 모은다.
@@ -195,8 +199,20 @@ public class ApiNaverPlaceSearchService {
         for (String base : searchBases) {
             for (String queryTerm : resolvedTag.queryTerms()) {
                 String combinedQuery = base + " " + queryTerm;
-                for (LocalSearchItem item : localSearch(combinedQuery, display)) {
+                for (LocalSearchItem item : localSearch(combinedQuery, display, start)) {
+
+                    if ("운동".equals(resolvedTag.normalizedTag())) {
+                        String category = item.category() == null ? "" : item.category();
+
+                        if (category.contains("음식점")
+                                || category.contains("한식")
+                                || category.contains("영화관")) {
+                            continue;
+                        }
+                    }
+
                     deduplicated.putIfAbsent(candidateKey(item), item);
+
                     if (deduplicated.size() >= MAX_CANDIDATES_FOR_ROUTING) {
                         return List.copyOf(deduplicated.values());
                     }
@@ -273,7 +289,7 @@ public class ApiNaverPlaceSearchService {
             }
         }
 
-        List<LocalSearchItem> localMatches = localSearch(originQuery, 1);
+        List<LocalSearchItem> localMatches = localSearch(originQuery, 1,1);
         if (!localMatches.isEmpty()) {
             LocalSearchItem item = localMatches.get(0);
             return new ResolvedPlace(
@@ -310,13 +326,17 @@ public class ApiNaverPlaceSearchService {
         ));
     }
 
-    private List<LocalSearchItem> localSearch(String query, int display) {
+    private List<LocalSearchItem> localSearch(
+            String query,
+            int display,
+            int start
+    ) {
         LocalSearchResponse response = naverSearchClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/v1/search/local.json")
                         .queryParam("query", query)
                         .queryParam("display", display)
-                        .queryParam("start", 1)
+                        .queryParam("start", start)
                         .build())
                 .retrieve()
                 .body(LocalSearchResponse.class);
@@ -400,6 +420,13 @@ public class ApiNaverPlaceSearchService {
             return DEFAULT_DISPLAY;
         }
         return Math.max(1, Math.min(MAX_DISPLAY, requestedDisplay));
+    }
+
+    private int normalizeStart(Integer requestedStart) {
+        if (requestedStart == null) {
+            return 1;
+        }
+        return Math.max(1, requestedStart);
     }
 
     private String requireText(String value, String fieldName) {

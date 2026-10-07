@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const markersById = new Map();
         const infoWindowsById = new Map();
         const bounds = new window.naver.maps.LatLngBounds();
-        const venueCards = Array.from(document.querySelectorAll("[data-map-target]"));
+        let venueCards = Array.from(document.querySelectorAll("[data-map-target]"));
         const venuePanel = document.querySelector("#recommendationVenuePanel");
         const venuePanelEyebrow = document.querySelector("#recommendationVenuePanelEyebrow");
         const venuePanelName = document.querySelector("#recommendationVenuePanelName");
@@ -657,6 +657,88 @@ document.addEventListener("DOMContentLoaded", () => {
         const focusVenueCard = (targetCard) => {
             venueCards.forEach((card) => {
                 card.classList.toggle("is-focused", card === targetCard);
+            });
+        };
+
+        window.registerRecommendationVenue = (card) => {
+            if (!card) {
+                return;
+            }
+
+            const pointId = `venue-${venueCards.length}`;
+
+            card.dataset.mapTarget = pointId;
+            venueCards.push(card);
+            venueCardsByPointId.set(pointId, card);
+
+            const point = {
+                id: pointId,
+                label: card.dataset.venueName || "",
+                address: card.dataset.venueDescription || "",
+                latitude: Number(card.dataset.venueLatitude),
+                longitude: Number(card.dataset.venueLongitude),
+                markerType: "venue",
+                selected: false
+            };
+
+            if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) {
+                return;
+            }
+
+            points.push(point);
+            pointsById.set(pointId, point);
+
+            const latLng = toLatLng(point);
+
+            const marker = new window.naver.maps.Marker({
+                map,
+                position: latLng,
+                zIndex: 120,
+                title: point.label
+            });
+
+            const infoWindow = new window.naver.maps.InfoWindow({
+                content: `
+            <div class="map-infowindow">
+                <strong>${escapeHtml(point.label)}</strong>
+                <div>${escapeHtml(point.address)}</div>
+                <span>장소</span>
+            </div>
+        `,
+                borderWidth: 0,
+                disableAnchor: false,
+                backgroundColor: "transparent"
+            });
+
+            markersById.set(pointId, marker);
+            infoWindowsById.set(pointId, infoWindow);
+            bounds.extend(latLng);
+
+            window.naver.maps.Event.addListener(marker, "click", () => {
+                openInfoWindow(pointId);
+                focusVenueCard(card);
+                fillVenuePanel(card);
+            });
+
+            card.addEventListener("mouseenter", () => {
+                openInfoWindow(pointId);
+            });
+
+            card.addEventListener("click", () => {
+                map.panTo(latLng);
+
+                if (typeof map.getZoom === "function" && map.getZoom() > 16) {
+                    map.setZoom(16);
+                }
+
+                openInfoWindow(pointId);
+                focusVenueCard(card);
+                fillVenuePanel(card);
+
+                mapSection?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
             });
         };
 

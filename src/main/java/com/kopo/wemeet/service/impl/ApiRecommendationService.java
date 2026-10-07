@@ -23,7 +23,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 @RequiredArgsConstructor
 public class ApiRecommendationService implements IApiRecommendationService {
     // 참가자 목록과 추천 모드를 바탕으로 실제 장소 후보를 계산하는 오케스트레이션 서비스다.
-    private static final int DEFAULT_SEARCH_DISPLAY = 5;
+    private static final int DEFAULT_SEARCH_DISPLAY = 9;
     private static final String RECOMMENDATION_CACHE_SCHEMA_VERSION = "tmap-walk-route-v4";
 
     private final RecommendationParticipantService participantService;
@@ -33,6 +33,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
     private final ApiNaverPlaceSearchService apiNaverPlaceSearchService;
     private final RecommendationResponseFactory responseFactory;
     private final IHistoryService historyService;
+    private final RecommendationMoreService recommendationMoreService;
 
     @Override
     public RecommendationDTO.CategoryResponse categories() {
@@ -105,7 +106,7 @@ public class ApiRecommendationService implements IApiRecommendationService {
         String cacheKey = participantService.buildCacheKey(RECOMMENDATION_CACHE_SCHEMA_VERSION, requesterId, category, participants)
                 + ":" + searchKeyword + ":" + mode.name() + ":" + anchorParticipantId + ":" + routePreference.name() + ":" + excludedParticipantKey;
 
-        if (mode != RecommendationMode.RANDOM) {
+        if (false && mode != RecommendationMode.RANDOM) {
             Optional<RecommendationDTO.RecommendationResponse> cached = recommendationCacheService.get(cacheKey);
             if (cached.isPresent()) {
                 if (persistHistory) {
@@ -127,10 +128,11 @@ public class ApiRecommendationService implements IApiRecommendationService {
                 anchorParticipantId,
                 routePreference,
                 excludedParticipantResponses,
-                persistHistory
+                persistHistory,
+                cacheKey
         );
 
-        if (mode != RecommendationMode.RANDOM) {
+        if (false && mode != RecommendationMode.RANDOM) {
             recommendationCacheService.put(cacheKey, response);
         }
         return response;
@@ -148,7 +150,8 @@ public class ApiRecommendationService implements IApiRecommendationService {
             String anchorParticipantId,
             RecommendationSupport.RoutePreference routePreference,
             List<UserDTO.UserResponse> excludedParticipantResponses,
-            boolean persistHistory
+            boolean persistHistory,
+            String cacheKey
     ) {
         RecommendationSupport.SearchAnchor searchAnchor = locationService.resolveSearchAnchor(
                 mode,
@@ -179,6 +182,8 @@ public class ApiRecommendationService implements IApiRecommendationService {
         List<PlaceDTO.PlaceCandidateResponse> candidatePlaces = participants.size() == 1
                 ? travelService.narrowToNearbyPlaces(placeSearch.places())
                 : placeSearch.places();
+        System.out.println("네이버 검색 결과: " + placeSearch.places().size());
+        System.out.println("필터링 후 후보: " + candidatePlaces.size());
 
         List<RecommendationSupport.VenueEvaluation> evaluatedPlaces = candidatePlaces.stream()
                 .map(place -> travelService.evaluatePlaceCandidate(
@@ -207,10 +212,39 @@ public class ApiRecommendationService implements IApiRecommendationService {
             );
         }
 
-        List<RecommendationSupport.VenueEvaluation> selectedEvaluations = travelService.selectEvaluationsByMode(
-                evaluatedPlaces,
+        RecommendationSupport.VenueSelectionResult selectionResult =
+                travelService.selectEvaluationsByMode(
+                        evaluatedPlaces,
+                        mode,
+                        routePreference
+                );
+
+        List<RecommendationSupport.VenueEvaluation> selectedEvaluations =
+                selectionResult.selected();
+
+        List<RecommendationSupport.VenueEvaluation> remainingEvaluations =
+                selectionResult.remaining();
+        recommendationMoreService.save(
+                requesterId,
+                cacheKey,
+                remainingEvaluations,
+                6,
+                category,
+                detailKeyword,
                 mode,
-                routePreference
+                routePreference,
+                participants,
+                participantPoints,
+                midpointPoint,
+                anchorParticipantId,
+                searchAnchor.query(),
+                selectedEvaluations.stream()
+                        .map(evaluation ->
+                                evaluation.response().name() + "|" +
+                                        evaluation.response().latitude() + "|" +
+                                        evaluation.response().longitude()
+                        )
+                        .toList()
         );
         RecommendationDTO.RecommendationResponse response = responseFactory.buildRecommendation(
                 category,

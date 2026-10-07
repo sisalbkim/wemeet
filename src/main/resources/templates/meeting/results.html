@@ -298,6 +298,15 @@
             </article>
         </section>
 
+        <div class="recommendation-more-actions"
+             th:if="${!guestMode and !#lists.isEmpty(recommendation.venues)}">
+            <button type="button"
+                    class="secondary-button"
+                    id="recommendationMoreButton">
+                추천 장소 더보기
+            </button>
+        </div>
+
         <div aria-busy="true" aria-live="polite" class="loading-overlay" hidden id="pageLoadingOverlay">
             <div class="loading-overlay__backdrop"></div>
             <div aria-label="로딩 중" aria-modal="true" class="loading-overlay__dialog" role="dialog">
@@ -359,6 +368,116 @@
     });
 </script>
 
+<script>
+    document.getElementById("recommendationMoreButton")
+            ?.addEventListener("click", async function () {
+                const button = this;
+                button.disabled = true;
+                button.textContent = "불러오는 중...";
 
+                try {
+
+                    const csrfToken = document.cookie
+                            .split("; ")
+                            .find(row => row.startsWith("WM_CSRF_TOKEN="))
+                            ?.split("=")[1];
+
+                    const response = await fetch("/api/recommendations/more", {
+                        method: "POST",
+                        credentials: "same-origin",
+                        headers: {
+                            "X-CSRF-TOKEN": csrfToken
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("추가 추천 요청 실패: " + response.status);
+                    }
+
+                    const data = await response.json();
+                    console.log("추가 추천 결과:", data);
+
+                    if (data.remaining.length === 0) {
+                        button.hidden = true;
+                    }
+
+                    const cardStack = document.querySelector(".card-stack");
+
+                    data.selected.forEach(item => {
+                        const venue = item.response;
+
+                        const card = document.createElement("article");
+                        card.className = "venue-card";
+
+                        card.dataset.venueName = venue.name;
+                        card.dataset.venueCategory = venue.category;
+                        card.dataset.venueArea = venue.area;
+                        card.dataset.venueLatitude = venue.latitude;
+                        card.dataset.venueLongitude = venue.longitude;
+                        card.dataset.venueDescription = venue.description;
+                        card.dataset.venueAddress = venue.description;
+                        card.dataset.venueTelephone = venue.telephone || "";
+                        card.dataset.venueSearchQuery = venue.name;
+                        card.dataset.venueReason = venue.reason;
+                        card.dataset.venueAverage = venue.averageMinutes;
+                        card.dataset.venueFairness = venue.fairnessGap;
+
+                        const travelTimes = venue.travelTimes
+                                .map(time => `
+            <span class="participant-pill participant-pill--light"
+                  data-card-venue-time
+                  data-participant-id="${time.participantId}"
+                  data-name="${time.participantName}">
+                ${time.participantName} ${time.minutes}분
+            </span>
+        `)
+                                .join("");
+
+                        const highlights = venue.highlights
+                                .map(highlight => `
+            <span class="mini-tag">${highlight}</span>
+        `)
+                                .join("");
+
+                        card.innerHTML = `
+        <div class="venue-card__header">
+            <div>
+                <p class="eyebrow">${venue.area} · ${venue.category}</p>
+                <h2>${venue.name}</h2>
+            </div>
+
+            <div class="score-badge">
+                <strong>${venue.fairnessGap}분</strong>
+                <span>최대 편차</span>
+            </div>
+        </div>
+
+        <p class="venue-card__copy">${venue.description}</p>
+        <p class="venue-card__reason">${venue.reason}</p>
+
+        <div class="participant-row">
+            ${travelTimes}
+        </div>
+
+        <div class="tag-row">
+            ${highlights}
+        </div>
+    `;
+
+                        cardStack.appendChild(card);
+                        window.registerRecommendationVenue?.(card);
+                    });
+
+                } catch (error) {
+                    console.error(error);
+                    alert("추가 추천 장소를 불러오지 못했습니다.");
+                } finally {
+                    if (!button.hidden) {
+                        button.disabled = false;
+                        button.textContent = "추천 장소 더보기";
+                    }
+                }
+            });
+</script>
 </body>
 </html>

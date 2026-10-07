@@ -31,20 +31,13 @@ public class RecommendationTravelService {
     private final RecommendationLocationService locationService;
     private final RecommendationParticipantService participantService;
 
-    public List<PlaceDTO.PlaceCandidateResponse> narrowToNearbyPlaces(List<PlaceDTO.PlaceCandidateResponse> places) {
+    public List<PlaceDTO.PlaceCandidateResponse> narrowToNearbyPlaces(
+            List<PlaceDTO.PlaceCandidateResponse> places
+    ) {
         if (places == null || places.isEmpty()) {
             return List.of();
         }
 
-        List<Integer> distanceThresholds = List.of(2000, 5000, 8000);
-        for (Integer threshold : distanceThresholds) {
-            List<PlaceDTO.PlaceCandidateResponse> filtered = places.stream()
-                    .filter(place -> place.distanceMeters() <= threshold)
-                    .toList();
-            if (!filtered.isEmpty()) {
-                return filtered;
-            }
-        }
         return places;
     }
 
@@ -110,22 +103,40 @@ public class RecommendationTravelService {
         return new RecommendationSupport.VenueEvaluation(response, strategyScore, travelResolution.usedFallbackRouting());
     }
 
-    public List<RecommendationSupport.VenueEvaluation> selectEvaluationsByMode(
+    public RecommendationSupport.VenueSelectionResult selectEvaluationsByMode(
             List<RecommendationSupport.VenueEvaluation> candidateEvaluations,
             RecommendationMode mode,
             RecommendationSupport.RoutePreference routePreference
     ) {
         if (candidateEvaluations.isEmpty()) {
-            return List.of();
+            return new RecommendationSupport.VenueSelectionResult(
+                    List.of(),
+                    List.of()
+            );
         }
 
         if (mode == RecommendationMode.RANDOM) {
             List<RecommendationSupport.VenueEvaluation> pool = candidateEvaluations.stream()
                     .sorted(buildEvaluationComparator(routePreference))
-                    .limit(Math.min(5, candidateEvaluations.size()))
+                    .limit(Math.min(9, candidateEvaluations.size()))
                     .collect(Collectors.toCollection(ArrayList::new));
+
             Collections.shuffle(pool);
-            return pool.stream().limit(Math.min(3, pool.size())).toList();
+
+            List<RecommendationSupport.VenueEvaluation> selected =
+                    pool.stream()
+                            .limit(Math.min(3, pool.size()))
+                            .toList();
+
+            List<RecommendationSupport.VenueEvaluation> remaining =
+                    pool.stream()
+                            .filter(evaluation -> !selected.contains(evaluation))
+                            .toList();
+
+            return new RecommendationSupport.VenueSelectionResult(
+                    selected,
+                    remaining
+            );
         }
 
         List<RecommendationSupport.VenueEvaluation> sortedEvaluations = candidateEvaluations.stream()
@@ -140,21 +151,29 @@ public class RecommendationTravelService {
                 selectedEvaluations.add(evaluation);
             }
             if (selectedEvaluations.size() == 3) {
-                return selectedEvaluations;
-            }
-        }
-
-        for (RecommendationSupport.VenueEvaluation evaluation : sortedEvaluations) {
-            if (selectedEvaluations.contains(evaluation)) {
-                continue;
-            }
-            selectedEvaluations.add(evaluation);
-            if (selectedEvaluations.size() == 3) {
                 break;
             }
         }
+        if (selectedEvaluations.size() < 3) {
+            for (RecommendationSupport.VenueEvaluation evaluation : sortedEvaluations) {
+                if (selectedEvaluations.contains(evaluation)) {
+                    continue;
+                }
+                selectedEvaluations.add(evaluation);
+                if (selectedEvaluations.size() == 3) {
+                    break;
+                }
+            }
+        }
+        List<RecommendationSupport.VenueEvaluation> remainingEvaluations =
+                sortedEvaluations.stream()
+                        .filter(evaluation -> !selectedEvaluations.contains(evaluation))
+                        .toList();
 
-        return selectedEvaluations;
+        return new RecommendationSupport.VenueSelectionResult(
+                selectedEvaluations,
+                remainingEvaluations
+        );
     }
 
     private RecommendationSupport.TravelResolution resolveTravelMinutes(

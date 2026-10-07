@@ -15,10 +15,20 @@ public final class PlaceDTO {
             String originQuery,
             String tag,
             String detailKeyword,
-            Integer display
+            Integer display,
+            Integer start
     ) {
         public PlaceSearchRequest(String originQuery, String tag, Integer display) {
-            this(originQuery, tag, "", display);
+            this(originQuery, tag, "", display, 1);
+        }
+
+        public PlaceSearchRequest(
+                String originQuery,
+                String tag,
+                String detailKeyword,
+                Integer display
+        ) {
+            this(originQuery, tag, detailKeyword, display, 1);
         }
     }
 

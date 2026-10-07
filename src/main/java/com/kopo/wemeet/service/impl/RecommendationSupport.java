@@ -12,6 +12,12 @@ public final class RecommendationSupport {
     private RecommendationSupport() {
     }
 
+    public record VenueSelectionResult(
+            List<VenueEvaluation> selected,
+            List<VenueEvaluation> remaining
+    ) {
+    }
+
     public record VenueEvaluation(
             RecommendationDTO.VenueResponse response,
             double strategyScore,

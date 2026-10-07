@@ -1,5 +1,6 @@
 package com.kopo.wemeet.controller;
 
+import com.kopo.wemeet.service.impl.*;
 import com.kopo.wemeet.util.WemeetViewHelper;
 
 import com.kopo.wemeet.dto.*;
@@ -7,8 +8,8 @@ import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IApiRecommendationService;
 import com.kopo.wemeet.service.IWemeetViewService;
-import com.kopo.wemeet.service.impl.ApiNaverPlaceSearchService;
-import com.kopo.wemeet.service.impl.NaverPlaceTagCatalog;
+import com.kopo.wemeet.service.impl.RecommendationMoreService;
+import com.kopo.wemeet.service.impl.RecommendationSupport;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -49,6 +50,7 @@ public class MeetController {
     private final ApiNaverPlaceSearchService apiNaverPlaceSearchService;
     private final NaverPlaceTagCatalog naverPlaceTagCatalog;
     private final WemeetViewHelper viewHelper;
+    private final RecommendationMoreService recommendationMoreService;
 
     @GetMapping("/")
     public String landing(Model model, HttpSession session) {
@@ -134,6 +136,28 @@ public class MeetController {
     ) {
         AppUser requester = authService.requireUser(authorization, accessToken);
         return recommendationService.recommend(requester.getId(), request, authService);
+    }
+    @ResponseBody
+    @PostMapping("/api/recommendations/more")
+    public RecommendationSupport.VenueSelectionResult apiMoreRecommendations(
+            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken
+    ) {
+        AppUser requester = authService.requireUser(
+                authorization,
+                accessToken
+        );
+
+        String key = recommendationMoreService
+                .getLatestKey(requester.getId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "추가 추천 키를 찾을 수 없습니다."
+                ));
+
+        return recommendationMoreService.more(
+                requester.getId(),
+                key
+        );
     }
 
     @ResponseBody
