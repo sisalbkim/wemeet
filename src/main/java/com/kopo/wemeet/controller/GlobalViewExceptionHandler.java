@@ -36,6 +36,15 @@ public class GlobalViewExceptionHandler {
             return "redirect:/login?error=true";
         }
 
+        // 프로필 이미지 변경 오류
+        if (request.getRequestURI().equals("/profile/image")) {
+            redirectAttributes.addFlashAttribute(
+                    "profileError",
+                    exception.getReason()
+            );
+            return "redirect:/profile";
+        }
+
         if (exception.getStatusCode().value() == 409 || exception.getStatusCode().value() == 400) {
             redirectAttributes.addFlashAttribute("signupError", exception.getReason());
             return "redirect:/signup";

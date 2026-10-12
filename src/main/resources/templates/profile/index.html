@@ -50,6 +50,13 @@
             </div>
         </section>
 
+        <section class="panel" th:if="${profileError != null}">
+            <div class="notice-banner notice-banner--error">
+                <strong>프로필 사진 변경 실패</strong>
+                <span th:text="${profileError}">이미지 파일을 확인해주세요.</span>
+            </div>
+        </section>
+
         <section class="panel">
             <div class="section-heading">
                 <h2>내 활동</h2>
