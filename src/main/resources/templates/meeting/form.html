@@ -50,7 +50,6 @@
                 <div class="card-stack">
                     <label class="friend-selector">
                         <input type="checkbox" name="friendIds" th:value="${profile.id}" checked disabled>
-                        <input type="hidden" name="friendIds" th:value="${profile.id}">
                         <span class="avatar-badge" th:text="${#strings.substring(profile.name,0,1)}">김</span>
                         <span class="friend-selector__body">
                             <strong th:text="${profile.name + ' (나)'}">김철수 (나)</strong>

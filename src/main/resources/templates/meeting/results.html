@@ -216,7 +216,7 @@
                     </div>
                     <div class="meeting-create-summary">
                         <span>만날 지점 <strong data-meeting-place-name th:text="${recommendation.venues[0].name}">어니언 성수</strong></span>
-                        <span>인원 <strong th:text="${#lists.size(selectedFriendIds) + 1} + '명'">3명</strong></span>
+                        <span>인원 <strong th:text="${#lists.size(selectedFriendIds) + 1} + '명'">0명</strong></span>
                     </div>
                     <p class="meeting-create-address" data-meeting-place-address th:text="${recommendation.venues[0].description}">서울 성동구 아차산로9길 8</p>
                     <button class="primary-button" data-loading-overlay-submit type="submit">모임 저장</button>

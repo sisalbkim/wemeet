@@ -260,6 +260,8 @@ public class MeetController {
         model.addAttribute("profile", viewHelper.toProfile(currentUser));
         model.addAttribute("categories", viewService.getSelectableCategories());
         model.addAttribute("upcomingMeetings", viewService.getUpcomingMeetings(currentUser.getId()));
+        model.addAttribute("meetingInvitations",viewService.getMeetingInvitations(currentUser.getId())
+        );
     }
 
     private UserDTO.UserResponse createGuestUser(String baseAddress) {
