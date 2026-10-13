@@ -1,9 +1,13 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Wemeet Local 8082" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
-    <module name="wemeet.main" />
-    <option name="SPRING_BOOT_MAIN_CLASS" value="com.kopo.wemeet.WemeetApplication" />
     <option name="ACTIVE_PROFILES" value="local" />
+    <envs>
+      <env name="KMA_SHORT_SERVICE_KEY" value="c8edafee0e8cf645f46eb1ded794c3247e19c7df0795c53cae2db8bd91b70dd4" />
+      <env name="KMA_MID_SERVICE_KEY" value="c8edafee0e8cf645f46eb1ded794c3247e19c7df0795c53cae2db8bd91b70dd4" />
+    </envs>
+    <module name="wemeet.main" />
     <option name="PROGRAM_PARAMETERS" value="--server.port=8082" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.kopo.wemeet.WemeetApplication" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

@@ -34,6 +34,7 @@ public class WemeetViewService implements IWemeetViewService {
     private final IFriendService friendService;
     private final IHistoryService historyService;
     private final IMeetingService meetingService;
+    private final MeetingWeatherService meetingWeatherService;
     private final RecommendationBundleMapper recommendationBundleMapper;
     private final DateTimeFormatter historyFormatter = DateTimeFormatter.ofPattern("yyyy. M. d.");
 
@@ -341,6 +342,13 @@ public class WemeetViewService implements IWemeetViewService {
                         StandardCharsets.UTF_8
                 );
 
+
+        String weather = meetingWeatherService.getMeetingWeather(
+                meeting.meetingDate(),
+                meeting.meetingTime(),
+                placeAddress
+        ).orElse("");
+
         return new MeetingDTO.UpcomingMeeting(
                 meeting.title(),
                 meeting.description() == null || meeting.description().isBlank()
@@ -352,7 +360,8 @@ public class WemeetViewService implements IWemeetViewService {
                 isToday ? "active" : "scheduled",
                 placeName,
                 placeAddress,
-                naverMapUrl
+                naverMapUrl,
+                weather
         );
     }
 }

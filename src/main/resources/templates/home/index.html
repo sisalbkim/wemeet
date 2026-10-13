@@ -92,6 +92,12 @@
                                   th:text="${meeting.meetingPlaceAddress}">
                             서울특별시 중구 소파로 95
                         </span>
+
+                            <p class="meeting-weather"
+                               th:if="${meeting.weather != null and !#strings.isEmpty(meeting.weather)}">
+                                <span th:text="|날씨: ${meeting.weather}|"></span>
+                            </p>
+
                         </div>
                         <div class="meta-row">
                             <span th:text="${meeting.dateLabel}">2026. 3. 15.</span>

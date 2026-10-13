@@ -304,6 +304,26 @@ public class ApiNaverPlaceSearchService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Origin place could not be resolved."));
     }
 
+    public Optional<double[]> geocodeAddress(String address) {
+        if (address == null || address.isBlank()
+                || !properties.isEnabled()
+                || !properties.isNaverMapsConfigured()) {
+            return Optional.empty();
+        }
+
+        try {
+            return geocodeOrigin(address)
+                    .map(place -> new double[]{
+                            place.latitude(),
+                            place.longitude()
+                    });
+        } catch (RuntimeException exception) {
+            log.warn("주소 좌표 변환 실패: {}", address, exception);
+            return Optional.empty();
+        }
+    }
+
+
     private Optional<ResolvedPlace> geocodeOrigin(String originQuery) {
         GeocodeResponse geocodeResponse = naverMapsClient.get()
                 .uri(uriBuilder -> uriBuilder

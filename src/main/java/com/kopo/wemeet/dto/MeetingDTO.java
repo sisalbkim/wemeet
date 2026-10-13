@@ -81,6 +81,7 @@ public final class MeetingDTO {
     ) {
     }
 
+
     public record UpcomingMeeting(
             String title,
             String description,
@@ -90,9 +91,11 @@ public final class MeetingDTO {
             String statusTone,
             String meetingPlaceName,
             String meetingPlaceAddress,
-            String naverMapUrl
+            String naverMapUrl,
+            String weather
     ) {
     }
+
 
     public record CreatedMeeting(
             String id,
