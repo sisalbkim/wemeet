@@ -27,13 +27,13 @@ public interface IWemeetViewService {
 
     List<FriendDTO.FriendRequest> getSentFriendRequests(String userId);
 
-    List<MeetingDTO.UpcomingMeeting> getUpcomingMeetings(String userId);
+    List<UpcomingMeetingDTO> getUpcomingMeetings(String userId);
 
-    List<MeetingDTO.CreatedMeeting> getCreatedMeetings(String userId);
+    List<CreatedMeetingDTO> getCreatedMeetings(String userId);
 
-    List<MeetingDTO.CreatedMeeting> getParticipatingMeetings(String userId);
+    List<CreatedMeetingDTO> getParticipatingMeetings(String userId);
 
-    List<MeetingDTO.MeetingInvitation> getMeetingInvitations(String userId);
+    List<MeetingInvitationDTO> getMeetingInvitations(String userId);
 
     UserDTO.UserResponse addFriendByCode(String userId, String friendCode);
 

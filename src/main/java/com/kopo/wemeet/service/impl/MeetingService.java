@@ -1,6 +1,9 @@
 package com.kopo.wemeet.service.impl;
 
-import com.kopo.wemeet.dto.MeetingDTO;
+import com.kopo.wemeet.dto.MeetingCreateRequestDTO;
+import com.kopo.wemeet.dto.MeetingParticipantStatusDTO;
+import com.kopo.wemeet.dto.MeetingRecordDTO;
+import com.kopo.wemeet.dto.MeetingResponseDTO;
 import com.kopo.wemeet.dto.UserDTO;
 import com.kopo.wemeet.repository.AppUserRepository;
 import com.kopo.wemeet.repository.MeetingRepository;
@@ -41,7 +44,7 @@ public class MeetingService implements IMeetingService {
 
     @Transactional
     @Override
-    public MeetingDTO.MeetingRecord createMeeting(
+    public MeetingRecordDTO createMeeting(
             String hostUserId,
             String title,
             String description,
@@ -55,7 +58,7 @@ public class MeetingService implements IMeetingService {
 
     @Transactional
     @Override
-    public MeetingDTO.MeetingRecord createMeeting(
+    public MeetingRecordDTO createMeeting(
             String hostUserId,
             String title,
             String description,
@@ -85,7 +88,7 @@ public class MeetingService implements IMeetingService {
 
     @Transactional
     @Override
-    public MeetingDTO.MeetingRecord createMeeting(
+    public MeetingRecordDTO createMeeting(
             String hostUserId,
             String title,
             String description,
@@ -142,7 +145,7 @@ public class MeetingService implements IMeetingService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<MeetingDTO.MeetingRecord> listMeetingsForUser(String userId) {
+    public List<MeetingRecordDTO> listMeetingsForUser(String userId) {
         return meetingRepository.findAllParticipatingByUserId(userId).stream()
                 .filter(meeting -> meeting.findParticipant(userId)
                         .map(participant -> participant.getStatus() != InvitationStatus.DECLINED)
@@ -153,7 +156,7 @@ public class MeetingService implements IMeetingService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<MeetingDTO.MeetingRecord> listPendingInvitationsForUser(String userId) {
+    public List<MeetingRecordDTO> listPendingInvitationsForUser(String userId) {
         return meetingRepository.findAllParticipatingByUserId(userId).stream()
                 .filter(meeting -> !meeting.getHost().getId().equals(userId))
                 .filter(meeting -> meeting.findParticipant(userId)
@@ -165,7 +168,7 @@ public class MeetingService implements IMeetingService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<MeetingDTO.MeetingRecord> listMeetingsCreatedByUser(String userId) {
+    public List<MeetingRecordDTO> listMeetingsCreatedByUser(String userId) {
         return meetingRepository.findAllCreatedByUserId(userId).stream()
                 .map(this::toMeetingRecord)
                 .toList();
@@ -173,7 +176,7 @@ public class MeetingService implements IMeetingService {
 
     @Transactional(readOnly = true)
     @Override
-    public Optional<MeetingDTO.MeetingRecord> findMeetingCreatedByUser(String userId, String meetingId) {
+    public Optional<MeetingRecordDTO> findMeetingCreatedByUser(String userId, String meetingId) {
         if (meetingId == null || meetingId.isBlank()) {
             return Optional.empty();
         }
@@ -185,7 +188,7 @@ public class MeetingService implements IMeetingService {
 
     @Transactional(readOnly = true)
     @Override
-    public Optional<MeetingDTO.MeetingRecord> findMeetingForUser(String userId, String meetingId) {
+    public Optional<MeetingRecordDTO> findMeetingForUser(String userId, String meetingId) {
         if (meetingId == null || meetingId.isBlank()) {
             return Optional.empty();
         }
@@ -232,7 +235,7 @@ public class MeetingService implements IMeetingService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<MeetingDTO.MeetingResponse> getApiMeetings(String userId) {
+    public List<MeetingResponseDTO> getApiMeetings(String userId) {
         return listMeetingsForUser(userId).stream()
                 .map(this::toMeetingResponse)
                 .toList();
@@ -240,10 +243,10 @@ public class MeetingService implements IMeetingService {
 
     @Transactional
     @Override
-    public MeetingDTO.MeetingResponse createApiMeeting(String requesterId, MeetingDTO.MeetingCreateRequest request) {
+    public MeetingResponseDTO createApiMeeting(String requesterId, MeetingCreateRequestDTO request) {
         LocalDate meetingDate = parseMeetingDate(request.meetingDate());
         LocalTime meetingTime = parseMeetingTime(request.meetingTime());
-        MeetingDTO.MeetingRecord meeting = createMeeting(
+        MeetingRecordDTO meeting = createMeeting(
                 requesterId,
                 request.title(),
                 request.description(),
@@ -257,16 +260,16 @@ public class MeetingService implements IMeetingService {
         return toMeetingResponse(meeting);
     }
 
-    private MeetingDTO.MeetingResponse toMeetingResponse(MeetingDTO.MeetingRecord meeting) {
+    private MeetingResponseDTO toMeetingResponse(MeetingRecordDTO meeting) {
         AppUser host = requireUser(meeting.hostUserId());
         List<UserDTO.UserResponse> participants = meeting.participantStatuses().stream()
                 .filter(participant -> !"DECLINED".equals(participant.status()))
-                .map(MeetingDTO.MeetingParticipantStatus::userId)
+                .map(MeetingParticipantStatusDTO::userId)
                 .map(this::requireUser)
                 .map(this::toUserResponse)
                 .toList();
 
-        return new MeetingDTO.MeetingResponse(
+        return new MeetingResponseDTO(
                 meeting.id(),
                 meeting.title(),
                 meeting.description(),
@@ -316,7 +319,7 @@ public class MeetingService implements IMeetingService {
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found: " + userId));
     }
 
-    private MeetingDTO.MeetingRecord toMeetingRecord(Meeting meeting) {
+    private MeetingRecordDTO toMeetingRecord(Meeting meeting) {
         List<MeetingParticipant> sortedParticipants = meeting.getParticipants().stream()
                 .sorted(Comparator
                         .comparing((MeetingParticipant participant) -> !"HOST".equals(participant.getRole()))
@@ -326,8 +329,8 @@ public class MeetingService implements IMeetingService {
                 .filter(participant -> participant.getStatus() != InvitationStatus.DECLINED)
                 .map(participant -> participant.getUser().getId())
                 .collect(Collectors.toList());
-        List<MeetingDTO.MeetingParticipantStatus> participantStatuses = sortedParticipants.stream()
-                .map(participant -> new MeetingDTO.MeetingParticipantStatus(
+        List<MeetingParticipantStatusDTO> participantStatuses = sortedParticipants.stream()
+                .map(participant -> new MeetingParticipantStatusDTO(
                         participant.getUser().getId(),
                         participant.getUser().getNickname(),
                         participant.getUser().getBaseAddress(),
@@ -338,7 +341,7 @@ public class MeetingService implements IMeetingService {
                 ))
                 .toList();
 
-        return new MeetingDTO.MeetingRecord(
+        return new MeetingRecordDTO(
                 meeting.getId(),
                 meeting.getTitle(),
                 meeting.getDescription(),

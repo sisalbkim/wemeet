@@ -124,13 +124,13 @@ public class WemeetViewService implements IWemeetViewService {
     }
 
     @Override
-    public List<MeetingDTO.UpcomingMeeting> getUpcomingMeetings(String userId) {
+    public List<UpcomingMeetingDTO> getUpcomingMeetings(String userId) {
         // 홈 화면에는 현재 사용자가 참여하는 오늘 이후 모임만 날짜순으로 보여준다.
         LocalDate today = LocalDate.now();
         return meetingService.listMeetingsForUser(userId).stream()
                 .filter(meeting -> meeting.meetingDate() != null && !meeting.meetingDate().isBefore(today))
                 .sorted(java.util.Comparator
-                        .comparing(MeetingDTO.MeetingRecord::meetingDate)
+                        .comparing(MeetingRecordDTO::meetingDate)
                         .thenComparing(meeting -> meeting.meetingTime() == null ? java.time.LocalTime.MAX : meeting.meetingTime()))
                 .limit(5)
                 .map(this::toUpcomingMeeting)
@@ -138,14 +138,14 @@ public class WemeetViewService implements IWemeetViewService {
     }
 
     @Override
-    public List<MeetingDTO.CreatedMeeting> getCreatedMeetings(String userId) {
+    public List<CreatedMeetingDTO> getCreatedMeetings(String userId) {
         return meetingService.listMeetingsCreatedByUser(userId).stream()
                 .map(this::toCreatedMeeting)
                 .toList();
     }
 
     @Override
-    public List<MeetingDTO.CreatedMeeting> getParticipatingMeetings(String userId) {
+    public List<CreatedMeetingDTO> getParticipatingMeetings(String userId) {
         return meetingService.listMeetingsForUser(userId).stream()
                 .filter(meeting -> !userId.equals(meeting.hostUserId()))
                 .filter(meeting -> meeting.participantStatuses().stream()
@@ -156,7 +156,7 @@ public class WemeetViewService implements IWemeetViewService {
     }
 
     @Override
-    public List<MeetingDTO.MeetingInvitation> getMeetingInvitations(String userId) {
+    public List<MeetingInvitationDTO> getMeetingInvitations(String userId) {
         return meetingService.listPendingInvitationsForUser(userId).stream()
                 .map(this::toMeetingInvitation)
                 .toList();
@@ -282,8 +282,8 @@ public class WemeetViewService implements IWemeetViewService {
         );
     }
 
-    private MeetingDTO.CreatedMeeting toCreatedMeeting(MeetingDTO.MeetingRecord meeting) {
-        return new MeetingDTO.CreatedMeeting(
+    private CreatedMeetingDTO toCreatedMeeting(MeetingRecordDTO meeting) {
+        return new CreatedMeetingDTO(
                 meeting.id(),
                 meeting.title(),
                 meeting.description(),
@@ -302,11 +302,11 @@ public class WemeetViewService implements IWemeetViewService {
         );
     }
 
-    private MeetingDTO.MeetingInvitation toMeetingInvitation(MeetingDTO.MeetingRecord meeting) {
+    private MeetingInvitationDTO toMeetingInvitation(MeetingRecordDTO meeting) {
         String hostName = userAccountLookup.findById(meeting.hostUserId())
                 .map(UserDTO.UserAccount::nickname)
                 .orElse("알 수 없음");
-        return new MeetingDTO.MeetingInvitation(
+        return new MeetingInvitationDTO(
                 meeting.id(),
                 meeting.title(),
                 hostName,
@@ -316,7 +316,7 @@ public class WemeetViewService implements IWemeetViewService {
         );
     }
 
-    private MeetingDTO.UpcomingMeeting toUpcomingMeeting(MeetingDTO.MeetingRecord meeting) {
+    private UpcomingMeetingDTO toUpcomingMeeting(MeetingRecordDTO meeting) {
         String hostName = userAccountLookup.findById(meeting.hostUserId())
                 .map(UserDTO.UserAccount::nickname)
                 .orElse("알 수 없음");
@@ -349,7 +349,7 @@ public class WemeetViewService implements IWemeetViewService {
                 placeAddress
         ).orElse("");
 
-        return new MeetingDTO.UpcomingMeeting(
+        return new UpcomingMeetingDTO(
                 meeting.title(),
                 meeting.description() == null || meeting.description().isBlank()
                         ? "등록된 설명이 없습니다."

@@ -1,7 +1,6 @@
 package com.kopo.wemeet.controller;
 
 import com.kopo.wemeet.dto.FriendDTO;
-import com.kopo.wemeet.dto.MeetingDTO;
 import com.kopo.wemeet.dto.RecommendationDTO;
 import com.kopo.wemeet.dto.RecommendationMode;
 import com.kopo.wemeet.dto.UserDTO;

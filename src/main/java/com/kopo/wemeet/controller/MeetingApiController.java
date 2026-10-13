@@ -1,6 +1,7 @@
 package com.kopo.wemeet.controller;
 
-import com.kopo.wemeet.dto.MeetingDTO;
+import com.kopo.wemeet.dto.MeetingCreateRequestDTO;
+import com.kopo.wemeet.dto.MeetingResponseDTO;
 import com.kopo.wemeet.repository.entity.AppUser;
 import com.kopo.wemeet.service.IApiAuthService;
 import com.kopo.wemeet.service.IMeetingService;
@@ -28,7 +29,7 @@ public class MeetingApiController {
 
     @ResponseBody
     @GetMapping("/api/meetings")
-    public List<MeetingDTO.MeetingResponse> apiMeetings(
+    public List<MeetingResponseDTO> apiMeetings(
             @RequestHeader(name = "Authorization", required = false) String authorization,
             @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken
     ) {
@@ -38,10 +39,10 @@ public class MeetingApiController {
 
     @ResponseBody
     @PostMapping("/api/meetings")
-    public MeetingDTO.MeetingResponse apiCreateMeeting(
+    public MeetingResponseDTO apiCreateMeeting(
             @RequestHeader(name = "Authorization", required = false) String authorization,
             @CookieValue(name = "${app.auth.jwt.access-cookie-name:WM_ACCESS_TOKEN}", required = false) String accessToken,
-            @RequestBody MeetingDTO.MeetingCreateRequest request
+            @RequestBody MeetingCreateRequestDTO request
     ) {
         AppUser requester = authService.requireUser(authorization, accessToken);
         return meetingService.createApiMeeting(requester.getId(), request);

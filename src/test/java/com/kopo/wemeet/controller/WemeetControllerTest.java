@@ -1024,7 +1024,7 @@ class WemeetControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/profile"));
 
-        MeetingDTO.MeetingRecord savedMeeting = meetingService.listMeetingsCreatedByUser(userId).stream()
+        MeetingRecordDTO savedMeeting = meetingService.listMeetingsCreatedByUser(userId).stream()
                 .filter(meeting -> "스냅샷 저장 모임".equals(meeting.title()))
                 .findFirst()
                 .orElseThrow();

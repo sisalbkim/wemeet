@@ -2,7 +2,8 @@ package com.kopo.wemeet.controller;
 
 import com.kopo.wemeet.util.WemeetViewHelper;
 
-import com.kopo.wemeet.dto.MeetingDTO;
+import com.kopo.wemeet.dto.CreatedMeetingDTO;
+import com.kopo.wemeet.dto.MeetingRecordDTO;
 import com.kopo.wemeet.dto.RecommendationDTO;
 import com.kopo.wemeet.dto.RecommendationMode;
 import com.kopo.wemeet.repository.entity.AppUser;
@@ -58,12 +59,12 @@ public class MyPageController {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
 
         // 내가 만든 모임 목록에 네이버 지도 링크 같은 화면용 정보 추가.
-        List<MeetingDTO.CreatedMeeting> createdMeetings = enrichProfileMeetings(
+        List<CreatedMeetingDTO> createdMeetings = enrichProfileMeetings(
                 viewService.getCreatedMeetings(currentUser.getId()),
                 currentUser.getId()
         );
         // 내가 초대받아 참여 중인 모임 목록도 같은 방식으로 화면용 정보 추가.
-        List<MeetingDTO.CreatedMeeting> participatingMeetings = enrichProfileMeetings(
+        List<CreatedMeetingDTO> participatingMeetings = enrichProfileMeetings(
                 viewService.getParticipatingMeetings(currentUser.getId()),
                 currentUser.getId()
         );
@@ -94,7 +95,7 @@ public class MyPageController {
         AppUser currentUser = viewHelper.requireLoggedInUser(session);
 
         // 요청한 모임이 없거나, 현재 사용자가 볼 수 없는 모임이면 404 에러.
-        MeetingDTO.MeetingRecord meeting = meetingService.findMeetingForUser(currentUser.getId(), meetingId)
+        MeetingRecordDTO meeting = meetingService.findMeetingForUser(currentUser.getId(), meetingId)
                 .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
                         org.springframework.http.HttpStatus.NOT_FOUND,
                         "Meeting not found"
@@ -172,7 +173,7 @@ public class MyPageController {
 
     // DB에 문자열로 저장된 추천 결과 JSON을 RecommendationBundle 객체로 변환.
     // 저장값이 없거나 JSON 파싱에 실패하면 null 반환 후 새로 계산.
-    private RecommendationDTO.RecommendationBundle deserializeRecommendationSnapshot(MeetingDTO.MeetingRecord meeting) {
+    private RecommendationDTO.RecommendationBundle deserializeRecommendationSnapshot(MeetingRecordDTO meeting) {
         if (meeting.recommendationSnapshotJson() == null || meeting.recommendationSnapshotJson().isBlank()) {
             return null;
         }
@@ -187,7 +188,7 @@ public class MyPageController {
     // 사용자는 "내가 저장한 장소"를 먼저 기대하므로 추천 목록 순서를 화면에 맞게 조정.
     private RecommendationDTO.RecommendationBundle prioritizeSavedMeetingPlace(
             RecommendationDTO.RecommendationBundle snapshot,
-            MeetingDTO.MeetingRecord meeting
+            MeetingRecordDTO meeting
     ) {
         if (snapshot.venues() == null || snapshot.venues().isEmpty()) {
             return snapshot;
@@ -211,7 +212,7 @@ public class MyPageController {
     // 먼저 이름+주소가 모두 같은 장소 검색, 없으면 이름만 같은 장소 검색.
     private int findSavedMeetingVenueIndex(
             List<RecommendationDTO.VenueOption> venues,
-            MeetingDTO.MeetingRecord meeting
+            MeetingRecordDTO meeting
     ) {
         for (int index = 0; index < venues.size(); index++) {
             RecommendationDTO.VenueOption venue = venues.get(index);
@@ -290,7 +291,7 @@ public class MyPageController {
     }
 
     // 프로필에 표시할 모임 목록에 네이버 지도 링크 추가.
-    private List<MeetingDTO.CreatedMeeting> enrichProfileMeetings(List<MeetingDTO.CreatedMeeting> meetings, String viewerUserId) {
+    private List<CreatedMeetingDTO> enrichProfileMeetings(List<CreatedMeetingDTO> meetings, String viewerUserId) {
         return meetings.stream()
                 .map(meeting -> meetingService.findMeetingForUser(viewerUserId, meeting.id())
                         .map(record -> copyMeetingWithNaverMapUrl(meeting, buildMeetingNaverMapUrl(record, viewerUserId)))
@@ -300,8 +301,8 @@ public class MyPageController {
 
     // 기존 모임 카드 데이터는 유지하고, 네이버 지도 링크만 추가한 새 객체 생성.
     // DTO가 불변 record라서 값을 바꾸는 대신 새 record 생성 후 반환.
-    private MeetingDTO.CreatedMeeting copyMeetingWithNaverMapUrl(MeetingDTO.CreatedMeeting meeting, String naverMapUrl) {
-        return new MeetingDTO.CreatedMeeting(
+    private CreatedMeetingDTO copyMeetingWithNaverMapUrl(CreatedMeetingDTO meeting, String naverMapUrl) {
+        return new CreatedMeetingDTO(
                 meeting.id(),
                 meeting.title(),
                 meeting.description(),
@@ -316,7 +317,7 @@ public class MyPageController {
     }
 
     // 모임 장소로 바로 길찾기할 수 있는 네이버 지도 URL 생성.
-    private String buildMeetingNaverMapUrl(MeetingDTO.MeetingRecord meeting, String viewerUserId) {
+    private String buildMeetingNaverMapUrl(MeetingRecordDTO meeting, String viewerUserId) {
         if (meeting.meetingPlaceName() == null || meeting.meetingPlaceName().isBlank()) {
             return "";
         }
@@ -369,7 +370,7 @@ public class MyPageController {
     // 이름+주소가 맞는 장소 우선 검색, 없으면 이름만 맞는 장소, 그것도 없으면 첫 번째 장소 사용.
     private RecommendationDTO.VenueOption resolveMeetingDestinationVenue(
             RecommendationDTO.RecommendationBundle snapshot,
-            MeetingDTO.MeetingRecord meeting
+            MeetingRecordDTO meeting
     ) {
         if (snapshot == null) {
             return null;
@@ -548,4 +549,3 @@ public class MyPageController {
         return "redirect:/login";
     }
 }
-
