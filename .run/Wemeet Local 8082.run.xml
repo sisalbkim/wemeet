@@ -2,8 +2,11 @@
   <configuration default="false" name="Wemeet Local 8082" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
     <option name="ACTIVE_PROFILES" value="local" />
     <envs>
-      <env name="KMA_SHORT_SERVICE_KEY" value="c8edafee0e8cf645f46eb1ded794c3247e19c7df0795c53cae2db8bd91b70dd4" />
       <env name="KMA_MID_SERVICE_KEY" value="c8edafee0e8cf645f46eb1ded794c3247e19c7df0795c53cae2db8bd91b70dd4" />
+      <env name="KMA_SHORT_SERVICE_KEY" value="c8edafee0e8cf645f46eb1ded794c3247e19c7df0795c53cae2db8bd91b70dd4" />
+      <env name="DB_URL" value="jdbc:mariadb://mariadb.cbsq2asq66vx.ap-northeast-2.rds.amazonaws.com:3306/myDB?sslMode=trust" />
+      <env name="DB_USERNAME" value="poly" />
+      <env name="DB_PASSWORD" value="1234" />
     </envs>
     <module name="wemeet.main" />
     <option name="PROGRAM_PARAMETERS" value="--server.port=8082" />
