@@ -69,11 +69,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!(card instanceof HTMLElement)) {
                     return;
                 }
+
                 const name = normalizeSearchText(card.dataset.friendName);
                 const address = normalizeSearchText(card.dataset.friendAddress);
                 const matched = !keyword || name.includes(keyword) || address.includes(keyword);
-                card.hidden = !matched;
-                if (matched) {
+
+                const selectedOnly = card.hasAttribute("data-selected-only");
+                const checkbox = card.querySelector(
+                    "[data-participant-friend-checkbox]"
+                );
+
+                const shouldShow = matched &&
+                    (!selectedOnly || checkbox?.checked);
+
+                card.hidden = !shouldShow;
+
+                if (shouldShow) {
                     visibleCount += 1;
                 }
             });
@@ -229,14 +240,57 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         };
 
+        // 선택한 일반 친구 표시 및 참여 인원 수 갱신
+        const updateSelectedFriends = () => {
+            const selectedCount = participantCheckboxes.filter(
+                (checkbox) =>
+                    checkbox instanceof HTMLInputElement &&
+                    checkbox.checked
+            ).length;
+
+            const countElement = document.querySelector(
+                "[data-selected-participant-count]"
+            );
+
+            if (countElement) {
+                countElement.textContent = `${selectedCount + 1}명`;
+            }
+
+            document.querySelectorAll("[data-selected-only]")
+                .forEach((card) => {
+                    const checkbox = card.querySelector(
+                        "[data-participant-friend-checkbox]"
+                    );
+
+                    card.hidden = !checkbox?.checked;
+                });
+        };
         participantCheckboxes.forEach((checkbox) => {
             if (!(checkbox instanceof HTMLInputElement)) {
                 return;
             }
+
             checkbox.addEventListener("change", () => {
                 syncModalCheckbox(checkbox.dataset.friendId);
+                updateSelectedFriends();
             });
         });
+        document.querySelectorAll("[data-remove-selected-friend]")
+            .forEach((button) => {
+                button.addEventListener("click", () => {
+                    const friendId = button.dataset.friendId;
+                    const checkbox = participantCheckboxByFriendId.get(friendId);
+
+                    if (checkbox instanceof HTMLInputElement) {
+                        checkbox.checked = false;
+                        checkbox.dispatchEvent(
+                            new Event("change", { bubbles: true })
+                        );
+                    }
+                });
+            });
+
+        updateSelectedFriends();
 
         modalCheckboxes.forEach((checkbox) => {
             if (!(checkbox instanceof HTMLInputElement)) {
